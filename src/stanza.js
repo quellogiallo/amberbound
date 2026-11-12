@@ -279,8 +279,9 @@ PZ.creaStanza = function (scena) {
   const AX = 1.95, AZ0 = 0.5, AZ1 = 1.9, AH = 2.1;                 // fronte, fianchi, altezza
   const dentro = M(0x2a1a26, 0x0a0408), fuori = m.rosaCh;
   B(0.04, AH, AZ1 - AZ0, dentro, 2.47, 0, (AZ0 + AZ1) / 2);                       // fondo
-  B(0.55, 0.04, AZ1 - AZ0, fuori, 2.225, AH - 0.04, (AZ0 + AZ1) / 2);             // cielo
-  B(0.55, 0.06, AZ1 - AZ0, fuori, 2.225, 0, (AZ0 + AZ1) / 2);                     // fondo in basso
+  // (fase 66) cielo e fondo stanno DENTRO i fianchi (prima le loro facce coincidevano con quelle dei fianchi: flickering)
+  B(0.55, 0.04, AZ1 - AZ0 - 0.08, fuori, 2.225, AH - 0.04, (AZ0 + AZ1) / 2);      // cielo
+  B(0.55, 0.06, AZ1 - AZ0 - 0.08, fuori, 2.225, 0.001, (AZ0 + AZ1) / 2);          // fondo in basso
   B(0.55, AH, 0.04, fuori, 2.225, 0, AZ0 + 0.02); B(0.55, AH, 0.04, fuori, 2.225, 0, AZ1 - 0.02);   // fianchi
   B(0.5, 0.012, AZ1 - AZ0 - 0.08, dentro, 2.22, 0.06, (AZ0 + AZ1) / 2);           // pianale scuro
   C(0.012, AZ1 - AZ0 - 0.1, 6, m.grigio, 2.22, 1.82, AZ0 + 0.05).rotation.x = Math.PI / 2;   // asta

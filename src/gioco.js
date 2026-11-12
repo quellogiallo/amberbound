@@ -244,6 +244,7 @@
         stanza.prendiPietra();                                             // la pietra scompare dalla stanza (è in tasca)
         const l = $('lampo'); l.classList.remove('via'); void l.offsetWidth; l.classList.add('via');
         stage.classList.add('anomalia'); scossa = 0.4;
+        setTimeout(preparaCorsa, 120);                                     // (fase 66) la strada si costruisce ora, nel lampo
         dopo(950, function () { stage.classList.remove('anomalia'); });
         $('slot').classList.add('pieno'); $('invNome').textContent = 'PIETRA D\'AMBRA  ✓';
       });
@@ -267,6 +268,16 @@
     // Schermo nero con una frase, poi la strada. La cameretta smette di essere disegnata (resta in memoria).
     // test = true: si arriva dal pulsante "Prova la strada" o dall'indirizzo #strada (la pietra risulta già raccolta)
     let corsa = null;
+    // (fase 66) costruire la città e compilarne i materiali richiede qualche secondo sul telefono: prima succedeva
+    // all'uscita (4-5 secondi di nero). Ora si fa quando si raccoglie la pietra, durante il lampo dell'anomalia
+    // (lo scatto si confonde con l'effetto). Se qualcosa va storto si riprova all'uscita, come prima.
+    function preparaCorsa() {
+      if (corsa || !PZ.creaCorsa || stato.versoStrada) return;
+      try {
+        corsa = PZ.creaCorsa({ renderer: renderer, stage: stage });
+        if (corsa.scena && corsa.camera) renderer.compile(corsa.scena, corsa.camera);   // i materiali pronti per il primo fotogramma
+      } catch (e) { corsa = null; }
+    }
     function vaiInStrada(test, arcade) {
       if (stato.versoStrada) return;
       if (PZ.audio.fermaCarillon) PZ.audio.fermaCarillon(1);

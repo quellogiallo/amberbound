@@ -179,7 +179,7 @@ PZ.audio = (function () {
       const SC = [0, 2, 4, 5, 7, 9, 11], g = Math.min(serie || 0, 7);
       const semi = function (k) { return 12 * Math.floor(k / 7) + SC[k % 7]; };
       const f = 783.99 * Math.pow(2, semi(g) / 12), q = 783.99 * Math.pow(2, semi(g + 4) / 12);
-      nota(f, 0.16, 'triangle', 0.08); nota(q, 0.24, 'sine', 0.05, 0.035);
+      nota(f, 0.16, 'triangle', 0.098); nota(q, 0.24, 'sine', 0.061, 0.035);   // (fase 66) +22% di volume
     }
   };
   // ---- LA VOCE DEL FANTASMA (sintetizzata: una voce di ragazza fatta di un'onda e di un soffio passati per tre
