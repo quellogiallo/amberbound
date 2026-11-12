@@ -237,5 +237,5 @@ PZ.CONFIG = {
 
   // PROVE: true = nella schermata iniziale c'è il pulsante "Prova la strada" (e funziona l'indirizzo #strada).
   // Per la versione finale si può mettere false.
-  test: { scorciatoiaStrada: true }
+  test: { scorciatoiaStrada: false }
 };
