@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>AMBERBOUND · il legame d'Ambra</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #0d0710; overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; }
+  #stage { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); background: #000; overflow: hidden; font-family: monospace; font-weight: bold; }
+  #stage canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+  #stage::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(20, 0, 20, .55) 100%); }
+  .ui { position: absolute; z-index: 3; }
+  /* inventario */
+  #inv { left: 1em; top: 1em; text-shadow: 0 0 .3em #1a0820, 0 0 .3em #1a0820; display: flex; align-items: center; gap: .6em; color: #b08e34; font-size: 1em; letter-spacing: .1em; }
+  #slot { width: 3em; height: 3em; box-sizing: border-box; border: .18em solid #b08e34; background: rgba(14, 11, 8, .6); display: flex; align-items: center; justify-content: center; }
+  #slot i { display: block; width: 1.6em; height: 1.6em; background: #b08e34; transform: rotate(45deg) scale(.75); box-shadow: 0 0 1em #b08e34; opacity: 0; transition: opacity .4s; }
+  #slot.pieno i { opacity: 1; }
+  #invNome { opacity: .55; }
+  #slot.pieno + #invNome { opacity: 1; }
+  /* indicazioni */
+  #didascalia { left: 1.2em; right: 1.2em; bottom: 9.5em; text-align: center; color: #b3a796; background: rgba(14, 11, 8, .78); padding: .7em .9em; font-size: 1em; line-height: 1.5; border: .12em solid #b08e34; display: none; }
+  #btn { right: 1.2em; bottom: 2.2em; width: 7.5em; height: 7.5em; border-radius: 50%; border: .25em solid #b08e34; background: rgba(14, 11, 8, .85); color: #b08e34;
+    font: bold .9em monospace; letter-spacing: .05em; display: none; align-items: center; justify-content: center; text-align: center; padding: 0; animation: pulsa 1.2s infinite; }
+  @keyframes pulsa { 50% { box-shadow: 0 0 1.2em #b08e34; } }
+  #joy { position: absolute; z-index: 3; width: 7em; height: 7em; margin: -3.5em 0 0 -3.5em; border: .2em solid rgba(176, 142, 52, .55); border-radius: 50%; display: none; pointer-events: none; }
+  #manopola { position: absolute; left: 50%; top: 50%; width: 3em; height: 3em; margin: -1.5em 0 0 -1.5em; border-radius: 50%; background: rgba(176, 142, 52, .6); }
+  #aiuto { left: 0; right: 0; bottom: 2.5em; text-align: center; color: rgba(179, 167, 150, .7); font-size: .85em; pointer-events: none; transition: opacity 1s; }
+  /* telefono */
+  #telefono { inset: 0; display: none; align-items: center; justify-content: center; background: rgba(10, 0, 15, .72); z-index: 9; }   /* (fase 61) sopra il telefono da girare */
+  /* (fase 25) CHAT IN STILE WHATSAPP: barra verde con foto e nome, fondo beige con motivo, bolle bianche (ricevuti) e
+     verde chiaro (inviati) con orario e spunte */
+  #tel { width: 86%; background: #ece5dd; border: .25em solid #111; border-radius: 1.4em; padding: 0; overflow: hidden; color: #111;
+    font: .82em/1.35 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; box-shadow: 0 0 2em rgba(0, 0, 0, .7); }
+  #telTitolo { display: flex; align-items: center; gap: .55em; padding: .7em .8em; background: #075e54; color: #fff; text-align: left; }
+  #telTitolo .indietro { font-size: 1.5em; line-height: 1; opacity: .9; }
+  #telTitolo .avatar { width: 2.3em; height: 2.3em; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-style: normal; font-weight: 700; color: #fff; flex: none; }
+  #telTitolo .nome { display: flex; flex-direction: column; font-weight: 600; font-size: 1.05em; }
+  #telTitolo .nome small { font-weight: 400; font-size: .72em; opacity: .8; }
+  #telTitolo .icone { margin-left: auto; font-size: 1em; opacity: .85; letter-spacing: .4em; }
+  #chat { max-height: 23em; overflow-y: auto; touch-action: pan-y; padding: .5em .6em .7em; display: flex; flex-direction: column;
+    background-color: #ece5dd; background-image: radial-gradient(rgba(120, 100, 80, .1) 1px, transparent 1.4px), radial-gradient(rgba(120, 100, 80, .07) 1px, transparent 1.4px);
+    background-size: 1.4em 1.4em, 1.4em 1.4em; background-position: 0 0, .7em .7em; }
+  #chat .giorno { align-self: center; margin: .35em 0 .5em; padding: .25em .7em; background: #e1f2fb; color: #4a5a63; border-radius: .5em; font-size: .78em; box-shadow: 0 1px .5px rgba(0, 0, 0, .13); }
+  #chat .cifrato { align-self: center; max-width: 88%; margin: 0 0 .6em; padding: .4em .7em; background: #fff5c4; color: #6b5e2c; border-radius: .5em; font-size: .72em; text-align: center; }
+  #chat .bolla { position: relative; max-width: 80%; padding: .38em .55em .3em; margin: .12em 0; border-radius: .6em; color: #111; box-shadow: 0 1px .5px rgba(0, 0, 0, .13); word-wrap: break-word; }
+  #chat .bolla.lei { background: #fff; align-self: flex-start; }
+  #chat .bolla.tu { background: #dcf8c6; align-self: flex-end; }
+  #chat .bolla.primo.lei { border-top-left-radius: 0; margin-top: .45em; }
+  #chat .bolla.primo.tu { border-top-right-radius: 0; margin-top: .45em; }
+  #chat .bolla.primo.lei::before { content: ""; position: absolute; left: -.45em; top: 0; border: .45em solid transparent; border-top-color: #fff; border-right-color: #fff; border-width: 0 .45em .55em 0; }
+  #chat .bolla.primo.tu::before { content: ""; position: absolute; right: -.45em; top: 0; border-style: solid; border-color: #dcf8c6 transparent transparent #dcf8c6; border-width: 0 0 .55em .45em; }
+  #chat .ora { float: right; margin: .45em 0 -.2em .7em; font-size: .68em; color: #8a958e; white-space: nowrap; }
+  #chat .spunte { color: #34b7f1; letter-spacing: -.25em; margin-left: .2em; }
+  #chat .bolla.nonInviato { opacity: .75; font-style: italic; color: #555; }
+  #chat .bolla.nonInviato .ora { color: #d33; font-style: normal; }
+  #telScrivi { display: flex; align-items: center; gap: .5em; padding: .45em .6em; background: #ece5dd; }
+  #telScrivi span { flex: 1; padding: .55em .9em; background: #fff; border-radius: 1.4em; color: #9aa0a3; }
+  #telScrivi i { width: 2.3em; height: 2.3em; border-radius: 50%; background: #128c7e; color: #fff; font-style: normal; display: flex; align-items: center; justify-content: center; }
+  #telPiede { padding: 0 .8em .8em; background: #ece5dd; }
+  #telPiede #chiudiTel { margin-top: .3em; }
+  #tel button, #fine button { margin-top: .9em; width: 100%; padding: .7em; background: #b08e34; color: #2a1a2d; border: 0; font: bold 1em monospace; letter-spacing: .1em; }
+  #primo { inset: 0; display: none; align-items: center; justify-content: flex-start; flex-direction: column; padding-top: 6em; pointer-events: none; z-index: 8; }   /* (fase 60) sopra il primo piano 3D */
+  #primo > div { width: 62%; border: .25em solid #b08e34; background: #14091a; box-shadow: 0 0 1.5em rgba(0,0,0,.7); text-align: center; }
+  #primoTitolo { color: #b08e34; font-size: .8em; letter-spacing: .15em; padding: .5em 0; }
+  #primoCanvas { display: block; width: 100%; image-rendering: pixelated; }
+  /* effetti */
+  #lampo { inset: 0; background: #b08e34; opacity: 0; pointer-events: none; z-index: 5; }
+  #lampo.via { animation: lampo 1.3s ease-out; }
+  @keyframes lampo { 0% { opacity: 0; } 12% { opacity: 1; } 100% { opacity: 0; } }
+  /* (niente mix-blend-mode né filtri sopra il gioco: su iPhone costano a ogni fotogramma; le fette esistono solo durante l'anomalia) */
+  #fette { inset: 0; pointer-events: none; z-index: 4; opacity: 0; display: none; background: repeating-linear-gradient(0deg, rgba(255, 230, 60, .22) 0 .35em, transparent .35em 1.1em); will-change: opacity; }
+  #stage.anomalia #fette, #stage.anomaliaBreve #fette, #stage.cromatico #fette { display: block; }
+  #stage.anomalia canvas { animation: glitch .9s steps(2) 1; }
+  #stage.anomalia #fette { animation: fette .9s steps(3) 1; }
+  /* il glitch muove l'immagine (solo trasformazioni: le fa la scheda video, senza ridisegnare); i colori li danno le fette */
+  @keyframes glitch { 0% { transform: translateX(0); } 15% { transform: translateX(-3%) skewX(3deg); }
+    30% { transform: translateX(4%); } 45% { transform: translateX(-2%) scaleY(1.03); }
+    70% { transform: translateX(2%) skewX(-4deg); } 100% { transform: none; } }
+  @keyframes fette { 0%, 100% { opacity: 0; } 30% { opacity: .9; } 60% { opacity: .35; } }
+  #specchioFlash { inset: 0; pointer-events: none; z-index: 4; background: radial-gradient(circle, rgba(255,230,60,0) 40%, rgba(120,0,40,.45) 100%); opacity: 0; transition: opacity .15s; }
+  /* avvio e fine */
+  #avvio, #fine { position: absolute; inset: 0; z-index: 8; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; background: #14091a; color: #b08e34; padding: 2em; }
+  #fine { display: none; z-index: 9; }
+  /* FONT DELLE SCRITTE GRANDI (fonts/drunkfonts.woff, da DRUNKFONTS-Regular.otf). Ha solo lettere senza accenti,
+     virgola, punto e trattino (i numeri ci sono ma sono vuoti): nelle scritte grandi non usare ! ? ' / né lettere
+     accentate, e scrivere i numeri in lettere. Se un numero capita lo stesso, si vede nel font di prima (unicode-range). */
+  @font-face { font-family: 'Drunk'; src: url('fonts/drunkfonts.woff') format('woff'); font-display: swap; unicode-range: U+0020, U+002C-002E, U+0041-005A, U+0061-007A; }
+  #avvio h1, #fine h1, #conto, #passaggio h2, #finale b, #morte h3, #scFine h1 { font-family: 'Drunk', monospace; font-weight: normal; }
+  #avvio h1, #fine h1 { font-size: 3em; letter-spacing: .3em; margin: 0 0 .3em .3em; color: #b08e34; text-shadow: .06em .06em 0 #c2487c; }
+  /* (fase 49) titolo AMBERBOUND: più stretto (sta nella larghezza del telefono) e il sottotitolo piccolo sotto */
+  #avvio h1.titolo { font-size: 2.15em; letter-spacing: .1em; margin: 0 0 0 .1em; white-space: nowrap; }
+  #avvio p.sottotitolo { margin: 0 0 1em; color: #f2e41c; font-size: .8em; letter-spacing: .3em; font-style: italic; text-shadow: 0 0 .5em rgba(242, 228, 28, .35); }   /* (fase 59) lo stesso colore dei tasti di interazione */
+  #avvio p, #fine p { color: #9c8e90; font-size: .95em; line-height: 1.6; margin: .4em 0; }
+  #avvio .via { margin-top: 1.5em; padding: .8em 1.4em; border: .2em solid #b08e34; animation: pulsa 1.2s infinite; letter-spacing: .15em; }
+  /* strada (scena 2) */
+  #corsa { position: absolute; inset: 0; z-index: 3; display: none; touch-action: none; }
+  #corsaHud { position: absolute; right: 1em; top: 1em; display: flex; flex-direction: column; align-items: flex-end; gap: .25em; color: #b3a796; text-shadow: 0 0 .3em #0a0c1a, 0 0 .3em #0a0c1a; }
+  #metri { font-size: 1.45em; color: #b08e34; font-variant-numeric: tabular-nums; letter-spacing: .05em; }
+  #urti { font-size: .75em; letter-spacing: .12em; opacity: .85; }
+  /* (fase 41) menu pausa */
+  #pausa { position: absolute; inset: 0; z-index: 500; display: none; flex-direction: column; align-items: center; justify-content: center; gap: .9em; background: rgba(4, 6, 14, .9); }
+  #pausa.vis { display: flex; }
+  #corsa.inPausa #conto { visibility: hidden; }
+  #pausa h2 { margin: 0 0 .4em; color: #e4ff1a; font: 2.4em Drunk, monospace; letter-spacing: .12em; text-shadow: 0 0 .4em #000; }
+  #pausa button { min-width: 11em; padding: .8em 1.6em; border: .2em solid #b08e34; background: rgba(14, 11, 8, .8); color: #b08e34; font: bold 1em monospace; letter-spacing: .18em; touch-action: none; }
+  #pausa button:active { background: #fff35a; color: #1a1400; }
+  #riavvia { margin-top: .4em; padding: .45em .7em; border: .15em solid rgba(176, 142, 52, .7); background: rgba(10, 12, 30, .55); color: #b08e34; font: bold .75em monospace; letter-spacing: .1em; touch-action: none; }
+  #conto { position: absolute; left: 0; right: 0; top: 30%; text-align: center; font-size: 5em; color: #b08e34; text-shadow: .06em .06em 0 #c2487c, 0 0 .4em rgba(0, 0, 0, .8); pointer-events: none; }
+  #conto.pop { animation: pop .8s ease-out; will-change: transform, opacity; }
+  #conto .scrittaImg { display: block; margin: 0 auto; }
+  @keyframes pop { 0% { transform: scale(1.8); opacity: 0; } 20% { transform: scale(1); opacity: 1; } 100% { transform: scale(.92); opacity: .9; } }
+  #corsaAiuto { position: absolute; left: 1.5em; right: 1.5em; top: 8em; text-align: center; color: #b3a796; font-size: .85em; line-height: 1.5; background: rgba(10, 12, 30, .62); border: .12em solid rgba(176, 142, 52, .5); padding: .6em .8em; transition: opacity 1s; pointer-events: none; }
+  .freccia { position: absolute; bottom: 2em; width: 4.4em; height: 4.4em; border-radius: 50%; border: .2em solid rgba(176, 142, 52, .55); background: rgba(10, 12, 30, .4);
+    color: rgba(176, 142, 52, .9); font: bold 1em monospace; padding: 0; display: flex; align-items: center; justify-content: center; touch-action: none; }
+  .freccia span { font-size: 1.6em; line-height: 1; }
+  .freccia:active { background: rgba(176, 142, 52, .25); }
+  #sx { left: 1.2em; } #dx { right: 1.2em; }
+  #lampoUrto { inset: 0; background: #ff5a3a; opacity: 0; pointer-events: none; z-index: 5; will-change: opacity; }
+  #lampoUrto.via { animation: lampoUrto .5s ease-out; }
+  @keyframes lampoUrto { 0% { opacity: .55; } 100% { opacity: 0; } }
+  #passaggio { inset: 0; z-index: 7; background: #000; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 2em; opacity: 0; transition: opacity .8s; }
+  #passaggio.visibile { opacity: 1; }
+  #passaggio:not(.visibile) { pointer-events: none; }   /* mentre svanisce non blocca i tocchi (es. SALTA SCENA) */
+  #passaggio h2 { color: #b08e34; letter-spacing: .35em; font-size: 1.6em; margin: 0 0 .6em .35em; }
+  #passaggio p { color: #b3a796; font-size: 1em; line-height: 1.7; margin: 0; }
+  #provaStrada { margin-top: 1.4em; padding: .5em .9em; background: transparent; border: .12em dashed rgba(156, 142, 144, .6); color: #9c8e90; font: bold .75em monospace; letter-spacing: .1em; display: none; }
+  /* strada: scena iniziale, salto, demone */
+  #stage.inStrada #invNome { display: none; }
+  #corsaHud, .freccia, #salta, #corsaAiuto { transition: opacity .6s; }
+  #corsa.intro #corsaHud, #corsa.intro .freccia, #corsa.intro #salta, #corsa.intro #corsaAiuto { opacity: 0 !important; pointer-events: none; }
+  #saltaIntro { position: absolute; right: 1em; top: 1em; padding: .5em .8em; border: .15em solid rgba(176, 142, 52, .7); background: rgba(10, 12, 30, .55); color: #b08e34; font: bold .75em monospace; letter-spacing: .1em; display: none; touch-action: none; }
+  #corsa.intro #saltaIntro { display: block; }
+  #salta { position: absolute; left: 50%; bottom: 2.5em; transform: translateX(-50%); width: 6.4em; height: 3.6em; border-radius: 1.8em; border: .2em solid rgba(176, 142, 52, .6);
+    background: rgba(10, 12, 30, .45); color: rgba(176, 142, 52, .95); font: bold .95em monospace; letter-spacing: .12em; padding: 0; touch-action: none; }
+  #salta.pronto { background: rgba(255, 200, 40, .38); box-shadow: 0 0 1em #b08e34; border-color: #b08e34; color: #d4b450; }
+  #salta:active { background: rgba(176, 142, 52, .3); }
+  #specchio { left: 33.5%; right: 33.5%; top: 4.5%; height: 7.5%; border: .2em solid #1c1c26; border-radius: .5em; box-shadow: 0 0 0 .1em rgba(176, 142, 52, .45), 0 .2em .6em rgba(0, 0, 0, .6); opacity: 0; visibility: hidden; pointer-events: none; z-index: 2; will-change: opacity; }
+  #specchio.pericolo { box-shadow: 0 0 0 .14em #ff3b3b, 0 0 1em rgba(255, 40, 40, .7); }
+  #specchio small { position: absolute; left: -2em; right: -2em; top: 100%; margin-top: .35em; text-align: center; font-size: .55em; color: rgba(179, 167, 150, .8); letter-spacing: .15em; text-shadow: 0 0 .3em #000; }
+  #demoneDist { font-size: .75em; letter-spacing: .1em; color: #9c8e90; }
+  #demoneDist.vicino { color: #a8433c; animation: pulsaRosso .5s infinite alternate; }
+  @keyframes pulsaRosso { from { opacity: 1; } to { opacity: .55; } }
+  #velo { inset: 0; pointer-events: none; z-index: 2; opacity: 0; visibility: hidden; will-change: opacity; background: radial-gradient(ellipse at 50% 58%, transparent 45%, rgba(150, 0, 20, .7) 100%); }
+  #lampoUrto.sagoma { background: #3a0a4a; }
+  #lampoUrto.presa { background: #000; }
+  #lampoUrto.presa.via { animation: lampoPresa .9s ease-out; }
+  @keyframes lampoPresa { 0% { opacity: .7; } 25% { opacity: .38; } 100% { opacity: 0; } }
+  /* frammenti d'ambra: contatore accanto alla pietra (in alto a sinistra), cartello del finale */
+  #ambraHud { position: absolute; left: 1em; top: 4.5em; display: flex; align-items: center; gap: .45em; color: #b08e34; letter-spacing: .1em; font-size: .95em;
+    text-shadow: 0 0 .3em #1a0820, 0 0 .3em #1a0820; pointer-events: none; transition: opacity .6s; }
+  #ambraHud i { width: .62em; height: 1.05em; background: linear-gradient(160deg, #ffe08a, #f09a1c 45%, #b8580a); clip-path: polygon(50% 0, 100% 38%, 72% 100%, 22% 88%, 0 34%); filter: drop-shadow(0 0 .25em #b08e34); }
+  #ambraN { font-size: 1.3em; font-variant-numeric: tabular-nums; display: inline-block; }
+  #ambraHud.preso #ambraN { animation: ambraPop .4s ease-out; }
+  #ambraHud.preso i { animation: ambraLuce .4s ease-out; }
+  @keyframes ambraPop { 0% { transform: scale(1.4); color: #d4b450; text-shadow: 0 0 .7em #b08e34, 0 0 .3em #1a0820; } 100% { transform: scale(1); } }
+  @keyframes ambraLuce { 0% { transform: scale(1.35); } 100% { transform: scale(1); } }
+  #corsa.intro #ambraHud { opacity: 0; }
+  #corsa.finale .freccia, #corsa.finale #salta, #corsa.finale #corsaAiuto { opacity: 0 !important; pointer-events: none; }
+  #lampoUrto.ambra { background: #ffc24a; }
+  /* OROLOGIO DALINIANO: lampo freddo, velo color seppia ai bordi mentre il tempo è lento, barra che si svuota */
+  #lampoUrto.orologio { background: radial-gradient(ellipse at 50% 50%, rgba(255, 220, 40, .7), rgba(20, 14, 0, .8)); }
+  #lampoUrto.orologio.via { animation: lampoOrologio .7s ease-out; }
+  @keyframes lampoOrologio { 0% { opacity: .38; } 100% { opacity: 0; } }
+  /* FOGLIA DI SALVIA: lampo giallo caldo, barra del volo che si svuota (stessa forma di quella dell'orologio) */
+  #lampoUrto.salvia { background: radial-gradient(ellipse at 50% 60%, rgba(255, 214, 40, .85), rgba(60, 40, 0, .7)); }
+  #lampoUrto.salvia.via { animation: lampoOrologio .9s ease-out; }
+  #voloHud { position: absolute; left: 1.6em; top: 11.6em; width: 14em; color: #b08e34; font-size: .62em; letter-spacing: .1em; opacity: 0; transition: opacity .4s;
+    text-shadow: 0 0 .3em #0a0c1a; pointer-events: none; }
+  #voloHud b { display: block; height: .45em; margin-bottom: .3em; background: linear-gradient(90deg, #ffd21f, #8a6a10); box-shadow: 0 0 .5em rgba(255, 200, 30, .45); width: 100%; transform-origin: 0 50%; will-change: transform; }
+  /* PARANOIA: bordi che respirano nel buio ai livelli alti, sdoppiamento rosso/azzurro per un istante, lampo del jumpscare */
+  #paranoiaVelo { inset: 0; pointer-events: none; z-index: 2; opacity: 0; visibility: hidden; will-change: opacity; background: radial-gradient(ellipse at 50% 52%, transparent 52%, rgba(30, 0, 30, .55) 82%, rgba(5, 0, 8, .85) 100%); }
+  /* vista sdoppiata (paranoia): l'immagine trema di lato e ai bordi compaiono frange rosse e azzurre (prima era un filtro
+     sull'immagine del gioco: su iPhone molto pesante) */
+  #stage.cromatico > canvas:first-child { animation: sdoppia .32s steps(4) 1; }
+  @keyframes sdoppia { 0% { transform: translateX(3px); } 25% { transform: translateX(-3px); } 50% { transform: translateX(2px); } 75% { transform: translateX(-2px); } 100% { transform: none; } }
+  #stage.cromatico #fette { background: linear-gradient(90deg, rgba(255, 0, 60, .4), transparent 9%, transparent 91%, rgba(0, 220, 255, .38)); animation: fette .32s steps(2) 1; }
+  #lampoUrto.jump { background: #f2f6ff; }
+  #lampoUrto.jump.via { animation: lampoJump .35s ease-out; }
+  @keyframes lampoJump { 0% { opacity: .4; } 100% { opacity: 0; } }
+  #lento { inset: 0; pointer-events: none; z-index: 2; opacity: 0; visibility: hidden; will-change: opacity; background: radial-gradient(ellipse at 50% 55%, transparent 46%, rgba(40, 30, 0, .55) 78%, rgba(0, 0, 0, .9) 100%); }
+  #tempoHud { position: absolute; left: 1.6em; top: 11.6em; width: 14em; color: #b08e34; font-size: .62em; letter-spacing: .1em; opacity: 0; transition: opacity .4s;
+    text-shadow: 0 0 .3em #0a0c1a; pointer-events: none; }
+  #tempoHud b { display: block; height: .45em; margin-bottom: .3em; background: linear-gradient(90deg, #ffd21f, #8a6a10); box-shadow: 0 0 .5em rgba(255, 200, 30, .45); width: 100%; transform-origin: 0 50%; will-change: transform; }
+  /* SENSI DI COLPA: un lampo freddo all'inizio; con i comandi invertiti le frecce si girano e diventano azzurre */
+  #lampoUrto.colpa { background: #9fb6ff; }
+  #corsa.invertiti .freccia { border-color: rgba(110, 125, 165, .9); box-shadow: 0 0 .8em rgba(90, 105, 150, .45); color: #8794b3; animation: frecceGirate .5s ease-out; }
+  #corsa.invertiti .freccia span { display: none; }
+  #corsa.invertiti #sx::after, #corsa.invertiti #dx::after { font-size: 1.6em; line-height: 1; }
+  #corsa.invertiti #sx::after { content: "\25B6"; } #corsa.invertiti #dx::after { content: "\25C0"; }
+  @keyframes frecceGirate { 0% { transform: rotateY(90deg); } 100% { transform: rotateY(0); } }
+  #lampoUrto.ambra.via { animation: lampoAmbra 1.3s ease-out; }
+  @keyframes lampoAmbra { 0% { opacity: .9; } 30% { opacity: .55; } 100% { opacity: 0; } }
+  #finale { position: absolute; inset: 0; z-index: 4; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .6em; text-align: center; pointer-events: none;
+    background: radial-gradient(ellipse at 50% 45%, rgba(70, 30, 0, .45), rgba(10, 4, 12, .78)); color: #b08e34; opacity: 0; transition: opacity 1.4s; }
+  #finale.vis { opacity: 1; }
+  #finale b { font-size: 2.6em; line-height: 1.15; letter-spacing: .04em; text-shadow: .06em .06em 0 #c2487c, 0 0 .5em #b08e34; }
+  #finale span { font-size: 1.05em; letter-spacing: .14em; }
+  #finale small { font-size: .8em; letter-spacing: .2em; color: #b3a796; opacity: .75; }
+  /* game over: buio, gli occhi gialli del demone che si spengono piano, la frase, i frammenti, RIPROVA */
+  #corsa.morte .freccia, #corsa.morte #salta, #corsa.morte #corsaAiuto, #corsa.morte #corsaHud, #corsa.morte #ambraHud { opacity: 0 !important; pointer-events: none; }
+  #morte { position: absolute; inset: 0; z-index: 6; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 1em;
+    background: radial-gradient(ellipse at 50% 40%, rgba(12, 4, 14, .9), #020103 75%); color: #b08e34; opacity: 0; pointer-events: none; transition: opacity 1.1s ease-in; }
+  #morte.vis { opacity: 1; pointer-events: auto; }
+  #morte h3 { margin: 0 .4em; font-size: 1.7em; letter-spacing: .02em; line-height: 1.45; color: #b08e34; text-shadow: .06em .06em 0 #5a0c22, 0 0 .6em rgba(255, 200, 40, .35); }
+  #morte p { margin: 0; color: #9c8e90; letter-spacing: .15em; font-size: .95em; }
+  #morte p span { color: #b08e34; font-size: 1.25em; }
+  #riprova { margin-top: .6em; padding: .8em 2.2em; border: .2em solid #b08e34; background: rgba(14, 11, 8, .7); color: #b08e34; font: bold 1.1em monospace; letter-spacing: .2em; touch-action: none; }
+  #riprova:active { background: rgba(176, 142, 52, .25); }
+  #morte .occhi { position: relative; width: 10em; height: 4.5em; margin-bottom: .5em; }
+  #morte .occhi i, #morte .occhi b { position: absolute; border-radius: 50%; background: #ffd21a; box-shadow: 0 0 .5em #ffb000; opacity: 0; }
+  #morte .occhi i { width: .45em; height: .3em; }
+  #morte .occhi b { left: 4.3em; top: .2em; width: 1.4em; height: 1em; background: radial-gradient(circle, #1a0a00 22%, #ffd21a 26%); box-shadow: 0 0 1.2em #ffb000; }
+  #morte.vis .occhi i, #morte.vis .occhi b { animation: occhioSpento 5s ease-in forwards; }
+  #morte .occhi i:nth-child(1) { left: 1em; top: 1.6em; animation-delay: .2s !important; } #morte .occhi i:nth-child(2) { left: 2.6em; top: 2.9em; animation-delay: .5s !important; }
+  #morte .occhi i:nth-child(3) { left: 7.9em; top: 1.4em; animation-delay: .35s !important; } #morte .occhi i:nth-child(4) { left: 6.6em; top: 3.1em; animation-delay: .7s !important; }
+  #morte .occhi i:nth-child(5) { left: 3.4em; top: 1.8em; animation-delay: .9s !important; } #morte .occhi i:nth-child(6) { left: 8.9em; top: 3.3em; animation-delay: .15s !important; }
+  #morte .occhi i:nth-child(7) { left: .2em; top: 3.6em; animation-delay: 1.1s !important; }
+  @keyframes occhioSpento { 0% { opacity: 0; } 12% { opacity: 1; } 60% { opacity: .8; } 100% { opacity: 0; } }
+  #conto.lungo { font-size: 3.2em; top: 24%; }   /* scritte lunghe (TI HA PRESO!) più piccole: la strada resta visibile */
+  #stage.anomaliaBreve canvas { animation: glitch .45s steps(2) 1; }
+  #stage.anomaliaBreve #fette { animation: fette .45s steps(3) 1; }
+  /* finale sulla scogliera */
+  #scogliera { position: absolute; inset: 0; z-index: 7; display: none; touch-action: none; pointer-events: none; }
+  #scogliera.tocca { pointer-events: auto; }
+  #scNero { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; }
+  #scAiuto { position: absolute; left: 1.5em; right: 1.5em; bottom: 3.5em; text-align: center; color: #b3a796; font-size: .9em; line-height: 1.6;
+    text-shadow: 0 0 .4em #000, 0 0 .4em #000; opacity: 0; transition: opacity .8s; pointer-events: none; }
+  #scAiuto small { opacity: .75; }
+  /* (fase 12) INTERAGISCI davanti alla pietra posseduta: stesso pulsante della cameretta, stesso posto */
+  #scInteragisci { position: absolute; right: 1.2em; bottom: 2.2em; display: none; align-items: center; justify-content: center; text-align: center; padding: 0; pointer-events: auto; z-index: 2; }
+  #scogliera.vicino #scInteragisci { display: flex; }
+  #scFine { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: #b08e34;
+    opacity: 0; pointer-events: none; transition: opacity 1.6s; }
+  #scFine.vis { opacity: 1; pointer-events: auto; }
+  #scFine h1 { font-size: 3em; letter-spacing: .3em; margin: 0 0 .2em .3em; color: #b08e34; text-shadow: .06em .06em 0 #5a0c22; }
+  #scFine p { margin: 0 0 1.6em; color: #9c8e90; letter-spacing: .3em; font-size: .9em; opacity: .8; }
+  /* (fase 60) guardare da vicino un oggetto della cameretta e girarlo */
+  #esamina { position: absolute; inset: 0; display: none; z-index: 7; touch-action: none; cursor: grab; }
+  #esamina.vis { display: block; }
+  #esamina .esTitolo { position: absolute; top: 5.2em; left: 0; right: 0; text-align: center; color: #b08e34; letter-spacing: .25em; font-size: 1em; text-shadow: 0 0 .4em #000; }
+  #esamina .esAiuto { position: absolute; top: 10.6em; left: 0; right: 0; text-align: center; color: #8c7f8e; font-size: .65em; letter-spacing: .15em; }
+  #esamina .esPensiero { position: absolute; left: 1.4em; right: 1.4em; bottom: 6.2em; text-align: center; color: #e8dccb; font-style: italic; font-size: 1em; line-height: 1.5;
+    background: rgba(10, 5, 12, .72); padding: .7em .9em; border-left: .15em solid #b3101a; }
+  #esamina .esTasti { position: absolute; left: 0; right: 0; bottom: 2.2em; display: flex; justify-content: center; gap: 1em; }
+  #esamina .esApri, #esamina .esChiudi { padding: .6em 1.6em; border: .18em solid #b08e34; background: rgba(14, 11, 8, .8); color: #f2e41c; font: bold .9em monospace; letter-spacing: .2em; cursor: pointer; }
+  #scMenu { display: block; margin: 1.1em auto 0; padding: .6em 1.4em; border: .15em solid #7d6a3a; background: rgba(14, 11, 8, .7); color: #b3a796; font: bold .85em monospace; letter-spacing: .2em; cursor: pointer; }
+  #avvio.rigioca > :not(.scelte), #avvio.rigioca .scelte > :not(.via) { display: none !important; }
+  #scRicomincia { padding: .7em 1.8em; border: .2em solid #b08e34; background: rgba(14, 11, 8, .7); color: #b08e34; font: bold 1em monospace; letter-spacing: .2em; }
+  #errore { position: fixed; inset: 0; z-index: 20; display: none; align-items: center; justify-content: center; padding: 2rem; background: #000; color: #b08e34; font: 16px/1.6 monospace; text-align: center; white-space: pre-wrap; }
+  /* SCRITTE GRANDI: gialle con il bordo e l'ombra neri (tutto il resto ha colori spenti) */
+  #avvio h1, #fine h1, #conto, #passaggio h2, #finale b, #morte h3, #scFine h1 { color: #ffd21f !important;
+    -webkit-text-stroke: .045em #000; paint-order: stroke fill;
+    text-shadow: .05em .05em 0 #000, -.03em -.03em 0 #000, .03em -.03em 0 #000, -.03em .03em 0 #000, 0 0 .35em rgba(0, 0, 0, .95) !important; }
+  /* ============ PULSANTI ARCADE HORROR (tutti uguali) ============
+     (il colore del bordo non è !important: lo sfarfallio è un'animazione e deve poterlo cambiare)
+     Ottagoni neri con il bordo giallo acido (il bordo è lo sfondo del pulsante, il nero un livello appena più piccolo:
+     così anche gli angoli tagliati hanno il bordo), superficie graffiata, scritta monospazio pesante con un'ombra
+     sfasata nera e rossa (stampa rovinata), un dettaglio rosso sui pulsanti principali. Premuti: si abbassano e si
+     accendono. Ogni tanto il bordo sfarfalla appena (solo il colore: non costa niente al telefono). */
+  #btn, #scInteragisci, #chiudiTel, #ricomincia, #riavvia, .freccia, #salta, #saltaIntro, #riprova, #scRicomincia, #provaStrada, #avvio .via, #arcadeBtn, #classificaBtn, #salvaNick, #arcMenu, #chiudiClassifica, .potereScelta {
+    --taglio: .55em;
+    isolation: isolate; border: 0 !important; border-radius: 0 !important; box-shadow: none !important;
+    background: #e3d21c; color: #f2e41c !important;
+    clip-path: polygon(var(--taglio) 0, calc(100% - var(--taglio)) 0, 100% var(--taglio), 100% calc(100% - var(--taglio)), calc(100% - var(--taglio)) 100%, var(--taglio) 100%, 0 calc(100% - var(--taglio)), 0 var(--taglio));
+    font-family: monospace !important; font-weight: 900 !important; text-transform: uppercase; letter-spacing: .14em;
+    text-shadow: .07em .07em 0 #000, -.05em 0 0 rgba(190, 10, 20, .75);
+    animation: sfarfalla 5.3s steps(1) infinite !important;
+    -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; cursor: pointer;
+  }
+  #btn::before, #scInteragisci::before, #chiudiTel::before, #ricomincia::before, #riavvia::before, .freccia::before, #salta::before, #saltaIntro::before, #riprova::before, #scRicomincia::before, #provaStrada::before, #avvio .via::before, #arcadeBtn::before, #classificaBtn::before, #salvaNick::before, #arcMenu::before, #chiudiClassifica::before, .potereScelta::before {
+    content: ""; position: absolute; inset: .17em; z-index: -1;
+    clip-path: polygon(calc(var(--taglio) - .1em) 0, calc(100% - var(--taglio) + .1em) 0, 100% calc(var(--taglio) - .1em), 100% calc(100% - var(--taglio) + .1em), calc(100% - var(--taglio) + .1em) 100%, calc(var(--taglio) - .1em) 100%, 0 calc(100% - var(--taglio) + .1em), 0 calc(var(--taglio) - .1em));
+    background:
+      repeating-linear-gradient(112deg, rgba(255, 240, 120, .035) 0 1px, transparent 1px 6px),
+      repeating-linear-gradient(-8deg, rgba(0, 0, 0, .5) 0 2px, transparent 2px 9px),
+      radial-gradient(circle at 78% 22%, rgba(242, 228, 28, .07), transparent 40%), #070604;
+    transition: background-color .08s;
+  }
+  #tel #chiudiTel, #fine #ricomincia { background: #e3d21c; color: #f2e41c; }
+  /* (quelli che non sono già posizionati: serve per il livello nero interno) */
+  #chiudiTel, #ricomincia, #riavvia, #riprova, #scRicomincia, #provaStrada, #avvio .via, #arcadeBtn, #classificaBtn, #salvaNick, #arcMenu, #chiudiClassifica, .potereScelta { position: relative; }
+  /* principali (RIPROVA, RIGIOCA, INTERAGISCI): più grandi, con il segno rosso nell'angolo */
+  #riprova::after, #scRicomincia::after, #btn::after, #scInteragisci::after { content: ""; position: absolute; left: .55em; top: .5em; width: .42em; height: .42em; background: #b3101a; box-shadow: .62em 0 0 -.1em #6a0810; }
+  #riprova, #scRicomincia { --taglio: .9em; padding: .95em 2.4em !important; font-size: 1.25em !important; letter-spacing: .26em; }
+  #riprova::before, #scRicomincia::before { inset: .22em; }
+  #btn, #scInteragisci { --taglio: 1.5em; width: 7.4em !important; height: 7.4em !important; font-size: .8em !important; letter-spacing: .01em; line-height: 1.2; }
+  .freccia { --taglio: 1.1em; width: 4.4em; height: 4.4em; }
+  #salta { --taglio: .8em; width: 6.6em; height: 3.7em; }
+  #riavvia, #saltaIntro, #provaStrada { --taglio: .4em; font-size: .72em !important; padding: .55em .8em !important; }
+  #riavvia::before, #saltaIntro::before, #provaStrada::before { inset: .14em; }
+  #provaStrada { color: #c9bb3a !important; }
+  #chiudiTel, #ricomincia { padding: .75em !important; }
+  /* premuto: scende, il fondo si accende di giallo scuro */
+  #btn:active, #scInteragisci:active, #chiudiTel:active, #ricomincia:active, #riavvia:active, .freccia:active, #saltaIntro:active, #riprova:active, #scRicomincia:active, #provaStrada:active, #avvio .via:active, #arcadeBtn:active, #classificaBtn:active, #salvaNick:active, #arcMenu:active, #chiudiClassifica:active, .potereScelta:active { transform: translate(.06em, .12em) scale(.96); background: #fff35a !important; animation: none !important; }
+  #salta:active { transform: translateX(-50%) translate(.06em, .12em) scale(.96); background: #fff35a !important; animation: none !important; }
+  #btn:active::before, #scInteragisci:active::before, #chiudiTel:active::before, #ricomincia:active::before, #riavvia:active::before, .freccia:active::before, #salta:active::before, #saltaIntro:active::before, #riprova:active::before, #scRicomincia:active::before, #provaStrada:active::before, #avvio .via:active::before, #arcadeBtn:active::before, #classificaBtn:active::before, #salvaNick:active::before, #arcMenu:active::before, #chiudiClassifica:active::before, .potereScelta:active::before { background-color: #3a3200; }
+  /* SALTA acceso (è il momento di saltare): pieno giallo, scritta nera: si vede al volo */
+  #salta.pronto { background: #fff35a !important; color: #0a0800 !important; text-shadow: none; animation: none !important; }
+  #salta.pronto::before { background: #f2e41c; }
+  /* sensi di colpa: le frecce invertite diventano azzurre (come prima) */
+  #corsa.invertiti .freccia { background: #8a9ccc !important; color: #b6c4e8 !important; animation: frecceGirate .5s ease-out !important; }
+  @keyframes sfarfalla { 0%, 100% { background-color: #e3d21c; } 91% { background-color: #8a7f10; } 92% { background-color: #e3d21c; } 95% { background-color: #a89a14; } 96% { background-color: #e3d21c; } }
+  #salta { animation-delay: -1.3s !important; } #sx { animation-delay: -2.7s !important; } #dx { animation-delay: -4.1s !important; } #riavvia { animation-delay: -.6s !important; }
+  /* ============ AVVISI (disclaimer) sulle meccaniche: una volta per giocatore, la corsa è in pausa ============ */
+  #avviso { inset: 0; z-index: 9; display: none; align-items: flex-start; justify-content: center; padding-top: 21%; background:
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, .22) 0 2px, transparent 2px 4px), rgba(4, 3, 6, .38); touch-action: none; cursor: pointer; }
+  #avviso.vis { display: flex; }
+  #avviso .avvRiq { --taglio: .9em; position: relative; isolation: isolate; width: 86%; padding: 1em 1.1em .9em; background: #e3d21c;
+    clip-path: polygon(var(--taglio) 0, calc(100% - var(--taglio)) 0, 100% var(--taglio), 100% calc(100% - var(--taglio)), calc(100% - var(--taglio)) 100%, var(--taglio) 100%, 0 calc(100% - var(--taglio)), 0 var(--taglio)); }
+  #avviso .avvRiq::before { content: ""; position: absolute; inset: .2em; z-index: -1;
+    clip-path: polygon(calc(var(--taglio) - .1em) 0, calc(100% - var(--taglio) + .1em) 0, 100% calc(var(--taglio) - .1em), 100% calc(100% - var(--taglio) + .1em), calc(100% - var(--taglio) + .1em) 100%, calc(var(--taglio) - .1em) 100%, 0 calc(100% - var(--taglio) + .1em), 0 calc(var(--taglio) - .1em));
+    background: repeating-linear-gradient(112deg, rgba(255, 240, 120, .03) 0 1px, transparent 1px 6px), repeating-linear-gradient(-8deg, rgba(0, 0, 0, .5) 0 2px, transparent 2px 9px), #060504; }
+  #avviso .avvRiq::after { content: ""; position: absolute; left: .7em; top: .65em; width: .45em; height: .45em; background: #b3101a; box-shadow: .7em 0 0 -.1em #6a0810; }
+  #avviso h4 { margin: .15em 0 .45em; font-family: 'Drunk', monospace; font-weight: normal; font-size: 1.9em; letter-spacing: .08em; text-align: center; color: #ffd21f;
+    text-shadow: .05em .05em 0 #000, -.04em 0 0 rgba(190, 10, 20, .8); }
+  #avviso .avvTesto p { margin: .45em 0; color: #b3a796; font: bold .86em/1.45 monospace; text-align: center; }
+  #avviso .avvTesto b { color: #e3d21c; font-weight: 900; }
+  #avviso .avvTap { margin-top: .8em; text-align: center; color: #f2e41c; font: 900 .82em monospace; letter-spacing: .22em; animation: avvTap 1s steps(1) infinite; }
+  #avviso .avvPc { margin-top: .25em; text-align: center; color: #6e6658; font: bold .62em monospace; letter-spacing: .1em; }
+  @keyframes avvTap { 0%, 60% { opacity: 1; } 61%, 100% { opacity: .35; } }
+  #avviso .avvOcchi { position: absolute; right: 1em; top: .6em; height: .5em; width: 2.4em; }
+  #avviso .avvOcchi i { position: absolute; top: 0; width: .42em; height: .26em; border-radius: 50%; background: #ffd21a; box-shadow: 0 0 .35em #ffb000; animation: avvOcchio 3.1s infinite; }
+  #avviso .avvOcchi i:nth-child(1) { left: 0; } #avviso .avvOcchi i:nth-child(2) { left: .8em; top: .18em; animation-delay: -1.2s; } #avviso .avvOcchi i:nth-child(3) { left: 1.7em; animation-delay: -2.1s; }
+  @keyframes avvOcchio { 0%, 92%, 100% { transform: scaleY(1); } 94%, 97% { transform: scaleY(.1); } }
+  /* entrata rapida con un glitch: si sfalda, scatta di lato e si ricompone in un quarto di secondo */
+  #avviso.entra .avvRiq { animation: avvEntra .32s steps(6) 1; }
+  @keyframes avvEntra { 0% { opacity: 0; transform: translateX(-10px) skewX(14deg) scaleY(.15); } 25% { opacity: 1; transform: translateX(8px) skewX(-8deg) scaleY(1.12); }
+    45% { transform: translateX(-4px) scaleY(.94); } 65% { transform: translateX(2px) skewX(3deg); } 100% { transform: none; } }
+  #avviso.entra h4 { animation: avvTitolo .5s steps(5) 1; }
+  @keyframes avvTitolo { 0% { text-shadow: .3em 0 0 rgba(190, 10, 20, .9), -.3em 0 0 #3a3000; } 60% { text-shadow: -.12em 0 0 rgba(190, 10, 20, .9), .1em 0 0 #3a3000; } 100% { text-shadow: .05em .05em 0 #000, -.04em 0 0 rgba(190, 10, 20, .8); } }
+  /* ============ (fase 16) MODALITÀ ARCADE ============ */
+  #avvio .scelte { display: flex; flex-direction: column; align-items: center; gap: .7em; margin-top: 1.2em; }
+  #avvio .scelte .via { margin-top: 0; }
+  #arcadeBtn { padding: .8em 1.4em; font-size: 1em; display: flex; align-items: center; gap: .6em; }
+  #arcadeBtn.bloccato { background: #6b6420 !important; color: #8f8a5a !important; animation: none !important; }
+  #arcadeBtn.bloccato.no { animation: arcNo .4s steps(6) 1 !important; }
+  @keyframes arcNo { 0%, 100% { transform: none; } 20% { transform: translateX(-6px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(3px); } }
+  /* il lucchetto (disegnato: archetto + corpo con la serratura) */
+  .lucchetto { position: relative; display: inline-block; width: .85em; height: .7em; margin-top: .45em; background: #c8b23a; border-radius: .1em; }
+  .lucchetto::before { content: ""; position: absolute; left: .14em; top: -.48em; width: .45em; height: .55em; border: .12em solid #c8b23a; border-bottom: 0; border-radius: .3em .3em 0 0; box-sizing: border-box; }
+  .lucchetto::after { content: ""; position: absolute; left: .35em; top: .2em; width: .15em; height: .28em; background: #070604; border-radius: .08em; }
+  #arcadeBtn:not(.bloccato) .lucchetto { display: none; }
+  #arcadeNota { min-height: 1.2em; color: #c2487c; font-size: .8em; letter-spacing: .08em; opacity: 0; transition: opacity .3s; }
+  #arcadeNota.vis { opacity: 1; }
+  #classificaBtn { --taglio: .4em; font-size: .72em !important; padding: .55em .9em !important; display: none; }
+  #classificaBtn::before { inset: .14em; }
+  #classificaBtn.vis { display: block; }
+  /* classifica (dal menu) */
+  #classificaMenu { position: absolute; inset: 0; z-index: 10; display: none; flex-direction: column; align-items: center; justify-content: center; gap: .8em; background: rgba(8, 4, 10, .96); color: #b08e34; padding: 1.5em; }
+  #classificaMenu.vis { display: flex; }
+  #classificaMenu h2 { margin: 0; font-family: 'Drunk', monospace; font-weight: normal; font-size: 2em; color: #ffd21f; letter-spacing: .1em; text-shadow: .05em .05em 0 #000; }
+  #chiudiClassifica { padding: .7em 1.6em; }
+  .classifica { list-style: none; margin: 0; padding: 0; width: 100%; max-width: 19em; font: bold .8em/1.55 monospace; color: #b3a796; counter-reset: pos; }
+  .classifica li { display: flex; gap: .6em; padding: .05em .4em; counter-increment: pos; }
+  .classifica li::before { content: counter(pos) "."; width: 1.8em; text-align: right; color: #6e6658; }
+  .classifica li span { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .classifica li b { color: #e3d21c; }
+  .classifica li.tu { background: rgba(227, 210, 28, .16); color: #f2e41c; }
+  .classifica li.vuota { color: #6e6658; justify-content: center; }
+  .classifica li.vuota::before { content: none; }
+  /* (fase 65) classifica online: mentre carica è più spenta; sotto, da dove arriva */
+  .classifica[data-stato="carica"] { opacity: .45; }
+  .classifica::after { display: block; margin-top: .5em; text-align: center; font-size: .75em; letter-spacing: .15em; color: #6e6658; }
+  .classifica[data-stato="carica"]::after { content: "COLLEGAMENTO..."; }
+  .classifica[data-stato="online"]::after { content: "CLASSIFICA MONDIALE"; color: #b08e34; }
+  .classifica[data-stato="locale"]::after { content: "OFFLINE · SOLO QUESTO DISPOSITIVO"; }
+  /* HUD arcade: record, cuori, furia */
+  #recordHud, #cuoriHud { display: none; }
+  #corsa.arcade #recordHud { display: block; font-size: .7em; letter-spacing: .12em; color: #9c8e90; }
+  #corsa.arcade #cuoriHud { display: flex; position: absolute; left: 1em; top: 6.6em; gap: .3em; pointer-events: none; transition: opacity .6s; }
+  #cuoriHud i { width: 1em; height: .9em; background: linear-gradient(160deg, #ffe08a, #f09a1c 50%, #b8580a); filter: drop-shadow(0 0 .25em #b08e34);
+    clip-path: polygon(50% 100%, 0 38%, 8% 10%, 28% 0, 50% 18%, 72% 0, 92% 10%, 100% 38%); }
+  #cuoriHud i.nuovo { animation: ambraPop .6s ease-out; }
+  #corsa.morte #cuoriHud { opacity: 0; }
+  #furiaHud { position: absolute; left: 1.6em; top: 14em; width: 14em; color: #ffb21f; font-size: .62em; letter-spacing: .1em; opacity: 0; transition: opacity .4s; text-shadow: 0 0 .3em #0a0c1a; pointer-events: none; }
+  #furiaHud b { display: block; height: .45em; margin-bottom: .3em; background: linear-gradient(90deg, #ffe08a, #f09a1c, #b8580a); box-shadow: 0 0 .6em rgba(255, 160, 30, .6); transform-origin: 0 50%; will-change: transform; }
+  #furiaVelo { inset: 0; pointer-events: none; z-index: 2; opacity: 0; visibility: hidden; will-change: opacity;
+    background: radial-gradient(ellipse at 50% 55%, transparent 50%, rgba(255, 150, 20, .38) 85%, rgba(255, 90, 0, .6) 100%); }
+  /* la scelta del potenziamento a 100 frammenti (la corsa è in pausa) */
+  #potere { position: absolute; inset: 0; z-index: 9; display: none; flex-direction: column; align-items: center; justify-content: center; gap: .9em; padding: 1.4em;
+    background: radial-gradient(ellipse at 50% 45%, rgba(60, 30, 0, .93), rgba(6, 3, 8, .97)); }
+  #potere.vis { display: flex; }
+  #potere h4 { margin: 0; font-family: 'Drunk', monospace; font-weight: normal; font-size: 2.2em; color: #ffd21f; letter-spacing: .06em; text-align: center; text-shadow: .05em .05em 0 #000, -.04em 0 0 rgba(190, 10, 20, .8); }
+  #potere .sotto { color: #b3a796; font: bold .78em monospace; letter-spacing: .12em; text-align: center; margin-top: -.5em; }
+  .potereScelta { --taglio: .9em; width: 100%; max-width: 17em; padding: 1em 1.1em !important; text-align: left; display: block; }
+  .potereScelta::before { inset: .2em; }
+  .potereScelta big { display: block; font-size: 1.05em; letter-spacing: .1em; margin-bottom: .35em; }
+  .potereScelta small { display: block; font: bold .68em/1.45 monospace; color: #b3a796; letter-spacing: .03em; text-transform: none; text-shadow: none; }
+  .potereScelta.pieno { opacity: .45; pointer-events: none; }
+  #potere .tasti { color: #6e6658; font: bold .62em monospace; letter-spacing: .1em; }
+  /* game over arcade: metri, nickname, classifica */
+  #arcFine, #arcMenu { display: none; }
+  #corsa.arcade #morte { justify-content: flex-start; padding-top: 4.2em; gap: .55em; }
+  #corsa.arcade #morte .occhi { display: none; }
+  #corsa.arcade #morte h3 { font-size: 1.15em; }
+  #corsa.arcade #arcFine { display: flex; flex-direction: column; align-items: center; gap: .45em; width: 100%; padding: 0 1.2em; box-sizing: border-box; }
+  #corsa.arcade #arcMenu { display: block; --taglio: .4em; font-size: .75em !important; padding: .55em 1.1em !important; }
+  #arcMetri { font: bold 1.6em monospace; color: #f2e41c; letter-spacing: .06em; text-shadow: .06em .06em 0 #000; }
+  #arcRecord { color: #c2487c; font: 900 .8em monospace; letter-spacing: .2em; display: none; animation: avvTap 1s steps(1) infinite; }
+  #arcRecord.vis { display: block; }
+  #arcNick { display: flex; gap: .4em; width: 100%; max-width: 19em; }
+  #arcNick.salvato { display: none; }
+  #nick { flex: 1; min-width: 0; padding: .55em .6em; background: #070604; border: .15em solid #e3d21c; color: #f2e41c; font: bold 1em monospace; letter-spacing: .1em; text-transform: uppercase; border-radius: 0; outline: none; user-select: text; -webkit-user-select: text; }
+  #nick::placeholder { color: #5e5a30; }
+  #salvaNick { --taglio: .4em; font-size: .78em !important; padding: .55em .8em !important; }
+  #corsa.arcade #riprova { margin-top: .2em; padding: .75em 2em !important; font-size: 1.05em !important; }
+  #corsa.arcade #morte p { margin: 0; font-size: .8em; }
+  #scSblocco { color: #c2487c !important; font-size: .75em !important; letter-spacing: .15em !important; display: none; margin: -.8em 0 1.4em !important; opacity: 1 !important; }
+  #scSblocco.vis { display: block; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="fette" class="ui"></div>
+  <div id="specchioFlash" class="ui"></div>
+  <div id="primo" class="ui"><div><div id="primoTitolo"></div><canvas id="primoCanvas"></canvas></div></div>
+  <div id="lampo" class="ui"></div>
+  <div id="inv" class="ui"><div id="slot"><i></i></div><div id="invNome">PIETRA D'AMBRA</div></div>
+  <div id="didascalia" class="ui"></div>
+  <div id="aiuto" class="ui">Trascina per muoverti &middot; avvicinati agli oggetti</div>
+  <button id="btn" class="ui">INTERAGISCI</button>
+  <div id="joy"><div id="manopola"></div></div>
+  <div id="telefono" class="ui"><div id="tel"><div id="telTitolo"></div><div id="chat"></div><div id="telScrivi"><span>Messaggio</span><i>&#127908;</i></div><div id="telPiede"><button id="chiudiTel">CHIUDI</button></div></div></div>
+  <div id="corsa">
+    <div id="ambraHud"><i></i>AMBRA <span id="ambraN">0/100</span></div>
+    <div id="tempoHud"><b></b><span>IL TEMPO SI SCIOGLIE</span></div>
+    <div id="voloHud"><b></b><span>O AVE MARIA</span></div>
+    <div id="furiaHud"><b></b><span>FURIA D'AMBRA</span></div>
+    <div id="cuoriHud"></div>
+    <div id="finale"><b>CENTO SU CENTO</b><span>LA PIETRA È COMPLETA</span><small>verso la scogliera&hellip;</small></div>
+    <div id="morte"><div class="occhi"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><b></b></div>
+      <h3>LA PARANOIA HA PRESO<br>IL SOPRAVVENTO</h3><p>AMBRA <span id="morteN">0/100</span></p>
+      <div id="arcFine"><div id="arcMetri">0 m</div><div id="arcRecord">NUOVO RECORD</div>
+        <div id="arcNick"><input id="nick" type="text" maxlength="12" placeholder="NICKNAME" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" enterkeyhint="done"><button id="salvaNick">SALVA</button></div>
+        <ol id="arcClassifica" class="classifica"></ol></div>
+      <button id="riprova">RIPROVA</button><button id="arcMenu">MENU</button></div>
+    <div id="corsaHud"><div id="metri">0 m</div><div id="recordHud">RECORD 0 m</div><div id="demoneDist">DEMONE</div><div id="urti">URTI 0</div><button id="riavvia">&#10074;&#10074; PAUSA</button></div>
+    <div id="pausa"><h2>PAUSA</h2><button id="pausaContinua">CONTINUA</button><button id="pausaRicomincia">RICOMINCIA</button><button id="pausaMenu">TORNA AL MENU</button></div>
+    <div id="conto"></div>
+    <div id="corsaAiuto">Scorri a sinistra o a destra per cambiare corsia.<br>Transenne: tocca SALTA o scorri in su.<br><small>(PC: frecce o A / D, Spazio per saltare)</small></div>
+    <button id="sx" class="freccia" aria-label="Corsia a sinistra"><span>&#9664;</span></button>
+    <button id="salta" aria-label="Salta">SALTA</button>
+    <button id="dx" class="freccia" aria-label="Corsia a destra"><span>&#9654;</span></button>
+    <button id="saltaIntro">SALTA SCENA &#9656;&#9656;</button>
+  </div>
+  <div id="scogliera"><div id="scNero"></div>
+    <div id="scAiuto">Trascina per girare la pietra<br><small>(PC: mouse, frecce o W A S D)</small></div>
+    <button id="scInteragisci">INTERAGISCI</button>
+    <div id="scFine"><h1>AMBRA</h1><p id="scSblocco">MODALITA ARCADE SBLOCCATA &middot; LA TROVI NEL MENU</p><button id="scRicomincia">RIGIOCA</button><button id="scMenu">TORNA AL MENU</button></div></div>
+  <div id="specchio" class="ui"><small>DIETRO DI TE</small></div>
+  <div id="velo" class="ui"></div>
+  <div id="lento" class="ui"></div>
+  <div id="paranoiaVelo" class="ui"></div>
+  <div id="furiaVelo" class="ui"></div>
+  <div id="potere"><h4>POTERE D AMBRA</h4><div class="sotto">LA PIETRA TI DÀ UN POTERE. SCEGLI:</div>
+    <button class="potereScelta" data-potere="cuore"><big>CUORE D'AMBRA</big><small>Una vita in più: quando il demone ti prende, la pietra esplode di luce e lo respinge lontano. <span class="quanti"></span></small></button>
+    <button class="potereScelta" data-potere="furia"><big>FURIA D'AMBRA</big><small><span class="durata">8</span> secondi invincibile: sfondi auto, transenne e mani, il demone resta indietro e i metri contano doppio.</small></button>
+    <div class="tasti">PC: 1 = CUORE &middot; 2 = FURIA</div></div>
+  <div id="lampoUrto" class="ui"></div>
+  <div id="passaggio" class="ui"><h2>LA STRADA</h2><p>Fuori, la città dorme.<br>La pietra è calda nella tasca.</p></div>
+  <div id="fine"><h1>AMBRA</h1><p>Fine della scena 1.</p><p>Fuori dalla porta, la notte ti aspetta.<br>(La strada arriva nel prossimo aggiornamento.)</p><button id="ricomincia">RICOMINCIA</button></div>
+  <div id="avvio"><h1 class="titolo">AMBERBOUND</h1><p class="sottotitolo">il legame d'Ambra</p><p>Una cameretta. Una ragazza a terra.<br>Una pietra che brilla.</p>
+    <p style="color:#b3a796">Muoviti trascinando il dito sul lato sinistro dello schermo.<br>Vicino a un oggetto compare il pulsante <b style="color:#b08e34">INTERAGISCI</b>.<br><small>(PC: WASD o frecce, E o Spazio)</small></p>
+    <div class="scelte"><div class="via">&#9654; STORIA</div>
+      <button id="arcadeBtn" class="bloccato"><span class="lucchetto"></span>&#8734; ARCADE</button>
+      <div id="arcadeNota">FINISCI LA STORIA PER SBLOCCARLA</div>
+      <button id="classificaBtn">CLASSIFICA</button></div>
+    <button id="provaStrada">PROVA LA STRADA (test)</button></div>
+  <div id="classificaMenu"><h2>CLASSIFICA</h2><ol id="classificaLista" class="classifica"></ol><button id="chiudiClassifica">CHIUDI</button></div>
+</div>
+<div id="errore"></div>
+
+<!-- Three.js r128, versione fissata. Se sei offline, vedi LEGGIMI.md (cartella vendor). -->
+<script>try { document.fonts.load('1em Drunk'); } catch (e) {}   // scarica subito il font delle scritte grandi</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>window.THREE || document.write('<script src="vendor/three.min.js"><\/script>');</script>
+<script src="src/config.js"></script>
+<script src="src/ps1.js"></script>
+<script src="src/strada/fluido.js"></script>
+<script src="src/luna.js"></script>
+<script src="src/audio.js"></script>
+<script src="src/personaggi/sartoria.js"></script>
+<script src="src/personaggi/ragazzo.js"></script>
+<script src="src/personaggi/bici.js"></script>
+<script src="src/personaggi/pietra.js"></script>
+<script src="src/personaggi/ragazza.js"></script>
+<script src="src/stanza.js"></script>
+<script src="src/esamina.js"></script>
+<script src="src/giocatore.js"></script>
+<script src="src/strada/strumenti.js"></script>
+<script src="src/strada/unisci.js"></script>
+<script src="src/strada/texture.js"></script>
+<script src="src/strada/auto.js"></script>
+<script src="src/strada/citta.js"></script>
+<script src="src/strada/demone.js"></script>
+<script src="src/strada/transenne.js"></script>
+<script src="src/strada/difficolta.js"></script>
+<script src="src/strada/frammenti.js"></script>
+<script src="src/strada/orologio.js"></script>
+<script src="src/strada/salvia.js"></script>
+<script src="src/strada/avvisi.js"></script>
+<script src="src/strada/arcade.js"></script>
+<script src="src/strada/online.js"></script>
+<script src="src/strada/scogliera.js"></script>
+<script src="src/strada/traffico.js"></script>
+<script src="src/strada/apparizioni.js"></script>
+<script src="src/strada/ciclista.js"></script>
+<script src="src/strada/atmosfera.js"></script>
+<script src="src/strada/eventi.js"></script>
+<script src="src/strada/paranoia.js"></script>
+<script src="src/strada/sciogli.js"></script>
+<script src="src/strada/inseguimento.js"></script>
+<script src="src/strada/manata.js"></script>
+<script src="src/strada/intro.js"></script>
+<script src="src/strada/corsa.js"></script>
+<script src="src/scogliera/terra.js"></script>
+<script src="src/scogliera/oceano.js"></script>
+<script src="src/scogliera/luci.js"></script>
+<script src="src/scogliera/cielo.js"></script>
+<script src="src/scogliera/finale.js"></script>
+<script src="src/gioco.js"></script>
+</body>
+</html>

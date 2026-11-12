@@ -1,0 +1,3 @@
+Metti qui i file audio della paranoia (bisbigli, respiri, risate, urlo del jumpscare)
+e scrivi i loro nomi in src/config.js, sezione audio.paranoia. Vedi LEGGIMI.md.
+Se la sezione resta vuota il gioco usa i suoni sintetici.

@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // CLASSIFICA ARCADE: tutti leggono; ognuno scrive solo il proprio record (documento = suo codice anonimo)
+    match /classifica/{uid} {
+      allow read: if true;
+      allow create, update: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['n', 'm', 'f', 'd'])
+        && request.resource.data.n is string
+        && request.resource.data.n.size() >= 1 && request.resource.data.n.size() <= 12
+        && request.resource.data.m is int
+        && request.resource.data.m >= 0 && request.resource.data.m <= 200000
+        && request.resource.data.f is int
+        && request.resource.data.d == request.time
+        // un record non può mai scendere
+        && (resource == null || request.resource.data.m >= resource.data.m);
+      allow delete: if false;
+    }
+    // tutto il resto è chiuso
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

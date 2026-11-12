@@ -1,0 +1,6 @@
+Cartella facoltativa, serve solo per usare il progetto senza internet.
+
+Salva qui il file three.min.js (versione r128) scaricandolo da:
+https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js
+
+Il nome deve essere esattamente: three.min.js
