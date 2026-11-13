@@ -164,7 +164,29 @@ PZ.audio = (function () {
     portaApre: function () { nota(150, 0.7, 'sawtooth', 0.04, 0, 0.6); nota(152, 0.7, 'square', 0.025, 0.05, 0.55); soffio(300, 900, 0.6, 0.03); },
     portaChiude: function () { soffio(400, 80, 0.25, 0.35); nota(70, 0.25, 'sine', 0.3, 0, 0.6); },
     demoneAppare: function () { nota(55, 2.6, 'sawtooth', 0.09, 0, 0.8); nota(58.3, 2.6, 'sawtooth', 0.08, 0.05, 0.8); nota(110, 1.8, 'triangle', 0.05, 0.3, 0.5); soffio(2000, 200, 1.6, 0.05); },
-    battito: function () { nota(58, 0.14, 'sine', 0.35, 0, 0.7); nota(52, 0.16, 'sine', 0.28, 0.2, 0.7); },
+    battito: function (forza) { const k = forza || 1; nota(58, 0.14, 'sine', 0.35 * k, 0, 0.7); nota(52, 0.16, 'sine', 0.28 * k, 0.2, 0.7); },
+    // (fase 66) il demone alle tue spalle: un ringhio grave e ruvido che sale e ricade (vol 0..1, pan -1..1)
+    ringhio: function (vol, pan) {
+      if (!ctx) return;
+      const t = ctx.currentTime + 0.01, d = 0.9 + Math.random() * 0.6, v = Math.max(0.05, Math.min(1, vol || 0.5));
+      const p = ctx.createStereoPanner ? ctx.createStereoPanner() : ctx.createGain(), g = ctx.createGain();
+      if (p.pan) p.pan.value = pan || 0; g.connect(p); p.connect(master);
+      const f0 = 52 + Math.random() * 10, o = ctx.createOscillator(), o2 = ctx.createOscillator(), lp = ctx.createBiquadFilter();
+      o.type = 'sawtooth'; o2.type = 'square';
+      o.frequency.setValueAtTime(f0, t); o.frequency.linearRampToValueAtTime(f0 * 1.35, t + d * 0.35); o.frequency.linearRampToValueAtTime(f0 * 0.85, t + d);
+      o2.frequency.setValueAtTime(f0 * 1.02, t); o2.frequency.linearRampToValueAtTime(f0 * 1.3, t + d * 0.4); o2.frequency.linearRampToValueAtTime(f0 * 0.8, t + d);
+      lp.type = 'lowpass'; lp.frequency.setValueAtTime(220, t); lp.frequency.linearRampToValueAtTime(650, t + d * 0.35); lp.frequency.linearRampToValueAtTime(180, t + d); lp.Q.value = 5;
+      // il tremolio ruvido della gola
+      const tr = ctx.createOscillator(), gt = ctx.createGain(), go = ctx.createGain();
+      tr.frequency.value = 22 + Math.random() * 10; gt.gain.value = 0.45; go.gain.value = 0.55; tr.connect(gt); gt.connect(go.gain);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.3 * v, t + d * 0.25); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+      o.connect(lp); o2.connect(lp); lp.connect(go); go.connect(g);
+      [o, o2, tr].forEach(function (x) { x.start(t); x.stop(t + d + 0.05); });
+      const s = ctx.createBufferSource(), b = ctx.createBiquadFilter(), gs = ctx.createGain();     // il fiato
+      s.buffer = rumore(); b.type = 'bandpass'; b.frequency.value = 420; b.Q.value = 1.4;
+      gs.gain.setValueAtTime(0.0001, t); gs.gain.exponentialRampToValueAtTime(0.18 * v, t + d * 0.3); gs.gain.exponentialRampToValueAtTime(0.0001, t + d);
+      s.connect(b); b.connect(gs); gs.connect(g); s.start(t); s.stop(t + d + 0.05);
+    },
     clic: function () { nota(1800, 0.03, 'square', 0.04); nota(900, 0.04, 'square', 0.03, 0.05); },
     scappa: function () { [330, 392, 494].forEach(function (f, i) { nota(f, 0.25, 'square', 0.06, i * 0.09); }); nota(55, 0.6, 'sawtooth', 0.08, 0, 0.7); },
     salto: function () { soffio(500, 1800, 0.22, 0.12); nota(300, 0.16, 'triangle', 0.06, 0, 2); },
@@ -1054,7 +1076,7 @@ PZ.audio = (function () {
     },
     data: function () { nota(41, 2.5, 'sine', 0.4, 0, 0.8); nota(1318, 2.2, 'sine', 0.04); nota(1396, 2.2, 'sine', 0.035, 0.03); soffio(6000, 400, 1.8, 0.06); },
     blackout: eventi.blackout, scossa: eventi.scossa, luceTorna: eventi.luceTorna, colpa: eventi.colpa, ovatta: eventi.ovatta, pianoColpa: eventi.pianoColpa, pianoFerma: eventi.pianoFerma,
-    portaApre: demoni.portaApre, portaChiude: demoni.portaChiude, demoneAppare: demoni.demoneAppare, battito: demoni.battito, clic: demoni.clic,
+    portaApre: demoni.portaApre, portaChiude: demoni.portaChiude, demoneAppare: demoni.demoneAppare, battito: demoni.battito, ringhio: demoni.ringhio, clic: demoni.clic,
     scappa: demoni.scappa, ambra: demoni.ambra, salto: demoni.salto, atterraggio: demoni.atterraggio, transenna: demoni.transenna, sagomaUrto: demoni.sagomaUrto, cattura: demoni.cattura,
     passoStanza: strada.passoStanza, passoStrada: strada.passoStrada, passoTerra: strada.passoTerra, scarto: strada.scarto, urto: strada.urto, distruzione: strada.distruzione, clacson: strada.clacson, clacsonVicino: strada.clacsonVicino, bip: strada.bip, vento: strada.vento,
     avvia: avvia, stingerDemone: stingerDemone, fermaStinger: fermaStinger,

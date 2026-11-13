@@ -158,6 +158,8 @@ PZ.creaCorsa = function (opz) {
   eventi = PZ.creaEventi({ scena: scena, stage: stage, renderer: renderer, ui: ui, mostraConto: mostraConto, lampo: lampo });
   // la paranoia: più il demone è vicino, più il mondo si deforma e genera allucinazioni (src/strada/paranoia.js)
   const paranoia = PZ.creaParanoia({ scena: scena, citta: citta, ragazze: ragazze, stage: stage, atmosfera: atmosfera, lampo: lampo, velo: $('paranoiaVelo') });
+  // (fase 66) il demone alle spalle: le manone sullo schermo, la città che vira al rosso, ringhio e respiro (src/strada/presenza.js)
+  const presenza = PZ.creaPresenza({ scena: scena, camera: camera, atmosfera: atmosfera });
   // OROLOGIO DALINIANO: la città gialla e nera che si scioglie (tutto tranne il ragazzo, la bici, i frammenti e l'orologio)
   const sciogli = PZ.creaScioglimento({ scena: scena, escludi: [ciclista.bici.gruppo, ciclista.ragazzo.gruppo, orologio.gruppo].concat(frammenti.oggetti) });
   if (CFG.orologio.attivo !== false) sciogli.prepara();   // (con l'orologio tolto i materiali restano quelli originali)
@@ -695,6 +697,7 @@ PZ.creaCorsa = function (opz) {
     if (S.fase === 'corsa') paranoia.aggiorna(dtm, dt, { vicinanza: inseguimento.stato.vicinanza, metri: S.metri, avanza: V0 * S.F * dt, camera: camera, camX: S.camX,
       auto: traffico.attive, liberoDavanti: (traffico.prossimoArrivo(S.tau, S.corsia + 1) - S.tau) / Math.max(0.3, S.F), pronto: S.pronto, colpa: !!eventi.stato.colpa,
       buio: eventi.stato.buio, lento: S.lento, risalto: occhi.risalto });
+    presenza.aggiorna(dt, { attivo: S.fase === 'corsa' && demone.visibile && !manata.demone.visibile, dist: inseguimento.stato.dist, vicinanza: inseguimento.stato.vicinanza });
     if (S.fase !== 'corsa') return;
     // pericolo: quando il demone arriva molto vicino, un'anomalia breve (una volta per ogni avvicinamento)
     if (inseguimento.stato.vicinanza > 0.72 && !S.allarme) { S.allarme = true; anomalia(true); }
@@ -703,7 +706,7 @@ PZ.creaCorsa = function (opz) {
     specchietto.aggiorna(dt, vic > 0.55 && !S.sguardo);
     PZ.opacita(ui.velo, 0.75 * Math.max(0, vic - 0.3) / 0.7);
     S.battito -= dt;
-    if (vic > 0.35 && S.battito <= 0) { S.battito = 1.15 - 0.6 * vic; if (PZ.audio.battito) PZ.audio.battito(); }
+    if (vic > 0.35 && S.battito <= 0) { S.battito = 1.15 - 0.6 * vic; if (PZ.audio.battito) PZ.audio.battito(1 + 0.6 * vic); presenza.battito(); }
     forseSguardo();
     occhi.aggiorna(dtm, testa);
     atmosfera.aggiorna(k, dtm, eventi.stato.buio, S.metri);
@@ -809,6 +812,7 @@ PZ.creaCorsa = function (opz) {
     salvia.ferma(); frammenti.solleva(0); aggiornaVoloHud();
     PZ.avvisi.chiudi(false);                             // un avviso lasciato a metà non conta come letto
     paranoia.reset();                                     // paranoia da zero: niente figure, suoni, deformazioni
+    presenza.reset();                                     // (fase 66) niente manone, niente rosso
     const prova = (CFG && PZ.CONFIG.test && PZ.CONFIG.test.scorciatoiaStrada) ? /[?&#]ambra=(\d+)/.exec(location.search + location.hash) : null;
     if (prova) PZ.raccolta.imposta(Math.min(PZ.raccolta.obiettivo - 1, +prova[1]));
     S.puFine = -1e9;
@@ -855,7 +859,13 @@ PZ.creaCorsa = function (opz) {
     // le posizioni di tutti gli oggetti si calcolano una volta sola per fotogramma (prima lo faceva ogni disegno)
     scena.updateMatrixWorld(); const au = scena.autoUpdate; scena.autoUpdate = false;
     if (spec) specchietto.immagine(scena, S.x, inseguimento.stato.dist);    // prima l'immagine dello specchietto
+    // (fase 66) quando il demone è alle tue spalle (sotto la distanza delle manone) la telecamera non lo inquadra: si
+    // vedono solo le manone sullo schermo (presenza.js); le sue braccia vere coprirebbero il ragazzo. Lo specchietto
+    // (disegnato qui sopra) lo mostra comunque. Quando ti afferra, invece, si vede tutto.
+    const ist = inseguimento.stato, via = spec && demone.visibile && ist.presa <= 0 && ist.respinta <= 0 && ist.dist < CFG.demone.presenza.da;
+    if (via) { demone.gruppo.visible = false; occhi.spegni(demone); }
     renderer.render(scena, camera);
+    if (via) demone.gruppo.visible = true;
     scena.autoUpdate = au;
     if (spec) specchietto.sovrapponi();                                      // poi la si appoggia sopra
     eventi.disegna(renderer.domElement);          // lacrime e vista appannata, sopra l'immagine appena disegnata

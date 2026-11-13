@@ -23,6 +23,11 @@ PZ.creaAtmosfera = function (scena, citta) {
   // disturbi della paranoia (paranoia.js): finestre tinte o più forti/spente, lampioni che tremolano a comando
   const dist = { mix: 0, tinta: new THREE.Color(), forza: 1, cambiato: false };
   let insegneBattito = false;
+  // (fase 66) PERICOLO: il demone alle tue spalle. Da 0 a 1 la foschia, il cielo e le luci virano a un rosso sangue
+  // (sopra a tutto il resto; con 0 tutto torna esattamente com'era)
+  let per = 0, ultimoPer = 0;
+  const ROSSO = { nebbia: new THREE.Color(0x6e0712), cielo: new THREE.Color(0x3a0208), emi: new THREE.Color(0xff3424), luna: new THREE.Color(0xff5030), finestre: new THREE.Color(0xff2a10) };
+  const rossa = function (hex, c, f) { return cOut.set(hex).lerp(c, f).getHex(); };
   let ultimo = -1, ultimoBuio = -1, sfarfallio = 0, prossimo = 0, respiro = 0;
   const scuro = function (hex, f) { return cOut.set(hex).multiplyScalar(f).getHex(); };
   const rnd = PZ.ps1.casuale(66);
@@ -30,18 +35,23 @@ PZ.creaAtmosfera = function (scena, citta) {
   const LUNA = PZ.CONFIG.strada.luna;
   function aggiorna(k, dt, buio, metri) {
     buio = buio || 0; metri = metri || 0;
-    if (Math.abs(k - ultimo) > 0.004 || buio !== ultimoBuio || dist.cambiato) {
-      ultimo = k; ultimoBuio = buio; dist.cambiato = false;
+    if (Math.abs(k - ultimo) > 0.004 || buio !== ultimoBuio || dist.cambiato || Math.abs(per - ultimoPer) > 0.004) {
+      ultimo = k; ultimoBuio = buio; dist.cambiato = false; ultimoPer = per;
       col(tappe.nebbia, k, scena.fog.color).multiplyScalar(1 - 0.78 * buio);
+      if (per > 0) scena.fog.color.lerp(ROSSO.nebbia, 0.65 * per);
       const b = scuro(col(tappe.nebbia, k, new THREE.Color()).getHex(), 1 - 0.55 * buio), m = scuro(col(tappe.medio, k, cOut).getHex(), 1 - 0.4 * buio),
         a = scuro(col(tappe.alto, k, cOut).getHex(), 1 - 0.25 * buio);
-      cielo.colora(b, m, a);
+      if (per > 0) cielo.colora(rossa(b, ROSSO.nebbia, 0.6 * per), rossa(m, ROSSO.cielo, 0.6 * per), rossa(a, ROSSO.cielo, 0.35 * per));
+      else cielo.colora(b, m, a);
       col(tappe.emi, k, L.emi.color); L.emi.intensity = num(forza.emi, k) * (1 - 0.8 * buio);
+      if (per > 0) { L.emi.color.lerp(ROSSO.emi, 0.7 * per); L.emi.intensity *= 1 + 0.25 * per; }
       L.amb.intensity = num(forza.amb, k) * (1 - 0.75 * buio);
       col(tappe.luna, k, L.luna.color); L.luna.intensity = num(forza.luna, k) * (1 - 0.3 * buio);
+      if (per > 0) L.luna.color.lerp(ROSSO.luna, 0.6 * per);
       col(tappe.finestre, k, MAT.facciate.emissive).multiplyScalar(num(forza.finestre, k) * (1 - 0.94 * buio));
       if (dist.mix > 0) MAT.facciate.emissive.lerp(dist.tinta, dist.mix);     // paranoia: finestre di un colore sbagliato
       MAT.facciate.emissive.multiplyScalar(dist.forza);
+      if (per > 0) MAT.facciate.emissive.lerp(ROSSO.finestre, 0.55 * per);
       MAT.negozi.emissive.copy(MAT.facciate.emissive);
       MAT.luci.color.setScalar(1 - 0.93 * buio); MAT.insegne.color.setScalar(1 - 0.85 * buio);
     }
@@ -70,5 +80,6 @@ PZ.creaAtmosfera = function (scena, citta) {
     dist.mix = mix; dist.forza = forza; dist.cambiato = true;
   }
   function sfarfalla(sec) { sfarfallio = Math.max(sfarfallio, sec); prossimo = Math.max(prossimo, sec + 0.3); }
-  return { aggiorna: aggiorna, finestre: finestre, sfarfalla: sfarfalla, stato: function () { return { k: ultimo, buio: ultimoBuio }; } };
+  function pericolo(v) { per = Math.max(0, Math.min(1, v || 0)); }
+  return { aggiorna: aggiorna, finestre: finestre, sfarfalla: sfarfalla, pericolo: pericolo, stato: function () { return { k: ultimo, buio: ultimoBuio }; } };
 };

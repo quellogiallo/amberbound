@@ -15,7 +15,16 @@ PZ.creaInseguimento = function (demone) {
     S.dist = dist === undefined ? C.distanzaIniziale : dist; S.x = x || 0; S.aggressivita = 0; S.catture = 0; S.presa = 0; S.riduzione = 0; S.respinta = 0; S.t = 0; S.vicinanza = 0;
   }
   // un errore: restituisce true se il demone è arrivato addosso
+  // (fase 66) la partenza: S.t < slancio + fuga
+  const P0 = C.partenza;
+  function inPartenza() { return !!P0 && S.t < P0.slancio + P0.fuga; }
   function errore(tipo) {
+    if (inPartenza()) {
+      // all'inizio un errore lo porta addosso (le manone ti sfiorano), ma non ti prende
+      S.dist = Math.max(C.cattura + P0.sfiora, S.dist - (C.perdite[tipo] || 6));
+      S.aggressivita = Math.min(3, S.aggressivita + 1);
+      return false;
+    }
     const perdita = (C.perdite[tipo] || 6) * (1 + C.aggressivita * S.aggressivita), prima = S.dist;
     S.dist -= perdita;
     S.aggressivita = Math.min(3, S.aggressivita + 1);
@@ -46,6 +55,14 @@ PZ.creaInseguimento = function (demone) {
     } else if (S.respinta > 0) {
       S.respinta = Math.max(0, S.respinta - dt / 0.5);
       S.dist = mix(C.dopoCattura, S.dist, S.respinta * S.respinta);
+    } else if (inPartenza()) {
+      // (fase 66) PARTENZA: prima lo scatto fino alle tue spalle, poi la fuga lenta fino alla distanza normale
+      if (S.t < P0.slancio) S.dist += (P0.vicino - S.dist) * (1 - Math.exp(-dt * 4));
+      else {
+        const f = Math.min(1, (S.t - P0.slancio) / P0.fuga), e = f * f * (3 - 2 * f);
+        const ob = mix(P0.vicino, S.obiettivo, e);
+        S.dist += (ob - S.dist) * (1 - Math.exp(-dt * (S.dist < ob ? 0.6 : 2)));
+      }
     } else {
       const k = S.dist > S.obiettivo ? 0.35 : C.recupero;    // da lontano accorcia in fretta, da vicino si allontana piano
       S.dist += (S.obiettivo - S.dist) * (1 - Math.exp(-dt * k));

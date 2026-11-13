@@ -69,7 +69,12 @@ PZ.creaOcchi = function (scena, capacita) {
     }
     sclere.instanceMatrix.needsUpdate = true; iridi.instanceMatrix.needsUpdate = true;
   }
-  return { aggiungi: aggiungi, aggiorna: aggiorna, elenco: elenco, sclere: sclere, iridi: iridi, risalto: function (v) { risalto = v; } };
+  // (fase 66) spegne per questo fotogramma gli occhi di una creatura (al prossimo aggiorna tornano)
+  function spegni(prop) {
+    for (let i = 0; i < elenco.length; i++) if (elenco[i].prop === prop) { sclere.setMatrixAt(i, ZERO); iridi.setMatrixAt(i, ZERO); }
+    sclere.instanceMatrix.needsUpdate = true; iridi.instanceMatrix.needsUpdate = true;
+  }
+  return { aggiungi: aggiungi, aggiorna: aggiorna, spegni: spegni, elenco: elenco, sclere: sclere, iridi: iridi, risalto: function (v) { risalto = v; } };
 };
 
 // Materiale del corpo: nero con un velo viola, NON toccato dalla foschia (da lontano resta una sagoma nera)

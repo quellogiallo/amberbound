@@ -201,7 +201,14 @@ PZ.CONFIG = {
       aggressivita: 0.35,         // errori ravvicinati: ognuno gli fa guadagnare il 35% in più
       cattura: 3.5,               // sotto questa distanza ti prende
       dopoCattura: 14,            // dopo averti preso viene respinto fin qui...
-      margineRidotto: 4, tempoMargineRidotto: 25   // ...ma per 25 secondi resta 4 m più vicino
+      margineRidotto: 4, tempoMargineRidotto: 25,  // ...ma per 25 secondi resta 4 m più vicino
+      // (fase 66) PARTENZA: appena parte la corsa il demone scatta in "slancio" secondi fino a "vicino" metri (alle tue
+      // spalle, le manone sullo schermo); poi, se non sbagli, in "fuga" secondi lo distanzi piano fino alla sua
+      // distanza normale. In questo tratto un errore lo porta addosso ("sfiora": a cattura + sfiora metri) ma non ti prende.
+      partenza: { vicino: 6.5, slancio: 1.3, fuga: 30, sfiora: 2.2 },   // sfiora 2,2: resta comunque dietro la telecamera
+      // (fase 66) PRESENZA: sotto "da" metri le manone entrano dai lati dello schermo (del tutto a "pieno" metri);
+      // la città vira al rosso e si sentono respiro e ringhio alle spalle in base alla vicinanza
+      presenza: { da: 11, pieno: 5.5, rosso: 0.85 }
     },
 
     // CLACSON: un'auto ogni ogni[0]-ogni[1] (a caso) suona mentre viene incontro: si sente da "da" metri, sfuma in
