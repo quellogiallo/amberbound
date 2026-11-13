@@ -273,79 +273,9 @@ PZ.creaDemone = function (scena, occhi, opz) {
   G.radice.add(aura);
   D.aura = aura;
 
-  // ---------- (fase 62) MOVIMENTI A SCATTI, STILE "L'ESORCISTA" ----------
-  // Ogni fotogramma si calcola la posa "ideale" (corsa, camminata, presa, fermo: come prima), ma il corpo non la segue
-  // in modo fluido. Ogni parte (testa, busto, ciascun braccio, gambe) TIENE la sua posa per qualche istante, immobile,
-  // e poi SCATTA in quella nuova in due fotogrammi, come un passo uno andato storto; ogni parte ha il suo ritmo, così
-  // testa e braccia non sono mai sincronizzate col resto. In più, ogni tanto, una CRISI: la testa si piega di lato
-  // quasi orizzontale o gira all'indietro (come nel film), la schiena si torce, un braccio si sloga col gomito al
-  // contrario, uno spasmo scuote tutto il corpo. Le pose sono controllate perché le parti non entrino una nell'altra
-  // (le braccia restano larghe rispetto alle gambe, le manone non si toccano) e i piedi poggiano SEMPRE sul suolo
-  // (prima, in corsa, affondavano nell'asfalto di qualche decina di centimetri).
-  let fase = 0, t = 0;
-  const V3 = THREE.Vector3, tmp = new V3(), tmp2 = new V3(), inv = new THREE.Matrix4();
-  // l'altezza del bacino scatta insieme alle gambe: un "giunto finto" che la tiene nella x
-  const ALTEZZA = { rotation: { set: function (y) { G.bacino.position.y = y; } } };
-  const GRUPPI = {
-    testa: [G.collo, G.testa], busto: [G.busto],
-    b0: [G.spalla[0], G.gomito[0], G.polso[0]], b1: [G.spalla[1], G.gomito[1], G.polso[1]],
-    gambe: [ALTEZZA, G.anca[0], G.ginocchio[0], G.caviglia[0], G.anca[1], G.ginocchio[1], G.caviglia[1]]
-  };
-  const NOMI = Object.keys(GRUPPI), META = new Map();          // per ogni giunto: posa ideale, mostrata, di partenza, d'arrivo
-  const ST = {};
-  NOMI.forEach(function (n) {
-    ST[n] = { attesa: 0, scatto: 1 };
-    GRUPPI[n].forEach(function (g) { META.set(g, { id: new V3(), ora: new V3(), da: new V3(), a: new V3() }); });
-  });
-  const id = function (g) { return META.get(g).id; };
-  // la CRISI in corso: tipo, durata, segno, braccio; e quando arriva la prossima
-  const crisi = { tipo: null, t: 0, dur: 0, sg: 1, i: 0, k: 0 }; D.crisi = crisi;
-  let prossimaCrisi = 1.2, spasmoT = 0;
-  const spasmo = new Map();
-  // quanto tiene ferma ogni parte prima dello scatto successivo (secondi), per modo
-  const TIENI = {
-    corre: { gambe: [1 / 15, 1 / 15], busto: [0.06, 0.12], braccio: [0.05, 0.17], testa: [0.1, 0.38] },
-    afferra: { gambe: [1 / 12, 1 / 12], busto: [0.05, 0.1], braccio: [0.04, 0.11], testa: [0.07, 0.28] },
-    cammina: { gambe: [1 / 10, 1 / 10], busto: [0.1, 0.24], braccio: [0.12, 0.34], testa: [0.18, 0.6] },
-    fermo: { gambe: [0.25, 0.6], busto: [0.15, 0.4], braccio: [0.1, 0.4], testa: [0.15, 0.5] }
-  };
-  const PUNTA_MANO = new V3(0, -0.8, 0.3);
-  const PIEDE = [new V3(0, -0.05, -0.03), new V3(0, -0.05, 0.15), new V3(0, -0.035, 0.33), new V3(0, -0.035, 0)];
-  // GAMBE PIANTATE: invece di far oscillare le gambe a caso (i piedi finivano sotto l'asfalto) si decide dove sta ogni
-  // caviglia rispetto all'anca e si piegano anca e ginocchio per arrivarci (cinematica inversa a due segmenti, sul
-  // piano della gamba). Nella fase d'appoggio il piede resta piatto sul suolo; in volo il tallone sale e la punta scende.
-  const L1 = corpo.prop.coscia, L2 = corpo.prop.gamba;
-  function piantaGamba(i, hAnca, z, y, punta) {        // z: avanti rispetto all'anca; y: altezza della caviglia dal suolo
-    const fy = y - hAnca, d = Math.max(0.3, Math.min(L1 + L2 - 0.004, Math.hypot(z, fy)));
-    const beta = Math.atan2(z, -fy);                                                          // + = piede in avanti
-    const gam = Math.acos(Math.max(-1, Math.min(1, (L1 * L1 + d * d - L2 * L2) / (2 * L1 * d))));
-    const ginocchio = Math.PI - Math.acos(Math.max(-1, Math.min(1, (L1 * L1 + L2 * L2 - d * d) / (2 * L1 * L2))));
-    const anca = -(beta + gam);
-    id(G.anca[i]).x = anca; id(G.ginocchio[i]).x = ginocchio;
-    id(G.caviglia[i]).set(-(anca + ginocchio) + (punta || 0), 0, 0);
-  }
-  // a volte (raro) la parte resta bloccata molto più a lungo: sembra che si sia "inceppata"
-  function tieni(n, modo) {
-    const T = TIENI[modo] || TIENI.corre, r = T[n === 'b0' || n === 'b1' ? 'braccio' : n];
-    let h = r[0] + (r[1] - r[0]) * rnd();
-    if (n !== 'gambe' && rnd() < 0.08) h += 0.25 + 0.3 * rnd();
-    return h;
-  }
-  function nuovaCrisi(modo) {
-    const r = rnd(), corsa = modo === 'corre' || modo === 'afferra';
-    crisi.sg = rnd() < 0.5 ? -1 : 1; crisi.i = rnd() < 0.5 ? 0 : 1; crisi.t = 0;
-    if (r < 0.3) { crisi.tipo = 'piega'; crisi.dur = 0.45 + 0.5 * rnd(); }                    // testa piegata quasi orizzontale
-    else if (r < (corsa ? 0.42 : 0.5)) { crisi.tipo = 'gira'; crisi.dur = 0.3 + 0.25 * rnd(); } // la testa gira all'indietro
-    else if (r < 0.64) { crisi.tipo = 'schiena'; crisi.dur = 0.3 + 0.3 * rnd(); }              // la schiena si torce
-    else if (r < 0.86) { crisi.tipo = 'sloga'; crisi.dur = 0.35 + 0.35 * rnd(); }              // un braccio si sloga
-    else { crisi.tipo = 'spasmo'; crisi.dur = 0.3 + 0.2 * rnd(); }                             // spasmo di tutto il corpo
-    crisi.k = 0.75 + 0.25 * rnd();
-    // la crisi parte di colpo: le parti coinvolte scattano subito
-    ({ piega: ['testa'], gira: ['testa'], schiena: ['busto', 'testa'], sloga: ['b' + crisi.i], spasmo: NOMI })[crisi.tipo]
-      .forEach(function (n) { ST[n].attesa = 0; });
-  }
-  function fineCrisi() { ({ piega: ['testa'], gira: ['testa'], schiena: ['busto', 'testa'], sloga: ['b' + crisi.i], spasmo: NOMI })[crisi.tipo].forEach(function (n) { ST[n].attesa = 0; }); crisi.tipo = null; }
-
+  let fase = 0, t = 0, scatto = 0, scattoV = 0, scattoTesta = 0, prossimoScatto = 1;
+  const V3 = THREE.Vector3, tmp = new V3(), tmp2 = new V3();
+  const invRadice = new THREE.Matrix4(), PIEDE = [new V3(0, -0.05, -0.03), new V3(0, -0.05, 0.15), new V3(0, -0.035, 0.33), new V3(0, -0.035, 0)];   // punti sotto la suola
   D.mostra = function () { D.visibile = true; G.radice.visible = true; };
   D.nascondi = function () { D.visibile = false; G.radice.visible = false; };
   D.posiziona = function (x, y, z, dir) { G.radice.position.set(x, y, z); G.radice.rotation.y = dir; };
@@ -355,18 +285,14 @@ PZ.creaDemone = function (scena, occhi, opz) {
     const corre = modo === 'corre' || modo === 'afferra';
     const freq = corre ? 1.25 + vel * 0.07 : modo === 'cammina' ? 0.75 + vel * 0.12 : 0;
     fase += dt * Math.PI * 2 * freq;
+    // scatti innaturali: ogni tanto la testa o una spalla scattano di colpo e tornano piano
+    prossimoScatto -= dt;
+    if (prossimoScatto <= 0) { scatto = (rnd() - 0.5) * 1.6; scattoV = rnd() < 0.5 ? 0 : 1; scattoTesta = (rnd() - 0.5) * 1.2; prossimoScatto = 0.9 + rnd() * 2.8; }
+    scatto *= Math.exp(-dt * 7); scattoTesta *= Math.exp(-dt * 5);
     const n1 = R(t, 1), n2 = R(t * 1.4, 7), n3 = R(t * 0.8, 13);
     const a = corre ? 1 : modo === 'cammina' ? 0.55 : 0;
-    // altezza del bacino (e quindi dell'anca): bassa e curva in corsa, sobbalza a ogni appoggio; zoppicando cala
-    // sulla gamba zoppa
-    const pp = (((fase / (2 * Math.PI)) % 1) + 1) % 1;
-    const hBacino = corre ? 1.5 - 0.05 * Math.cos(2 * Math.PI * (2 * pp - 0.4))
-      : modo === 'cammina' ? 1.6 - 0.025 * Math.cos(2 * Math.PI * (2 * pp - 0.6)) - 0.05 * Math.max(0, Math.sin(2 * Math.PI * (pp - 0.5)))
-      : 1.6 + 0.01 * n1;
-    const hAnca = hBacino - 0.04;
-    META.get(ALTEZZA).id.set(hBacino, 0, 0);
-
-    // ---- 1. la posa ideale ----
+    // (fase 14) inclinazione delle braccia per puntarle sul bersaglio mentre corre: dalla spalla (quota circa) alla
+    // testa del ragazzo; relativa al busto chino (spalla.x negativa = in avanti; -PI/2 rispetto al busto = orizzontale)
     let mira = -1.95;
     if (corre && bersaglio) {
       const R0 = G.radice, hS = R0.position.y + (corpo.prop.anca + corpo.prop.busto * 0.78) * R0.scale.y;
@@ -375,120 +301,56 @@ PZ.creaDemone = function (scena, occhi, opz) {
       mira = -(Math.PI / 2 + elev) - (0.62 + 0.05 * Math.sin(2 * fase));
     }
     [0, 1].forEach(function (i) {
-      const s = i === 0 ? 1 : -1, ph = fase + (i === 0 ? 0 : Math.PI), sn = Math.sin(ph);
-      // gambe piantate (vedi piantaGamba): corsa da predatore, curvo sulle ginocchia, passi lunghi e ben marcati;
-      // camminando una gamba strascica (zoppica); da fermo le ginocchia un po' piegate, i piedi larghi
-      const p = (((ph / (2 * Math.PI)) % 1) + 1) % 1;
-      id(G.anca[i]).y = 0; id(G.anca[i]).z = s * (modo === 'fermo' ? 0.1 : 0.06 + 0.02 * n2);
-      id(G.ginocchio[i]).y = 0; id(G.ginocchio[i]).z = 0;
-      if (corre) {
-        const APP = 0.4, PASSO = 0.55;                                       // fase d'appoggio e mezzo passo (m)
-        if (p < APP) piantaGamba(i, hAnca, PASSO - 2 * PASSO * p / APP, 0.05, 0);
-        else {
-          const q = (p - APP) / (1 - APP), sq = Math.sin(Math.PI * q);
-          piantaGamba(i, hAnca, -PASSO + 2 * PASSO * (1 - Math.cos(Math.PI * q)) / 2 - 0.3 * sq * (1 - q), 0.05 + 0.62 * Math.pow(sq, 0.8), 0.5 * sq);
-        }
-      } else if (modo === 'cammina') {
-        const zop = i === 1, APP = 0.6, PASSO = zop ? 0.22 : 0.36;
-        if (p < APP) piantaGamba(i, hAnca, PASSO - 2 * PASSO * p / APP, 0.05, 0);
-        else {
-          const q = (p - APP) / (1 - APP), sq = Math.sin(Math.PI * q);
-          piantaGamba(i, hAnca, -PASSO + PASSO * (1 - Math.cos(Math.PI * q)), 0.05 + (zop ? 0.05 : 0.22) * sq, (zop ? -0.15 : 0.3) * sq);   // la zoppa strascica la punta
-        }
-      } else piantaGamba(i, hAnca, i === 0 ? 0.12 : -0.1, 0.05, 0);
-      // braccia (sempre larghe: le manone non toccano mai le gambe né si toccano tra loro)
+      const s = i === 0 ? 1 : -1, ph = fase + (i === 0 ? 0 : Math.PI), sn = Math.sin(ph), cs = Math.cos(ph);
+      // gambe: passi lunghi; camminando una gamba strascica (zoppica)
+      const zoppa = modo === 'cammina' && i === 1 ? 0.45 : 1;
+      G.anca[i].rotation.x = -0.72 * a * sn * zoppa + (modo === 'fermo' ? 0.05 * n1 * s : 0);
+      G.anca[i].rotation.z = s * (0.05 + 0.04 * n2);
+      G.ginocchio[i].rotation.x = 0.18 + a * (0.95 * Math.max(0, -Math.sin(ph + 0.7)) + 0.15) * zoppa;
+      G.caviglia[i].rotation.x = 0.25 * a * sn - 0.1;
+      // braccia: corrono protese in avanti, come per afferrare; camminando penzolano storte
       if (modo === 'afferra') {
-        // ti ha preso: le manone puntate su di te, aperte ai lati della faccia, che artigliano
-        id(G.spalla[i]).set(mira + 0.08 + 0.1 * Math.sin(t * 9 + i), 0, s * 0.17);
-        id(G.gomito[i]).set(-0.15 - 0.16 * Math.sin(t * 13 + 2 * i), 0, 0);
-        id(G.polso[i]).set(-0.45 - 0.28 * Math.sin(t * 11 + i), 0, 0);
+        // (fase 14) ti ha preso: le manone puntate su di te, aperte ai lati della faccia, che tremano e artigliano
+        G.spalla[i].rotation.x = mira + 0.08 + 0.08 * Math.sin(t * 9 + i);
+        G.spalla[i].rotation.z = s * 0.07; G.gomito[i].rotation.x = -0.15 - 0.12 * Math.sin(t * 13 + 2 * i); G.polso[i].rotation.x = -0.45 - 0.2 * Math.sin(t * 11 + i);
       } else if (corre) {
-        // corre con le braccia TESE VERSO DI TE: a ogni passo una si allunga e l'altra si ritrae (artiglia l'aria a turno)
-        const allunga = Math.sin(ph + Math.PI);
-        id(G.spalla[i]).set(mira - 0.2 * allunga + 0.05 * n3 * s, 0, s * (0.13 + 0.04 * n2 + 0.04 * Math.max(0, -allunga)));
-        id(G.gomito[i]).set(-0.06 - 0.42 * Math.max(0, -allunga), 0, 0);
-        id(G.polso[i]).set(-0.15 - 0.5 * Math.max(0, allunga) + 0.15 * n1, 0, 0);
+        // (fase 14) corre con le braccia TESE VERSO DI TE, come se volesse raggiungerti a ogni costo: puntate sul
+        // bersaglio (la testa del ragazzo), quasi dritte; a ogni passo una si allunga e l'altra si ritrae appena
+        // (artiglia l'aria a turno), le manone si aprono e si chiudono, con un tremito nervoso
+        const allunga = Math.sin(ph + Math.PI);                                // +1 = questo braccio si allunga
+        G.spalla[i].rotation.x = mira - 0.16 * allunga + 0.05 * n3 * s + 0.04 * Math.sin(t * 17 + 3 * i);
+        G.spalla[i].rotation.z = s * (0.1 + 0.05 * n2) - s * 0.05 * Math.max(0, allunga);
+        G.gomito[i].rotation.x = -0.08 - 0.32 * Math.max(0, -allunga);         // si piega solo mentre si ritrae
+        G.polso[i].rotation.x = -0.15 - 0.4 * Math.max(0, allunga) + 0.15 * n1;   // la mano si apre in avanti per afferrare
       } else {
-        // camminando o fermo: le braccia penzolano storte, larghe, oscillano appena
-        id(G.spalla[i]).set(-0.12 + 0.22 * a * Math.sin(ph + Math.PI) + 0.08 * n3, 0, s * (0.34 + 0.05 * n1));
-        id(G.gomito[i]).set(-0.42 + 0.1 * n2, 0, 0);                         // un po' piegate: gli artigli sfiorano l'asfalto, non ci entrano
-        id(G.polso[i]).set(0.1 * n3 - 0.25, 0, s * 0.08);
+        G.spalla[i].rotation.x = -0.2 + 0.25 * a * Math.sin(ph + Math.PI) + 0.08 * n3;
+        G.spalla[i].rotation.z = s * (0.12 + 0.06 * n1);
+        G.gomito[i].rotation.x = -0.25 + 0.1 * n2; G.polso[i].rotation.x = 0.1 * n3;
       }
     });
-    // busto chino in avanti, si torce a ogni passo
-    id(G.busto).set((corre ? 0.62 : modo === 'cammina' ? 0.38 : 0.28) + 0.06 * Math.sin(2 * fase) + 0.04 * n2,
-      0.16 * a * Math.sin(fase) + 0.05 * n3, 0.06 * n1 + (modo === 'cammina' ? 0.1 * Math.sin(fase) : 0));
-    // testa: fissa il bersaglio anche mentre il corpo si muove, sempre un po' piegata di lato
-    id(G.collo).set(-(id(G.busto).x * 0.75), 0, 0);
+    if (scattoV) G.spalla[0].rotation.z += scatto * 0.6; else G.spalla[1].rotation.x += scatto * 0.5;
+    // busto chino in avanti, si torce a ogni passo; il bacino sobbalza
+    G.bacino.position.y = corpo.prop.anca - (corre ? 0.12 + 0.07 * Math.abs(Math.sin(fase)) : modo === 'cammina' ? 0.04 * Math.abs(Math.sin(fase)) : 0.02 * (1 + n1));
+    G.busto.rotation.x = (corre ? 0.62 : modo === 'cammina' ? 0.38 : 0.28) + 0.05 * Math.sin(2 * fase) + 0.04 * n2;
+    G.busto.rotation.y = 0.14 * a * Math.sin(fase) + 0.05 * n3;
+    G.busto.rotation.z = 0.06 * n1 + (modo === 'cammina' ? 0.08 * Math.sin(fase) : 0);
+    // testa: fissa il bersaglio anche mentre il corpo si muove, piegata di lato, con scatti improvvisi
+    G.collo.rotation.x = -(G.busto.rotation.x * 0.75);
     if (bersaglio) {
       G.testa.updateMatrixWorld(true);
       G.testa.getWorldPosition(tmp);
       tmp2.copy(bersaglio).sub(tmp);
       const yaw = Math.atan2(tmp2.x, tmp2.z) - G.radice.rotation.y, pitch = -Math.atan2(tmp2.y, Math.hypot(tmp2.x, tmp2.z));
       let yv = yaw; while (yv > Math.PI) yv -= 2 * Math.PI; while (yv < -Math.PI) yv += 2 * Math.PI;
-      id(G.testa).set(Math.max(-0.6, Math.min(0.6, pitch)) * 0.8, Math.max(-1, Math.min(1, yv)) * 0.8, 0.35 + 0.15 * n1);
-    } else id(G.testa).set(0.1 * n2, 0.3 * n3, 0.35 + 0.15 * n1);
-
-    // ---- 2. le crisi ----
-    prossimaCrisi -= dt;
-    if (!crisi.tipo && prossimaCrisi <= 0) {
-      nuovaCrisi(modo);
-      prossimaCrisi = crisi.dur + (modo === 'afferra' ? 0.5 + 0.8 * rnd() : 1.1 + 2.0 * rnd());
-    }
-    if (crisi.tipo) {
-      crisi.t += dt;
-      const k = crisi.k, sg = crisi.sg;
-      if (crisi.tipo === 'piega') { id(G.testa).z = sg * (1.25 + 0.3 * k); id(G.collo).z += sg * 0.32; id(G.testa).x += 0.15; }
-      else if (crisi.tipo === 'gira') { id(G.testa).y = sg * (2.35 + 0.6 * k); id(G.testa).z *= 0.4; }
-      else if (crisi.tipo === 'schiena') { const kk = corre ? k : 0.6 * k; id(G.busto).z += sg * 0.3 * kk; id(G.busto).y += sg * 0.42 * kk; id(G.collo).z -= sg * 0.3; id(G.testa).z -= sg * 0.4; }
-      else if (crisi.tipo === 'sloga') {
-        const i = crisi.i, s = i === 0 ? 1 : -1;
-        id(G.spalla[i]).z += s * 0.42 * k; id(G.gomito[i]).x = 0.5 * k; id(G.polso[i]).x += 0.75; id(G.polso[i]).z = s * 0.5;
-      }
-      if (crisi.t >= crisi.dur) fineCrisi();
-    }
-    // spasmo: tutto il corpo trema a scatti (un nuovo strattone ogni 1/30 di secondo)
-    const inSpasmo = crisi.tipo === 'spasmo';
-    if (inSpasmo) {
-      spasmoT -= dt;
-      if (spasmoT <= 0) {
-        spasmoT = 1 / 30;
-        META.forEach(function (m, g) { const v = spasmo.get(g) || new V3(); spasmo.set(g, g === ALTEZZA ? v.set(0, 0, 0) : v.set(rnd() - 0.5, rnd() - 0.5, rnd() - 0.5).multiplyScalar(GRUPPI.gambe.indexOf(g) >= 0 ? 0.06 : 0.16)); });
-        NOMI.forEach(function (n) { ST[n].attesa = 0; });
-      }
-      META.forEach(function (m, g) { const v = spasmo.get(g); if (v) m.id.add(v); });
-    }
-
-    // ---- 3. a scatti: ogni parte tiene la posa, poi scatta nella nuova in due fotogrammi ----
-    const SCATTO = modo === 'cammina' || modo === 'fermo' ? 0.05 : 0.035;
-    NOMI.forEach(function (n) {
-      const st = ST[n], giunti = GRUPPI[n];
-      st.attesa -= dt;
-      if (st.attesa <= 0) {
-        giunti.forEach(function (g) { const m = META.get(g); m.da.copy(m.ora); m.a.copy(m.id); });
-        st.scatto = 0; st.attesa = inSpasmo ? 1 / 30 : tieni(n, modo);
-      }
-      st.scatto = Math.min(1, st.scatto + dt / SCATTO);
-      const e = 1 - Math.pow(1 - st.scatto, 3);
-      giunti.forEach(function (g) { const m = META.get(g); m.ora.lerpVectors(m.da, m.a, e); g.rotation.set(m.ora.x, m.ora.y, m.ora.z); });
-    });
-
-    // ---- 4. sicurezza: nessun piede sotto il suolo (y = 0 della radice); se uno ci finisce (uno spasmo, uno scatto)
-    // tutto il corpo sale quanto basta ----
+      G.testa.rotation.set(Math.max(-0.6, Math.min(0.6, pitch)) * 0.8, Math.max(-1, Math.min(1, yv)) * 0.8 + scattoTesta * 0.5, 0.35 + 0.15 * n1 + scattoTesta);
+    } else G.testa.rotation.set(0.1 * n2, 0.3 * n3 + scattoTesta * 0.5, 0.35 + 0.15 * n1 + scattoTesta);
+    // (fase 65) piedi a terra: se il punto più basso dei piedi finisce sotto il suolo (y = 0 della radice), tutto il
+    // corpo sale quanto basta (i movimenti restano quelli di prima; prima i piedi affondavano nell'asfalto)
     G.radice.updateMatrixWorld(true);
-    inv.copy(G.radice.matrixWorld).invert();
+    invRadice.copy(G.radice.matrixWorld).invert();
     let basso = Infinity;
-    [0, 1].forEach(function (i) { PIEDE.forEach(function (p) { tmp.copy(p); G.caviglia[i].localToWorld(tmp).applyMatrix4(inv); if (tmp.y < basso) basso = tmp.y; }); });
-    if (basso < 0) { G.bacino.position.y -= basso; G.radice.updateMatrixWorld(true); }
-    // e nessun artiglio dentro l'asfalto: se la punta della manona scende troppo, il gomito si piega quanto basta
-    [0, 1].forEach(function (i) {
-      for (let n = 0; n < 5; n++) {
-        tmp.copy(PUNTA_MANO); G.polso[i].localToWorld(tmp).applyMatrix4(inv);
-        if (tmp.y > 0.04) break;
-        G.gomito[i].rotation.x -= 0.12; META.get(G.gomito[i]).ora.x -= 0.12; G.radice.updateMatrixWorld(true);
-      }
-    });
-
+    [0, 1].forEach(function (i) { PIEDE.forEach(function (p) { tmp.copy(p); G.caviglia[i].localToWorld(tmp).applyMatrix4(invRadice); if (tmp.y < basso) basso = tmp.y; }); });
+    if (basso < 0) G.bacino.position.y -= basso;
     const k = intensita === undefined ? 0.5 : intensita;
     alone.material.opacity = 0.3 + 0.45 * k; alone.scale.setScalar(0.32 + 0.4 * k);
     aura.material.opacity = 0.35 + 0.35 * k;
