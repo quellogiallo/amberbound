@@ -276,8 +276,33 @@
         if (corsa.scena && corsa.camera) renderer.compile(corsa.scena, corsa.camera);   // i materiali pronti per il primo fotogramma
       } catch (e) { corsa = null; }
     }
-    // (fase 67) si prepara nella schermata iniziale (immagine ferma: lo scatto non si vede), non più alla pietra
-    setTimeout(function () { if (!stato.iniziato) preparaCorsa(); }, 700);
+    // (fase 68) SCHERMATA DI CARICAMENTO: dopo STORIA (o ARCADE) si prepara tutto prima di giocare (la strada, i
+    // materiali della cameretta e della strada), così dopo non ci sono più scatti. La frase resta almeno 2,6 secondi.
+    function caricamento(poi) {
+      const el = $('caricamento'), barra = el.querySelector('.barra i'), t0 = performance.now();
+      const passi = [
+        function () { try { renderer.compile(scena, camera); } catch (e) {} },
+        function () { preparaCorsa(); }
+      ];
+      let i = 0;
+      el.style.display = 'flex'; void el.offsetWidth; el.classList.add('vis');
+      barra.style.transform = 'scaleX(0.08)';
+      function prossimo() {
+        if (i < passi.length) {
+          passi[i](); i++;
+          barra.style.transform = 'scaleX(' + (0.08 + 0.8 * i / passi.length).toFixed(2) + ')';
+          setTimeout(prossimo, 60);                                  // il browser ridisegna la barra fra un passo e l'altro
+          return;
+        }
+        barra.style.transform = 'scaleX(1)';
+        setTimeout(function () {
+          poi();
+          el.classList.remove('vis');
+          setTimeout(function () { el.style.display = 'none'; }, 900);
+        }, Math.max(500, 2600 - (performance.now() - t0)));
+      }
+      setTimeout(prossimo, 450);                                     // prima appare la frase, poi si lavora
+    }
     function vaiInStrada(test, arcade) {
       if (stato.versoStrada) return;
       if (PZ.audio.fermaCarillon) PZ.audio.fermaCarillon(1);
@@ -378,8 +403,10 @@
       if (stato.iniziato) return;
       stato.iniziato = true; PZ.audio.avvia(); $('avvio').style.display = 'none';
       if (vuoleStrada()) { vaiInStrada(true); return; }
-      musicaStanza();
-      setTimeout(function () { $('aiuto').style.opacity = 0; }, 6000);
+      caricamento(function () {
+        musicaStanza();
+        setTimeout(function () { $('aiuto').style.opacity = 0; }, 6000);
+      });
     }
     // (fase 59) nel menu la storia parte SOLO dal tasto STORIA (prima bastava toccare un punto qualsiasi dello schermo:
     // tornando al menu dalla fine, un tocco fuori dai tasti riportava subito nella cameretta). Dopo RIGIOCA invece
@@ -415,7 +442,7 @@
       const pass = $('passaggio');
       pass.querySelector('h2').textContent = 'ARCADE';
       pass.querySelector('p').innerHTML = 'Nessuna fine. Solo la strada.<br>Quanti metri riesci a fare?';
-      vaiInStrada(true, true);
+      caricamento(function () { vaiInStrada(true, true); });
     }
     arcBtn.addEventListener('pointerdown', function (e) { e.preventDefault(); e.stopPropagation(); avviaArcade(); });
     $('classificaBtn').addEventListener('pointerdown', function (e) {

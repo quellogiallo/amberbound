@@ -118,6 +118,12 @@
   #lampoUrto { inset: 0; background: #ff5a3a; opacity: 0; pointer-events: none; z-index: 5; will-change: opacity; }
   #lampoUrto.via { animation: lampoUrto .5s ease-out; }
   @keyframes lampoUrto { 0% { opacity: .55; } 100% { opacity: 0; } }
+  /* (fase 68) schermata di caricamento dopo STORIA / ARCADE */
+  #caricamento { position: absolute; inset: 0; z-index: 12; background: #000; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 1.6em; text-align: center; padding: 2em; opacity: 0; transition: opacity .8s; }
+  #caricamento.vis { opacity: 1; }
+  #caricamento p { margin: 0; font-family: 'Drunk', monospace; font-size: 1.35em; line-height: 1.5; letter-spacing: .04em; color: #ffd21f; text-shadow: .06em .06em 0 #5a0c22, 0 0 .6em rgba(255, 200, 40, .35); }
+  #caricamento .barra { width: 60%; max-width: 14em; height: .35em; background: #1c1606; border: .1em solid #5a4a10; }
+  #caricamento .barra i { display: block; height: 100%; background: #ffd21a; box-shadow: 0 0 .6em #ffb000; transform-origin: left; transform: scaleX(0); transition: transform .5s ease-out; }
   #passaggio { inset: 0; z-index: 7; background: #000; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 2em; opacity: 0; transition: opacity .8s; }
   #passaggio.visibile { opacity: 1; }
   #passaggio:not(.visibile) { pointer-events: none; }   /* mentre svanisce non blocca i tocchi (es. SALTA SCENA) */
@@ -459,6 +465,7 @@
   <div id="lampoUrto" class="ui"></div>
   <div id="passaggio" class="ui"><h2>LA STRADA</h2><p>Fuori, la città dorme.<br>La pietra è calda nella tasca.</p></div>
   <div id="fine"><h1>AMBRA</h1><p>Fine della scena 1.</p><p>Fuori dalla porta, la notte ti aspetta.<br>(La strada arriva nel prossimo aggiornamento.)</p><button id="ricomincia">RICOMINCIA</button></div>
+  <div id="caricamento"><p>L'hai fatto.<br>Ora non puoi piu tornare indietro.</p><div class="barra"><i></i></div></div>
   <div id="avvio"><h1 class="titolo">AMBERBOUND</h1><p class="sottotitolo">il legame d'Ambra</p><p>Una cameretta. Una ragazza a terra.<br>Una pietra che brilla.</p>
     <p style="color:#b3a796">Muoviti trascinando il dito sul lato sinistro dello schermo.<br>Vicino a un oggetto compare il pulsante <b style="color:#b08e34">INTERAGISCI</b>.<br><small>(PC: WASD o frecce, E o Spazio)</small></p>
     <div class="scelte"><div class="via">&#9654; STORIA</div>
