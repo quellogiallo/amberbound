@@ -8,6 +8,7 @@
   html, body { margin: 0; height: 100%; background: #0d0710; overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; }
   #stage { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); background: #000; overflow: hidden; font-family: monospace; font-weight: bold; }
   #stage canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+  #stage.qAlta > canvas { image-rendering: auto; }   /* (fase 69) qualità alta: immagine già nitida, niente pixel ingranditi */
   #stage::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(20, 0, 20, .55) 100%); }
   .ui { position: absolute; z-index: 3; }
   /* inventario */
@@ -263,7 +264,7 @@
      così anche gli angoli tagliati hanno il bordo), superficie graffiata, scritta monospazio pesante con un'ombra
      sfasata nera e rossa (stampa rovinata), un dettaglio rosso sui pulsanti principali. Premuti: si abbassano e si
      accendono. Ogni tanto il bordo sfarfalla appena (solo il colore: non costa niente al telefono). */
-  #btn, #scInteragisci, #chiudiTel, #ricomincia, #riavvia, .freccia, #salta, #saltaIntro, #riprova, #scRicomincia, #provaStrada, #avvio .via, #arcadeBtn, #classificaBtn, #salvaNick, #arcMenu, #chiudiClassifica, .potereScelta {
+  #btn, #scInteragisci, #chiudiTel, #ricomincia, #riavvia, .freccia, #salta, #saltaIntro, #riprova, #scRicomincia, #provaStrada, #avvio .via, #arcadeBtn, #classificaBtn, #qualitaBtn, #salvaNick, #arcMenu, #chiudiClassifica, .potereScelta {
     --taglio: .55em;
     isolation: isolate; border: 0 !important; border-radius: 0 !important; box-shadow: none !important;
     background: #e3d21c; color: #f2e41c !important;
@@ -273,7 +274,7 @@
     animation: sfarfalla 5.3s steps(1) infinite !important;
     -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; cursor: pointer;
   }
-  #btn::before, #scInteragisci::before, #chiudiTel::before, #ricomincia::before, #riavvia::before, .freccia::before, #salta::before, #saltaIntro::before, #riprova::before, #scRicomincia::before, #provaStrada::before, #avvio .via::before, #arcadeBtn::before, #classificaBtn::before, #salvaNick::before, #arcMenu::before, #chiudiClassifica::before, .potereScelta::before {
+  #btn::before, #scInteragisci::before, #chiudiTel::before, #ricomincia::before, #riavvia::before, .freccia::before, #salta::before, #saltaIntro::before, #riprova::before, #scRicomincia::before, #provaStrada::before, #avvio .via::before, #arcadeBtn::before, #classificaBtn::before, #qualitaBtn::before, #salvaNick::before, #arcMenu::before, #chiudiClassifica::before, .potereScelta::before {
     content: ""; position: absolute; inset: .17em; z-index: -1;
     clip-path: polygon(calc(var(--taglio) - .1em) 0, calc(100% - var(--taglio) + .1em) 0, 100% calc(var(--taglio) - .1em), 100% calc(100% - var(--taglio) + .1em), calc(100% - var(--taglio) + .1em) 100%, calc(var(--taglio) - .1em) 100%, 0 calc(100% - var(--taglio) + .1em), 0 calc(var(--taglio) - .1em));
     background:
@@ -284,7 +285,7 @@
   }
   #tel #chiudiTel, #fine #ricomincia { background: #e3d21c; color: #f2e41c; }
   /* (quelli che non sono già posizionati: serve per il livello nero interno) */
-  #chiudiTel, #ricomincia, #riavvia, #riprova, #scRicomincia, #provaStrada, #avvio .via, #arcadeBtn, #classificaBtn, #salvaNick, #arcMenu, #chiudiClassifica, .potereScelta { position: relative; }
+  #chiudiTel, #ricomincia, #riavvia, #riprova, #scRicomincia, #provaStrada, #avvio .via, #arcadeBtn, #classificaBtn, #qualitaBtn, #salvaNick, #arcMenu, #chiudiClassifica, .potereScelta { position: relative; }
   /* principali (RIPROVA, RIGIOCA, INTERAGISCI): più grandi, con il segno rosso nell'angolo */
   #riprova::after, #scRicomincia::after, #btn::after, #scInteragisci::after { content: ""; position: absolute; left: .55em; top: .5em; width: .42em; height: .42em; background: #b3101a; box-shadow: .62em 0 0 -.1em #6a0810; }
   #riprova, #scRicomincia { --taglio: .9em; padding: .95em 2.4em !important; font-size: 1.25em !important; letter-spacing: .26em; }
@@ -297,9 +298,9 @@
   #provaStrada { color: #c9bb3a !important; }
   #chiudiTel, #ricomincia { padding: .75em !important; }
   /* premuto: scende, il fondo si accende di giallo scuro */
-  #btn:active, #scInteragisci:active, #chiudiTel:active, #ricomincia:active, #riavvia:active, .freccia:active, #saltaIntro:active, #riprova:active, #scRicomincia:active, #provaStrada:active, #avvio .via:active, #arcadeBtn:active, #classificaBtn:active, #salvaNick:active, #arcMenu:active, #chiudiClassifica:active, .potereScelta:active { transform: translate(.06em, .12em) scale(.96); background: #fff35a !important; animation: none !important; }
+  #btn:active, #scInteragisci:active, #chiudiTel:active, #ricomincia:active, #riavvia:active, .freccia:active, #saltaIntro:active, #riprova:active, #scRicomincia:active, #provaStrada:active, #avvio .via:active, #arcadeBtn:active, #classificaBtn:active, #qualitaBtn:active, #salvaNick:active, #arcMenu:active, #chiudiClassifica:active, .potereScelta:active { transform: translate(.06em, .12em) scale(.96); background: #fff35a !important; animation: none !important; }
   #salta:active { transform: translateX(-50%) translate(.06em, .12em) scale(.96); background: #fff35a !important; animation: none !important; }
-  #btn:active::before, #scInteragisci:active::before, #chiudiTel:active::before, #ricomincia:active::before, #riavvia:active::before, .freccia:active::before, #salta:active::before, #saltaIntro:active::before, #riprova:active::before, #scRicomincia:active::before, #provaStrada:active::before, #avvio .via:active::before, #arcadeBtn:active::before, #classificaBtn:active::before, #salvaNick:active::before, #arcMenu:active::before, #chiudiClassifica:active::before, .potereScelta:active::before { background-color: #3a3200; }
+  #btn:active::before, #scInteragisci:active::before, #chiudiTel:active::before, #ricomincia:active::before, #riavvia:active::before, .freccia:active::before, #salta:active::before, #saltaIntro:active::before, #riprova:active::before, #scRicomincia:active::before, #provaStrada:active::before, #avvio .via:active::before, #arcadeBtn:active::before, #classificaBtn:active::before, #qualitaBtn:active::before, #salvaNick:active::before, #arcMenu:active::before, #chiudiClassifica:active::before, .potereScelta:active::before { background-color: #3a3200; }
   /* SALTA acceso (è il momento di saltare): pieno giallo, scritta nera: si vede al volo */
   #salta.pronto { background: #fff35a !important; color: #0a0800 !important; text-shadow: none; animation: none !important; }
   #salta.pronto::before { background: #f2e41c; }
@@ -351,6 +352,8 @@
   #classificaBtn { --taglio: .4em; font-size: .72em !important; padding: .55em .9em !important; display: none; }
   #classificaBtn::before { inset: .14em; }
   #classificaBtn.vis { display: block; }
+  #qualitaBtn { --taglio: .4em; font-size: .62em !important; padding: .5em .9em !important; color: #c9bb3a !important; animation: none !important; }
+  #qualitaBtn::before { inset: .14em; }
   /* classifica (dal menu) */
   #classificaMenu { position: absolute; inset: 0; z-index: 10; display: none; flex-direction: column; align-items: center; justify-content: center; gap: .8em; background: rgba(8, 4, 10, .96); color: #b08e34; padding: 1.5em; }
   #classificaMenu.vis { display: flex; }
@@ -471,7 +474,8 @@
     <div class="scelte"><div class="via">&#9654; STORIA</div>
       <button id="arcadeBtn" class="bloccato"><span class="lucchetto"></span>&#8734; ARCADE</button>
       <div id="arcadeNota">FINISCI LA STORIA PER SBLOCCARLA</div>
-      <button id="classificaBtn">CLASSIFICA</button></div>
+      <button id="classificaBtn">CLASSIFICA</button>
+      <button id="qualitaBtn">QUALIT&Agrave;: AUTO</button></div>
     <button id="provaStrada">PROVA LA STRADA (test)</button></div>
   <div id="classificaMenu"><h2>CLASSIFICA</h2><ol id="classificaLista" class="classifica"></ol><button id="chiudiClassifica">CHIUDI</button></div>
 </div>
@@ -483,6 +487,7 @@
 <script>window.THREE || document.write('<script src="vendor/three.min.js"><\/script>');</script>
 <script src="src/config.js"></script>
 <script src="src/ps1.js"></script>
+<script src="src/qualita.js"></script>
 <script src="src/strada/fluido.js"></script>
 <script src="src/luna.js"></script>
 <script src="src/audio.js"></script>

@@ -33,6 +33,9 @@
       stage.style.fontSize = Math.max(8, h / 40) + 'px';       // l'interfaccia si scala con lo schermo
     }
     window.addEventListener('resize', adatta); adatta();
+    // (fase 69) qualità dell'immagine: NORMALE = com'è sempre stato; ALTA = più nitida, con bagliore, grana... (src/qualita.js)
+    PZ.qualita.registra(scena);
+    PZ.qualita.avvia(renderer, stage);
     const esamina = PZ.creaEsamina({ scena: scena, camera: camera, stage: stage });   // (fase 60) oggetti da girare
 
     // ---------- Stato ----------
@@ -451,6 +454,15 @@
       PZ.arcade.mostra($('classificaLista'), null); $('classificaMenu').classList.add('vis');
     });
     $('classificaMenu').addEventListener('pointerdown', function (e) { e.stopPropagation(); });
+    // (fase 69) pulsante QUALITÀ: AUTO -> ALTA -> NORMALE (src/qualita.js); la scelta resta salvata nel browser
+    const qBtn = $('qualitaBtn');
+    function scriviQualita(q) { qBtn.textContent = 'QUALIT\u00c0: ' + (q.scelta === 'auto' ? 'AUTO (' + q.livello.toUpperCase() + ')' : q.scelta.toUpperCase()); }
+    PZ.qualita.suCambio(scriviQualita); scriviQualita(PZ.qualita.stato());
+    qBtn.addEventListener('pointerdown', function (e) {
+      e.preventDefault(); e.stopPropagation();
+      PZ.audio.avvia(); PZ.audio.tocco();
+      PZ.qualita.imposta(PZ.qualita.prossima());
+    });
     $('chiudiClassifica').addEventListener('pointerdown', function (e) { e.preventDefault(); e.stopPropagation(); PZ.audio.tocco(); $('classificaMenu').classList.remove('vis'); });
     // pulsante di prova nella schermata iniziale: porta subito alla strada (si spegne in config.js, test)
     if (CONFIG.test && CONFIG.test.scorciatoiaStrada && PZ.creaCorsa) {
@@ -495,7 +507,7 @@
       camera.position.copy(camPos);
       if (scossa > 0) { scossa -= dt; camera.position.x += (Math.random() - 0.5) * scossa * 0.5; camera.position.y += (Math.random() - 0.5) * scossa * 0.4; }
       camera.lookAt(camFuoco);
-      renderer.render(scena, camera);
+      PZ.qualita.disegna(scena, camera, CONFIG.qualita.scene.cameretta);
     }
     requestAnimationFrame(ciclo);
 

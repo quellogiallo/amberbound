@@ -9,6 +9,15 @@ PZ.CONFIG = {
   },
   tremolioVertici: false,
   schermo: { larghezzaInterna: 360, altezzaInterna: 640 },   // formato verticale 9:16, ingrandito a pixel netti
+  // (fase 69) QUALITÀ ALTA (src/qualita.js; si sceglie dal menu, pulsante QUALITÀ). scalaTelefono / scalaComputer =
+  // quante volte più nitida l'immagine (2 = 720 x 1280, 3 = 1080 x 1920); bordi = antialiasing (0 = spento, 4 = 4x);
+  // bagliore = forza dell'alone delle luci, soglia = quanto deve essere forte una luce per averlo (da 0 a 1);
+  // aberrazione = separazione dei colori ai bordi; grana = grana da pellicola; vignetta = angoli più scuri;
+  // ombre = ombre vere. scene = bagliore e soglia scena per scena (la cameretta è già molto chiara: solo le luci più forti).
+  // auto = quando scende da sola: se per "volte" finestre di "fotogrammi" fotogrammi la mediana supera "lento" millisecondi
+  qualita: { scalaTelefono: 2, scalaComputer: 3, bordi: 4, bagliore: 0.9, soglia: 0.6, aberrazione: 0.018, grana: 0.045, vignetta: 0.18, ombre: true,
+    scene: { cameretta: { bagliore: 0.35, soglia: 0.9 }, strada: { bagliore: 1, soglia: 0.55 }, scogliera: { bagliore: 0.8, soglia: 0.62 } },
+    auto: { fotogrammi: 90, lento: 21, volte: 2 } },
 
   // AUDIO. Per usare un tuo suono per la scatola musicale: metti il file nella cartella "audio" e scrivi qui il nome,
   // per esempio  scatolaMusicale: 'audio/scatola-musicale.mp3'.  Con null suona un suono di prova generato dal gioco.

@@ -28,6 +28,7 @@ PZ.creaFinale = function (o) {
 
   // ---------- Il mondo della scogliera (dal videoclip) ----------
   const scena = new THREE.Scene();
+  PZ.qualita.registra(scena);   // (fase 69)
   const cielo = PZ.creaCielo(scena), oceano = PZ.creaOceano(scena), terra = PZ.creaTerra(scena);
   PZ.creaLuci(scena);
   cielo.volto(1);                                         // la luna qui è già girata: il volto guarda verso di noi
@@ -681,7 +682,7 @@ PZ.creaFinale = function (o) {
   function disegna() {
     if (F.fase === 'spenta' || F.fase === 'chiusa' || F.fase === 'attesa') return;
     cielo.aggiorna(camera.position);
-    renderer.render(scena, camera);
+    PZ.qualita.disegna(scena, camera, PZ.CONFIG.qualita.scene.scogliera);   // (fase 69)
   }
   let ultimo = 0, giraDaSolo = true;
   function ciclo(ora) {

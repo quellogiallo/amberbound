@@ -28,11 +28,12 @@ PZ.creaScioglimento = function (o) {
     '  nd += uColpoG * 0.07 * vec2(sin(nd.y * 3.5 + 1.0), sin(nd.x * 3.0)) * (0.3 + length(nd));\n' +
     '  gl_Position.xy = nd * gl_Position.w;\n' +
     '}';
-  const FRAG = 'uniform float uGiallo; uniform float uTempoG; uniform float uColpoG;\n';
+  const FRAG = 'uniform float uGiallo; uniform float uTempoG; uniform float uColpoG; uniform float uScalaQ;\n';
   const COLORE = '#include <fog_fragment>\n' +
     'if (uGiallo > 0.001) {\n' +
     '  float lum = dot(gl_FragColor.rgb, vec3(0.3, 0.59, 0.11));\n' +
-    '  vec2 fc = gl_FragCoord.xy;\n' +
+    '  vec2 fc = gl_FragCoord.xy / uScalaQ;\n' +   // (fase 69) lo stesso disegno a ogni qualità
+
     '  float liquido = sin(fc.y * 0.045 + sin(fc.x * 0.021 + uTempoG * 0.8) * 2.4 - uTempoG * 1.3);\n' +
     '  float l2 = clamp(lum * 1.35 + 0.07 * liquido, 0.0, 1.0);\n' +
     '  vec3 nero = vec3(0.025, 0.018, 0.0), giallo = vec3(1.0, 0.86, 0.06), bianco = vec3(1.0, 0.97, 0.72);\n' +
@@ -50,7 +51,7 @@ PZ.creaScioglimento = function (o) {
     const prima = m.onBeforeCompile, chiave = m.customProgramCacheKey ? m.customProgramCacheKey() : '';
     m.onBeforeCompile = function (sh, r) {
       if (prima) prima.call(this, sh, r);
-      sh.uniforms.uGiallo = U.uGiallo; sh.uniforms.uTempoG = U.uTempoG; sh.uniforms.uColpoG = U.uColpoG;
+      sh.uniforms.uScalaQ = PZ.qualita.uScala; sh.uniforms.uGiallo = U.uGiallo; sh.uniforms.uTempoG = U.uTempoG; sh.uniforms.uColpoG = U.uColpoG;
       sh.vertexShader = VERT + sh.vertexShader.replace('#include <project_vertex>', ONDA);
       sh.fragmentShader = FRAG + sh.fragmentShader.replace('#include <fog_fragment>', COLORE);
     };

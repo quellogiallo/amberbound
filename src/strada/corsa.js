@@ -15,6 +15,7 @@ PZ.creaCorsa = function (opz) {
   const $ = function (id) { return document.getElementById(id); };
   const SCH = PZ.CONFIG.schermo;
   const scena = new THREE.Scene();
+  PZ.qualita.registra(scena);   // (fase 69) le ombre della strada si aggiungono più sotto (ombreStrada)
   const citta = PZ.creaCitta(scena);
   const occhi = PZ.creaOcchi(scena, 140);
   const demone = PZ.creaDemone(scena, occhi, { manone: true });   // (fase 10) con le due manone artigliate
@@ -55,6 +56,28 @@ PZ.creaCorsa = function (opz) {
   manata = PZ.creaManata({ scena: scena, occhi: occhi, LC: citta.LC, V0: D.velocitaIniziale, traffico: traffico });
   const apparizioni = PZ.creaApparizioni(citta, branco);
   const ciclista = PZ.creaCiclista(scena);
+  // (fase 69) OMBRE VERE in qualità ALTA (src/qualita.js): la luce della luna fa ombra; il ragazzo e la bici la
+  // proiettano sull'asfalto e sul marciapiede. La "scatola" delle ombre segue il ragazzo (poco spazio = ombre nette)
+  const ombraLuna = { luce: null, accese: false };
+  PZ.qualita.registra(scena, { ombre: function (accese) {
+    const L = citta.luci.luna; ombraLuna.luce = L; ombraLuna.accese = accese;
+    L.castShadow = accese;
+    if (accese) {
+      L.shadow.mapSize.set(1024, 1024); L.shadow.bias = -0.0015; L.shadow.normalBias = 0.03;
+      const c = L.shadow.camera; c.left = -9; c.right = 9; c.top = 14; c.bottom = -8; c.near = 1; c.far = 60; c.updateProjectionMatrix();
+      if (!L.target.parent) scena.add(L.target);
+    }
+    const terra = [citta.materiali.asfalto, citta.materiali.marciapiede];
+    scena.traverse(function (o) {
+      if (!o.isMesh) return;
+      if (terra.indexOf(o.material) >= 0 || (Array.isArray(o.material) && o.material.some(function (m) { return terra.indexOf(m) >= 0; }))) o.receiveShadow = accese;
+    });
+    [ciclista.ragazzo.gruppo, ciclista.bici.gruppo].forEach(function (g) { g.traverse(function (o) { if (o.isMesh) o.castShadow = accese; }); });
+  } });
+  function seguiOmbra() {
+    if (!ombraLuna.accese) return;
+    const L = ombraLuna.luce; L.target.position.set(S.x || 0, 0, -3); L.position.set((S.x || 0) - 12, 24, 7.5); L.target.updateMatrixWorld();
+  }
   const atmosfera = PZ.creaAtmosfera(scena, citta);
   const inseguimento = PZ.creaInseguimento(demone);
   const specchietto = PZ.creaSpecchietto(renderer);
@@ -508,6 +531,7 @@ PZ.creaCorsa = function (opz) {
   const NEBBIA = { near: scena.fog.near, far: scena.fog.far };
   let zoomSguardo = 0;
   function aggiornaCamera(dt) {
+    seguiOmbra();
     S.camX += (S.x * CAM.segui - S.camX) * (1 - Math.exp(-dt * 4.5));
     // in volo con la salvia la telecamera sale con lui, ma meno di lui: si vede che è in alto, con le auto sotto
     const hv = S.hVolo || 0;
@@ -864,7 +888,7 @@ PZ.creaCorsa = function (opz) {
     // (disegnato qui sopra) lo mostra comunque. Quando ti afferra, invece, si vede tutto.
     const ist = inseguimento.stato, via = spec && demone.visibile && ist.presa <= 0 && ist.respinta <= 0 && ist.dist < CFG.demone.presenza.da;
     if (via) { demone.gruppo.visible = false; occhi.spegni(demone); }
-    renderer.render(scena, camera);
+    PZ.qualita.disegna(scena, camera, PZ.CONFIG.qualita.scene.strada);   // (fase 69)
     if (via) demone.gruppo.visible = true;
     scena.autoUpdate = au;
     if (spec) specchietto.sovrapponi();                                      // poi la si appoggia sopra
