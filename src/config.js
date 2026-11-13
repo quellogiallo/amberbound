@@ -97,7 +97,9 @@ PZ.CONFIG = {
       frenesia: { da: 15, a: 100, velocita: 0.2, ostacoli: 0.25 },
       // (fase 64) +13% di difficoltà in TUTTA la storia (non nell'arcade): file di ostacoli più vicine del 13%, bici
       // più veloce del 6%. I frammenti per fila calano in proporzione, così in tutto restano gli stessi
-      storia: { velocita: 0.06, ostacoli: 0.13 },
+      // (fase 69) -8% di difficoltà nella storia: i due valori di prima (1,06 e 1,13) moltiplicati per 0,92
+      // -> bici 2,5% più lenta della base, file di ostacoli 4% più fitte della base (prima +6% e +13%)
+      storia: { velocita: -0.025, ostacoli: 0.04 },
       pause: { ogni: [[9, 14], [15, 21]], durata: [2.4, 1.2] },
       calda: { ogni: 11, file: [3, 6], peso: 2.2, da: 0.25 },
       cambia: 1.3,
