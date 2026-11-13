@@ -20,7 +20,7 @@ PZ.CONFIG = {
     // (fase 35) il pezzo a parte della O Ave Maria è tolto (null): durante il volo continua la colonna principale
     aveMaria: null, volumeAveMaria: 0.475,
     // (fase 42) la musica della cameretta (loop cupo); (fase 43) mentre suona il carillon si interrompe
-    cameretta: { file: 'audio/cameretta-atto1.mp3', volume: 0.49 },   // (fase 44) -18%; (fase 68) il brano AMBRA soundtrack atto 1
+    cameretta: { file: 'audio/cameretta-loop.mp3', volume: 0.49 },   // (fase 44) -18%
     // (fase 36) il finale sulla scogliera: Pezzidicarne da 2:44 (rallentato come un nastro se la scena dura di più)
     finale: 'audio/pezzidicarne-finale.mp3', volumeFinale: 0.6,
     scatolaMusicale: 'audio/carillon.mp3', volumeCarillon: 0.3,   // (fase 24) carillon al 30%
