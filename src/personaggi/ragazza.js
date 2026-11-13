@@ -71,8 +71,8 @@ PZ.creaRagazza = function (scena, posa, seme, opzioni) {
 
   // ---------- Volto (fase 62) ----------
   // Lo stesso metodo del volto del ragazzo (ragazzo.js): una superficie sfaccettata di circa 450 triangoli, scolpita
-  // (mento piccolo, mascella sottile, zigomi alti, naso piccolo con le ali, labbra piene, orbite morbide, arcate
-  // appena accennate) e una texture di 32 x 40 pixel con la stessa proiezione frontale. Qui non c'è il cappuccio: la
+  // (mento piccolo, mascella sottile con l'angolo appena segnato, zigomi alti, guance un po' scavate, naso piccolo
+  // con le ali, bocca chiusa, orbite morbide, arcate appena accennate) e una texture di 32 x 40 pixel con la stessa proiezione frontale. Qui non c'è il cappuccio: la
   // superficie nasce dalla forma del cranio (stesse sezioni della testa qui sotto) e ai bordi rientra dentro il cranio,
   // così il viso e la testa sono un pezzo solo. Un po' irregolare e asimmetrica, come una persona vera.
   // Misure in metri, nelle coordinate della testa: mento a y = -0,022, bocca a y = 0,036, occhi a y = 0,105, attaccatura dei capelli a y = 0,155.
@@ -110,9 +110,10 @@ PZ.creaRagazza = function (scena, posa, seme, opzioni) {
       z += 0.0035 * g(a - 0.24, 0.08) * g(y - 0.062, 0.005);                            // ali del naso
       z -= 0.0065 * g(a - 0.42, 0.2) * g(y - 0.104, 0.011);                             // orbite (morbide)
       z += 0.0028 * g(a - 0.4, 0.3) * g(y - 0.124, 0.006);                              // arcate appena accennate
-      z += 0.005 * g(a - 0.62, 0.17) * g(y - 0.086, 0.011);                             // zigomi alti
-      z += 0.002 * g(a - 0.5, 0.2) * g(y - 0.058, 0.014);                               // guance piene
-      z += lab * (0.0048 * g(y - 0.029, 0.005) - 0.002 * g(y - 0.036, 0.0022) + 0.0042 * g(y - 0.042, 0.0038)); // labbra piene
+      z += 0.006 * g(a - 0.62, 0.15) * g(y - 0.087, 0.01);                              // zigomi alti
+      z -= 0.0028 * g(a - 0.6, 0.15) * g(y - 0.06, 0.011);                              // guance un po' scavate
+      z -= 0.003 * g(a - 0.86, 0.14) * g(y - 0.03, 0.016);                              // angolo della mascella
+      z += lab * (0.0036 * g(y - 0.03, 0.005) - 0.0012 * g(y - 0.036, 0.002) + 0.003 * g(y - 0.041, 0.0035));  // labbra (bocca chiusa)
       z -= 0.0015 * g(u, 0.12) * g(y - 0.05, 0.004);                                    // solco sopra il labbro
       z += 0.004 * g(u, 0.26) * g(y - 0.004, 0.009);                                    // mento
       return z;
@@ -158,54 +159,61 @@ PZ.creaRagazza = function (scena, posa, seme, opzioni) {
     const aI = function (x) { return Math.round((x + MEZZA) / (2 * MEZZA) * TW - 0.5); };
     const aJ = function (y) { return Math.round((ALTO - y) / (ALTO - BASSO) * TH - 0.5); };
     // colori: viva (cameretta) o fantasma (strada)
-    const K = NATURALE ? { labbra: [166, 88, 100], labbro: [92, 38, 50], rosa: [228, 150, 150], pianto: [196, 120, 128], trucco: [58, 40, 56],
-      occhio: [232, 222, 216], iride: [52, 34, 30], ciglia: [24, 16, 22], sopracc: [46, 30, 34], ombra: CP[0], capelli: [20, 12, 24] }
-      : { labbra: [124, 108, 136], labbro: [66, 54, 84], rosa: [170, 182, 206], pianto: [120, 118, 152], trucco: [40, 36, 58],
-      occhio: [214, 222, 232], iride: [30, 26, 40], ciglia: [16, 12, 22], sopracc: [44, 36, 54], ombra: CP[0], capelli: [16, 10, 20] };
-    // pelle: il tono del cranio, con la grana dei pixel; ai bordi l'ombra dei lati della testa (così il passaggio non si vede)
+    // (fase 63) stessa lingua del volto del ragazzo: tratti minimi di 1-3 pixel, colori spenti, il volume fatto dalle
+    // ombre dipinte (orbite, sotto il naso, sotto il labbro, ai lati) più che dai segni. Riferimento: le ragazze dei
+    // survival horror PS2 (proporzioni naturali, espressione malinconica e un po' inquietante), non un altro stile.
+    const K = NATURALE ? { labbra: [150, 96, 100], piega: [78, 44, 52], pianto: [168, 112, 116], trucco: [74, 58, 70],
+      occhio: [176, 166, 160], iride: [34, 24, 24], ciglia: [30, 22, 28], sopracc: [74, 52, 54], ombra: [110, 72, 70], capelli: [20, 12, 24], sangue: [112, 14, 20] }
+      : { labbra: [128, 120, 146], piega: [62, 56, 82], pianto: [126, 128, 160], trucco: [64, 62, 86],
+      occhio: [184, 190, 202], iride: [26, 24, 36], ciglia: [22, 20, 32], sopracc: [70, 66, 90], ombra: [96, 102, 124], capelli: [16, 10, 20], sangue: [104, 16, 24] };
+    // pelle: il tono del cranio con la grana dei pixel (come il ragazzo), poi le ombre che danno il volume
     for (let j = 0; j < TH; j++) for (let i = 0; i < TW; i++) {
-      const x = px(i), y = py(j), o = (j * TW + i) * 4, r = rnd(), cc = r < 0.1 ? CP[1] : r < 0.9 ? CP[2] : CP[3];
-      d[o] = CP[2][0]; d[o + 1] = CP[2][1]; d[o + 2] = CP[2][2]; d[o + 3] = 255;
-      colore(i, j, cc, 0.4);
-      colore(i, j, K.ombra, 0.18 * Math.min(1, Math.max(0, (Math.abs(x) - 0.035) / 0.03)) + 0.12 * Math.min(1, Math.max(0, (0.012 - y) / 0.03)));
-      colore(i, j, CP[3], 0.25 * g(x, 0.012) * g(y - 0.07, 0.03));                                   // luce sul dorso del naso
-      colore(i, j, K.rosa, 0.22 * g(Math.abs(x) - 0.038, 0.014) * g(y - 0.074, 0.014));               // guance arrossate dal pianto
+      const x = px(i), y = py(j), o = (j * TW + i) * 4, r = rnd(), cc = r < 0.12 ? CP[1] : r < 0.88 ? CP[2] : CP[3], a = Math.abs(x), n = (rnd() - 0.5) * 8;
+      d[o] = CP[2][0] + n; d[o + 1] = CP[2][1] + n; d[o + 2] = CP[2][2] + n; d[o + 3] = 255;
+      colore(i, j, cc, 0.35);
+      colore(i, j, CP[0], 0.3 * Math.min(1, Math.max(0, (a - 0.04) / 0.03)));       // i lati: la stessa ombra del cranio (non si vede il passaggio)
+      const om = 0.3 * Math.min(1, Math.max(0, (0.014 - y) / 0.03))                          // sotto il mento
+        + 0.22 * g(a - 0.027, 0.014) * g(y - 0.112, 0.012)                            // sotto l'arcata, sopra l'occhio
+        + 0.2 * g(a - 0.045, 0.012) * g(y - 0.064, 0.012)                             // guance un po' scavate sotto lo zigomo
+        + 0.18 * g(a - 0.009, 0.004) * g(y - 0.082, 0.014)                            // ai lati del dorso del naso
+        + 0.25 * g(x, 0.009) * g(y - 0.024, 0.004);                                   // sotto il labbro inferiore
+      colore(i, j, K.ombra, Math.min(0.6, om));
+      colore(i, j, CP[3], 0.3 * g(x, 0.007) * g(y - 0.076, 0.016) + 0.22 * g(a - 0.044, 0.01) * g(y - 0.088, 0.008)
+        + 0.18 * g(x, 0.012) * g(y - 0.006, 0.008));                                   // luce: naso, zigomi, mento
     }
-    // naso: narici piccole e ombra sotto la punta
-    colore(aI(-0.0062), aJ(0.059), K.ombra, 0.75); colore(aI(0.0062), aJ(0.059), K.ombra, 0.75);
-    colore(aI(0), aJ(0.057), K.ombra, 0.3);
-    // bocca: labbra piene, piegate appena in giù agli angoli; il superiore più scuro, l'inferiore con un riflesso
-    for (let i = aI(-0.019); i <= aI(0.019); i++) {
-      const x = px(i), giu = Math.abs(x) > 0.014 ? 1 : 0, bordo = Math.abs(x) > 0.016 ? 0.55 : 1;
+    // naso: due narici scure e l'ombra sotto la punta
+    colore(aI(-0.0058), aJ(0.059), K.piega, 0.6); colore(aI(0.0058), aJ(0.059), K.piega, 0.6);
+    colore(aI(0), aJ(0.057), K.ombra, 0.4); colore(aI(0), aJ(0.067), CP[3], 0.35);
+    // bocca chiusa: una piega scura e sottile, gli angoli appena in giù; il labbro superiore un tono più scuro della
+    // pelle, l'inferiore appena più pieno, colori spenti
+    {
       const jb = aJ(0.036);
-      colore(i, jb - 1 + giu, K.labbra, 0.75 * bordo);                       // labbro superiore
-      colore(i, jb + giu, K.labbro, 0.95);                                   // la piega
-      if (Math.abs(x) < 0.016) colore(i, jb + 1, K.labbra, 0.8);             // labbro inferiore
-      if (Math.abs(x) < 0.006) colore(i, jb + 1, CP[3], 0.3);
+      for (let i = aI(-0.016); i <= aI(0.016); i++) {
+        const x = px(i), giu = Math.abs(x) > 0.012 ? 1 : 0;
+        colore(i, jb + giu, K.piega, Math.abs(x) > 0.014 ? 0.6 : 0.85);
+        if (Math.abs(x) < 0.013) colore(i, jb - 1, K.labbra, 0.38);
+        if (Math.abs(x) < 0.011) { colore(i, jb + 1, K.labbra, 0.25); colore(i, jb + 1, K.ombra, 0.2); }
+      }
     }
-    // occhi: a mandorla, più grandi di quelli del ragazzo ma piccoli rispetto a un cartone; palpebra con le ciglia
-    // e un filo di trucco che scappa verso l'esterno, iride scura che guarda dritta, bordo sotto arrossato dal pianto
-    [[-1, 0.0275, 0.1048, 0], [1, 0.0272, 0.1052, 1]].forEach(function (e) {
+    // occhi: piccoli e un po' socchiusi (più aperti di quelli del ragazzo), palpebra superiore pesante e scura,
+    // bianco spento, iride scura di due pixel; sotto, il bordo arrossato dal pianto
+    [[-1, 0.0272, 0.1046, 0], [1, 0.0268, 0.105, 1]].forEach(function (e) {
       const s = e[0], cx = s * e[1], i0 = aI(cx), j0 = aJ(e[2]);
-      for (let k = -3; k <= 3; k++) for (let h = -2; h <= 2; h++) colore(i0 + k, j0 + h, K.ombra, 0.4 * g(k / 3.5, 1) * g(h / 2.5, 1));   // orbita
-      for (let k = -2; k <= 3; k++) colore(i0 + s * k, j0 - 1, K.ciglia, k === -2 ? 0.6 : 0.95);                              // palpebra e ciglia
-      colore(i0 + s * 4, j0 - 2, K.ciglia, 0.75);                                                                              // la codina del trucco
-      for (let k = -2; k <= 2; k++) colore(i0 + s * k, j0, K.occhio, Math.abs(k) === 2 ? 0.55 : 0.9);                         // bianco
-      colore(i0 + s * 3, j0, K.ciglia, 0.5);
-      colore(i0 - 1 + e[3], j0, K.iride, 1); colore(i0 + e[3], j0, K.iride, 1);                                               // iride
-      colore(i0 - 1 + e[3], j0 - 1, K.ciglia, 1);
-      for (let k = -2; k <= 2; k++) colore(i0 + s * k, j0 + 1, K.pianto, 0.7);                                                // bordo arrossato
-      for (let k = -1; k <= 2; k++) colore(i0 + s * k, j0 + 2, K.ombra, 0.35);                                               // occhiaia
-      // sopracciglia sottili e tristi: l'interno sale, l'esterno scende
-      for (let k = -2; k <= 3; k++) colore(i0 + s * k, j0 - 4 + (k >= 1 ? 1 : 0) - (k === -2 ? 1 : 0), K.sopracc, k === 3 ? 0.55 : 0.85);
-      // il trucco colato con le lacrime: due righe che scendono sulla guancia (una più lunga)
-      const lunga = s < 0 ? 9 : 7;
-      for (let k = 2; k < lunga; k++) colore(i0 + s * (k > 5 ? 1 : 0), j0 + k, k < 5 ? K.trucco : K.pianto, k < 5 ? 0.75 : 0.6);
-      for (let k = 2; k < 5; k++) colore(i0 + s * 2, j0 + k, K.trucco, 0.45);
+      for (let k = -3; k <= 3; k++) for (let h = -2; h <= 2; h++) colore(i0 + k, j0 + h, K.ombra, 0.42 * g(k / 3.5, 1) * g(h / 2.5, 1));   // orbita
+      for (let k = -2; k <= 2; k++) colore(i0 + k, j0 - 1, K.ciglia, 0.92);                                                 // palpebra
+      colore(i0 + s * 3, j0 - 1, K.ciglia, 0.45); colore(i0 + s * 3, j0, K.ciglia, 0.35);                                   // l'angolo esterno
+      for (let k = -2; k <= 2; k++) colore(i0 + k, j0, K.occhio, Math.abs(k) === 2 ? 0.4 : 0.75);                            // bianco
+      colore(i0 - 1 + e[3], j0, K.iride, 1); colore(i0 + e[3], j0, K.iride, 0.9);                                            // iride
+      for (let k = -2; k <= 2; k++) colore(i0 + k, j0 + 1, K.pianto, Math.abs(k) === 2 ? 0.25 : 0.45);                      // bordo arrossato
+      for (let k = -1; k <= 1; k++) colore(i0 + s * k, j0 + 2, K.ombra, 0.3);                                               // occhiaia
+      // sopracciglia sottili, spente: l'interno sale appena (tristezza), l'esterno scende
+      for (let k = -2; k <= 2; k++) colore(i0 + s * k, j0 - 4 + (k >= 1 ? 1 : 0) - (k === -2 ? 1 : 0), K.sopracc, k === 2 ? 0.45 : 0.7);
+      // il trucco colato con le lacrime: una riga sottile e sbiadita sulla guancia (più lunga sotto l'occhio destro)
+      const lunga = s < 0 ? 8 : 5;
+      for (let k = 2; k < lunga; k++) colore(i0 - s + (k > 5 ? -s : 0), j0 + k, K.trucco, 0.5 - k * 0.04);
     });
-    // il sangue della tempia destra arriva fino al bordo del viso e cola lungo la guancia
-    for (let k = 0; k < 12; k++) colore(aI(-0.063 + (k > 6 ? 0.0045 : 0)), aJ(0.118) + k, [150, 12, 18], k < 9 ? 0.85 : 0.5);
-    colore(aI(-0.059), aJ(0.118) + 2, [176, 18, 22], 0.6);
+    // il sangue della tempia destra arriva fino al bordo del viso e cola sottile lungo la guancia
+    for (let k = 0; k < 11; k++) colore(aI(-0.064 + (k > 6 ? 0.0045 : 0)), aJ(0.118) + k, K.sangue, k < 8 ? 0.75 : 0.4);
     // capelli che scendono sulla fronte: una frangia di lato, più lunga sulla sua destra
     for (let i = 0; i < TW; i++) {
       const x = px(i), lungo = 1 + Math.floor(rnd() * 1.8) + (x < -0.01 ? Math.round(5 * Math.min(1, (-0.01 - x) / 0.04)) : 0) + (rnd() < 0.15 ? 1 : 0);
