@@ -23,7 +23,7 @@ PZ.CONFIG = {
     cameretta: { file: 'audio/cameretta-loop.mp3', volume: 0.49 },   // (fase 44) -18%
     // (fase 36) il finale sulla scogliera: Pezzidicarne da 2:44 (rallentato come un nastro se la scena dura di più)
     finale: 'audio/pezzidicarne-finale.mp3', volumeFinale: 0.6,
-    scatolaMusicale: 'audio/carillon.mp3', volumeCarillon: 0.3,   // (fase 24) carillon al 30%
+    scatolaMusicale: 'audio/carillon.mp3', volumeCarillon: 0.9,   // (fase 70) il file è più forte di 6 dB e il volume al 90%: prima (30%) sul telefono quasi non si sentiva
     volume: 0.8,
     // (fase 14) il colpo d'orchestra con l'archetto che stride: quando compare il demone nella scena iniziale e nel
     // jumpscare quando ti prende. Per cambiarlo metti un altro file nella cartella "audio" e scrivi qui il nome.

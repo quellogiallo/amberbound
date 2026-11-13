@@ -350,10 +350,51 @@ PZ.creaStanza = function (scena) {
   // ---------- Cassettiera con la scatola musicale ----------
   B(0.45, 0.75, 0.95, m.legno, -2.27, 0, 0.25); blocco(-2.5, -2.03, -0.25, 0.75);
   [0.15, 0.4, 0.6].forEach(function (y) { B(0.01, 0.01, 0.8, m.legnoSc, -2.045, y, 0.25); });
+  // (fase 70) IL CARILLON: una vera scatola musicale di legno scuro con i profili dorati e i piedini, il coperchio
+  // aperto all'indietro con lo specchio dentro, l'interno di velluto rosa, la ballerina col tutù sul suo perno (gira
+  // mentre suona) e la chiavetta a farfalla sul fianco. Il davanti guarda la stanza (+x).
   const scatola = new THREE.Group(); scatola.position.set(-2.27, 0.75, 0.0); gruppo.add(scatola);
-  B(0.22, 0.1, 0.17, m.oro, 0, 0, 0, scatola); B(0.23, 0.04, 0.18, m.rosaSc, 0, 0.1, 0, scatola);
-  const ballerina = new THREE.Group(); ballerina.position.set(0, 0.14, 0); scatola.add(ballerina);
-  C(0.035, 0.06, 6, m.rosaCh, 0, 0, 0, ballerina, 0.015); S(0.018, m.panna, 0, 0.08, 0, ballerina);
+  {
+    const noce = M(0x6a3a22), noceSc = M(0x4a2616), velluto = M(0xd9467c), vellutoSc = M(0xa8325e);
+    const specchio = new THREE.MeshPhongMaterial({ color: 0xcfd8ea, emissive: 0x2a3040, specular: 0xffffff, shininess: 80, flatShading: true });
+    const W = 0.17, D = 0.24, H = 0.085, SP = 0.012, Y0 = 0.018;          // profondità (x), larghezza (z), altezza, pareti
+    [[-1, -1], [-1, 1], [1, -1], [1, 1]].forEach(function (p) { C(0.012, Y0, 6, m.oro, p[0] * (W / 2 - 0.016), 0, p[1] * (D / 2 - 0.016), scatola, 0.009); });   // piedini
+    B(W, 0.012, D, noceSc, 0, Y0, 0, scatola);                                        // fondo
+    B(SP, H, D, noce, W / 2 - SP / 2, Y0, 0, scatola); B(SP, H, D, noce, -W / 2 + SP / 2, Y0, 0, scatola);   // davanti, dietro
+    B(W - 2 * SP, H, SP, noce, 0, Y0, D / 2 - SP / 2, scatola); B(W - 2 * SP, H, SP, noce, 0, Y0, -D / 2 + SP / 2, scatola);   // fianchi
+    B(W + 0.006, 0.008, D + 0.006, m.oro, 0, Y0 + 0.012, 0, scatola);                   // profilo dorato in basso
+    [-1, 1].forEach(function (s) {                                                      // profilo dorato sul bordo (una cornice: dentro si vede il velluto)
+      B(0.016, 0.006, D + 0.004, m.oro, s * (W / 2 - 0.006), Y0 + H - 0.003, 0, scatola);
+      B(W + 0.004, 0.006, 0.016, m.oro, 0, Y0 + H - 0.003, s * (D / 2 - 0.006), scatola);
+    });
+    B(W - 2 * SP, 0.004, D - 2 * SP, velluto, 0, Y0 + H - 0.03, 0, scatola);            // il velluto dentro
+    B(0.004, 0.026, 0.05, vellutoSc, W / 2 - SP - 0.002, Y0 + H - 0.03, 0, scatola);     // il vano dei gioielli, davanti
+    B(0.003, 0.022, 0.016, m.oro, W / 2 + 0.001, Y0 + 0.03, 0, scatola);                // la serratura
+    B(0.004, 0.008, 0.004, noceSc, W / 2 + 0.003, Y0 + 0.036, 0, scatola);
+    // il coperchio: incernierato dietro, aperto un po' oltre la verticale; dentro lo specchio, fuori un fregio dorato
+    const coperchio = new THREE.Group(); coperchio.position.set(-W / 2, Y0 + H, 0); coperchio.rotation.z = 1.85; scatola.add(coperchio);
+    B(W, 0.014, D, noce, W / 2, 0, 0, coperchio);
+    B(W - 0.03, 0.003, D - 0.03, specchio, W / 2, -0.002, 0, coperchio);
+    B(W - 0.05, 0.003, D - 0.05, m.oro, W / 2, 0.013, 0, coperchio);
+    B(W - 0.062, 0.004, D - 0.062, noceSc, W / 2, 0.014, 0, coperchio);
+    [-1, 1].forEach(function (s) { C(0.004, 0.03, 6, m.oro, 0, -0.015, s * (D / 2 - 0.03), coperchio).rotation.x = Math.PI / 2; });   // cerniere
+    // la chiavetta a farfalla sul fianco
+    const chiave = new THREE.Group(); chiave.position.set(-0.02, Y0 + 0.04, D / 2); scatola.add(chiave);
+    C(0.004, 0.018, 6, m.oro, 0, 0, 0, chiave).rotation.x = Math.PI / 2;
+    [-1, 1].forEach(function (s) { S(0.011, m.oro, 0, s * 0.011, 0.02, chiave, 0.35, 1, 0.7); });
+    scatola.userData.chiave = chiave;
+  }
+  // la ballerina sul suo perno: piedistallo dorato, una gamba in punta, il tutù, le braccia alzate sopra la testa
+  const ballerina = new THREE.Group(); ballerina.position.set(0, 0.09, 0); scatola.add(ballerina);
+  C(0.014, 0.006, 10, m.oro, 0, 0, 0, ballerina);
+  C(0.0035, 0.034, 5, m.panna, 0, 0.006, 0, ballerina, 0.0045);                         // la gamba
+  { const g = C(0.0035, 0.022, 5, m.panna, 0.008, 0.03, 0, ballerina, 0.003); g.rotation.z = -1.1; }   // l'altra, sollevata
+  C(0.032, 0.008, 12, m.bianco, 0, 0.036, 0, ballerina, 0.012);                         // il tutù
+  C(0.026, 0.006, 12, m.rosaCh, 0, 0.041, 0, ballerina, 0.01);
+  C(0.008, 0.026, 6, m.rosaCh, 0, 0.043, 0, ballerina, 0.006);                          // il corpetto
+  S(0.0085, m.panna, 0, 0.078, 0, ballerina);                                            // la testa
+  S(0.006, m.marrone, -0.003, 0.083, 0, ballerina);                                      // lo chignon
+  [-1, 1].forEach(function (s) { const b = C(0.0025, 0.03, 4, m.panna, 0, 0.066, s * 0.006, ballerina, 0.002); b.rotation.x = -s * 0.35; });   // le braccia, in alto
   S(0.1, m.bianco, -2.27, 0.86, 0.5, null, 1, 1.2, 0.9); S(0.06, m.bianco, -2.27, 1.02, 0.5);   // coniglietto di peluche
   B(0.025, 0.1, 0.02, m.bianco, -2.27, 1.04, 0.47); B(0.025, 0.1, 0.02, m.bianco, -2.27, 1.04, 0.53);
   B(0.02, 0.2, 0.15, m.panna, -2.4, 0.75, 0.62);                                       // cornice con foto
@@ -426,6 +467,8 @@ PZ.creaStanza = function (scena) {
   // ---------- Aggiornamento ----------
   let orologioFermo = true, tOrologio = 0, ore = 3.25;   // (fase 48) la sveglia è ferma da subito
   function aggiorna(t, dt, giocatorePos) {
+    // (fase 70) la ballerina gira e la chiavetta si svolge mentre il carillon suona
+    if (PZ.audio.carillonSuona && PZ.audio.carillonSuona()) { ballerina.rotation.y += dt * 2.1; if (scatola.userData.chiave) scatola.userData.chiave.rotation.z -= dt * 0.6; }
     if (!pietraPresa) {                                                    // la pietra fluttua e brilla
       pietra.position.y = posPietra.y + Math.sin(t * 2) * 0.04; pietra.rotation.y = t * 0.8;
       pietra.brilla(1, t);

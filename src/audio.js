@@ -71,7 +71,21 @@ PZ.audio = (function () {
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.05);
   }
-  let carillon = null;
+  let carillon = null, carillonPronto = null, carillonMix = null;
+  // la melodia di prova (se manca il file o il browser non lo fa partire): un frammento in minore che stona e rallenta
+  function melodiaCarillon() {
+    if (!ctx) return;
+    const melodia = [659, 622, 659, 622, 659, 494, 587, 523, 440];   // frammento in minore
+    let t = 0;
+    melodia.forEach(function (f, i) {
+      const stona = 1 + i * 0.004 * (i % 2 ? 1 : -1);
+      nota(f * stona, 0.9, 'triangle', 0.16, t); nota(f * 2 * stona, 0.5, 'sine', 0.05, t);
+      t += 0.34 + i * 0.045;                         // rallenta
+    });
+    nota(55, 3, 'sawtooth', 0.08, t - 0.2, 0.6);
+  }
+  // (fase 70) il file del carillon si prepara subito, così al tocco parte senza attese
+  try { if (PZ.CONFIG.audio.scatolaMusicale) { carillonPronto = new Audio(PZ.CONFIG.audio.scatolaMusicale); carillonPronto.preload = 'auto'; carillonPronto.load(); } } catch (e) {}
   // ---- suoni della strada ----
   let bufRumore = null, vento = null, volo = null;
   function rumore() {
@@ -1136,9 +1150,10 @@ PZ.audio = (function () {
     carillonSuona: function () { return !!(carillon && !carillon.paused && !carillon.ended); },
     fermaCarillon: function (sec) {
       const c = carillon; if (!c || c.paused) return;
-      const v0 = c.volume, t0 = performance.now(), d = (sec || 1) * 1000;
-      const passo = function () { const k = Math.min(1, (performance.now() - t0) / d); try { c.volume = v0 * (1 - k); } catch (e) {}
-        if (k < 1 && !c.paused) requestAnimationFrame(passo); else { try { c.pause(); c.volume = v0; } catch (e) {} } };
+      const v0 = PZ.CONFIG.audio.volume * (PZ.CONFIG.audio.volumeCarillon == null ? 1 : PZ.CONFIG.audio.volumeCarillon), t0 = performance.now(), d = (sec || 1) * 1000;
+      const metti = function (v) { if (carillonMix && c === carillonPronto) carillonMix.imposta(v); else { try { c.volume = v; } catch (e) {} } };   // (fase 70) dal mixer
+      const passo = function () { const k = Math.min(1, (performance.now() - t0) / d); metti(v0 * (1 - k));
+        if (k < 1 && !c.paused) requestAnimationFrame(passo); else { try { c.pause(); } catch (e) {} metti(v0); } };
       requestAnimationFrame(passo);
     },
     // SCATOLA MUSICALE: se in config c'è un tuo file lo usa, altrimenti una melodia di prova che stona e rallenta
@@ -1174,20 +1189,21 @@ PZ.audio = (function () {
       const vol = PZ.CONFIG.audio.volume * (PZ.CONFIG.audio.volumeCarillon == null ? 1 : PZ.CONFIG.audio.volumeCarillon);
       if (file) {
         try {
+          // (fase 70) il file è già pronto (preparato all'apertura della pagina) e passa dal mixer del gioco: su iPhone
+          // il volume di un elemento audio non si può cambiare da codice, così lo regola un GainNode (come la musica
+          // della cameretta). Se il browser rifiuta di farlo partire, suona la melodia sintetica qui sotto.
           if (carillon && !carillon.paused && !carillon.ended) { carillon.pause(); return 'pausa'; }      // (fase 24) pausa
-          if (carillon && carillon.paused && !carillon.ended && carillon.currentTime > 0) { carillon.volume = vol; carillon.play(); return 'riprende'; }
-          carillon = new Audio(file); carillon.volume = vol; carillon.play(); return 'suona';
+          if (!carillonPronto || carillonPronto.src.indexOf(file) < 0) { carillonPronto = new Audio(file); carillonPronto.preload = 'auto'; }
+          if (!carillonMix) carillonMix = this.collega(carillonPronto);
+          carillonMix.imposta(vol);
+          const riprende = carillon && carillon.paused && !carillon.ended && carillon.currentTime > 0;
+          if (!riprende) { carillon = carillonPronto; try { carillon.currentTime = 0; } catch (x) {} }
+          const p = carillon.play();
+          if (p && p.catch) p.catch(function () { carillon = null; melodiaCarillon(); });
+          return riprende ? 'riprende' : 'suona';
         } catch (e) {}
       }
-      if (!ctx) return;
-      const melodia = [659, 622, 659, 622, 659, 494, 587, 523, 440];   // frammento in minore
-      let t = 0;
-      melodia.forEach(function (f, i) {
-        const stona = 1 + i * 0.004 * (i % 2 ? 1 : -1);
-        nota(f * stona, 0.9, 'triangle', 0.16, t); nota(f * 2 * stona, 0.5, 'sine', 0.05, t);
-        t += 0.34 + i * 0.045;                         // rallenta
-      });
-      nota(55, 3, 'sawtooth', 0.08, t - 0.2, 0.6);
+      melodiaCarillon();
     }
   };
 })();
