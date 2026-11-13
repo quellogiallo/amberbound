@@ -19,6 +19,7 @@
 PZ.creaRagazza = function (scena, posa, seme, opzioni) {
   const V3 = THREE.Vector3, S = PZ.sartoria, L = S.loft;
   const PI = Math.PI, NATURALE = !!(opzioni && opzioni.naturale);
+  const sm = function (a, b, x) { const u = Math.max(0, Math.min(1, (x - a) / (b - a))); return u * u * (3 - 2 * u); };
 
   // ---------- Materiali: stesse stoffe dipinte del ragazzo, nei colori della ragazza (sbiaditi) ----------
   const fredda = function (m, k) { if (!NATURALE) m.emissive = new THREE.Color(0x1c2434).multiplyScalar(k || 1); return m; };   // luce propria fredda (solo il fantasma)
@@ -79,6 +80,7 @@ PZ.creaRagazza = function (scena, posa, seme, opzioni) {
   const CRANIO = [{ h: -0.025, rx: 0.03, rz: 0.035, z: 0.02 }, { h: 0.0, rx: 0.06, rz: 0.07, z: 0.012 }, { h: 0.05, rx: 0.08, rz: 0.092 },
     { h: 0.11, rx: 0.088, rz: 0.1 }, { h: 0.16, rx: 0.085, rz: 0.097 }, { h: 0.2, rx: 0.07, rz: 0.08 }, { h: 0.225, rx: 0.038, rz: 0.045 }, { h: 0.235, rx: 0.01, rz: 0.012 }];
   const VOLTO = (function () {
+    const ALTO = 0.175, BASSO = -0.022, MEZZA = 0.073;
     const lerpT = function (tab, y) {
       if (y <= tab[0][0]) return tab[0][1];
       for (let i = 1; i < tab.length; i++) if (y <= tab[i][0]) {
@@ -97,15 +99,17 @@ PZ.creaRagazza = function (scena, posa, seme, opzioni) {
     }
     // mezza larghezza del viso: mento piccolo e appuntito, mascella sottile, zigomi alti, fronte che sale nei capelli
     const LARGO = [[-0.022, 0.017], [-0.01, 0.028], [0.002, 0.039], [0.016, 0.049], [0.031, 0.056], [0.05, 0.062], [0.07, 0.067],
-      [0.09, 0.07], [0.11, 0.071], [0.13, 0.07], [0.155, 0.066]];
+      [0.09, 0.07], [0.11, 0.071], [0.13, 0.07], [0.155, 0.066], [0.175, 0.061]];
     // naso: piccolo, punta un po' all'insù; sporgenza al centro e larghezza (frazione della mezza larghezza)
     const NASO = [[0.056, 0], [0.061, 0.006], [0.067, 0.013], [0.075, 0.012], [0.087, 0.008], [0.1, 0.004], [0.112, 0.001], [0.12, 0]];
     const NASO_L = [[0.061, 0.17], [0.07, 0.2], [0.088, 0.12], [0.11, 0.1]];
     let seme = 19;
     const caso = function () { seme = (seme * 16807) % 2147483647; return seme / 2147483647 - 0.5; };
     function profondita(u, x, y) {
-      const a = Math.abs(u), lab = g(u, 0.36) * (u < 0 ? 1 : 0.95);
-      let z = cranio(x, y) + 0.005 - 0.014 * Math.pow(a, 4);                              // ai bordi rientra nel cranio
+      // (fase 64) il volto è il rilievo SOPRA la superficie del cranio: ai bordi (e in cima) il rilievo va a zero: l'orlo
+      // del volto sta sulla pelle del cranio (che lì sotto è abbassata appena, vedi il cranio più giù)
+      const a = Math.abs(u), lab = g(u, 0.36) * (u < 0 ? 1 : 0.95), base = cranio(x, y);
+      let z = base + 0.005;
       z += lerpT(NASO, y) * g(u, lerpT(NASO_L, y));                                     // naso
       z += 0.0035 * g(a - 0.24, 0.08) * g(y - 0.062, 0.005);                            // ali del naso
       z -= 0.0065 * g(a - 0.42, 0.2) * g(y - 0.104, 0.011);                             // orbite (morbide)
@@ -116,13 +120,13 @@ PZ.creaRagazza = function (scena, posa, seme, opzioni) {
       z += lab * (0.0036 * g(y - 0.03, 0.005) - 0.0012 * g(y - 0.036, 0.002) + 0.003 * g(y - 0.041, 0.0035));  // labbra (bocca chiusa)
       z -= 0.0015 * g(u, 0.12) * g(y - 0.05, 0.004);                                    // solco sopra il labbro
       z += 0.004 * g(u, 0.26) * g(y - 0.004, 0.009);                                    // mento
-      return z;
+      return base + (z - base) * (1 - Math.pow(a, 6)) * (1 - sm(ALTO - 0.02, ALTO, y));
     }
     const U = [-1, -0.8, -0.6, -0.43, -0.28, -0.14, 0, 0.14, 0.28, 0.43, 0.6, 0.8, 1];
     const Y = [-0.022, -0.01, 0.002, 0.014, 0.023, 0.03, 0.036, 0.042, 0.05, 0.057, 0.064, 0.072, 0.081, 0.091, 0.099, 0.106,
-      0.113, 0.122, 0.133, 0.144, 0.155];
+      0.113, 0.122, 0.133, 0.144, 0.155, 0.165, 0.175];
     const pos = [], nu = U.length, ny = Y.length;
-    const ALTO = 0.155, BASSO = -0.022, MEZZA = 0.073;
+
     for (let j = 0; j < ny; j++) for (let i = 0; i < nu; i++) {
       const y = Y[j], u = U[i], w = lerpT(LARGO, y) * (u < 0 ? 1.015 : 1);            // lato destro un filo più largo
       const x = u * w + (j > 0 && j < ny - 1 && i > 0 && i < nu - 1 ? caso() * 0.0014 : 0);
@@ -213,17 +217,22 @@ PZ.creaRagazza = function (scena, posa, seme, opzioni) {
       for (let k = 2; k < lunga; k++) colore(i0 - s + (k > 5 ? -s : 0), j0 + k, K.trucco, 0.5 - k * 0.04);
     });
     // il sangue della tempia destra arriva fino al bordo del viso e cola sottile lungo la guancia
-    for (let k = 0; k < 11; k++) colore(aI(-0.064 + (k > 6 ? 0.0045 : 0)), aJ(0.118) + k, K.sangue, k < 8 ? 0.75 : 0.4);
-    // capelli che scendono sulla fronte: una frangia di lato, più lunga sulla sua destra
-    for (let i = 0; i < TW; i++) {
-      const x = px(i), lungo = 1 + Math.floor(rnd() * 1.8) + (x < -0.01 ? Math.round(5 * Math.min(1, (-0.01 - x) / 0.04)) : 0) + (rnd() < 0.15 ? 1 : 0);
-      for (let j = 0; j < lungo; j++) colore(i, j, K.capelli, 0.96 - j * 0.07);
-    }
+    for (let k = 0; k < 14; k++) colore(aI(-0.06 + (k > 7 ? 0.0045 : 0)), aJ(0.122) + k, K.sangue, k < 10 ? 0.75 : 0.4);
+    for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) colore(aI(-0.061) + a, aJ(0.128) + b, K.sangue, 0.7);
     q.putImageData(img, 0, 0);
     const tex = new THREE.CanvasTexture(c);
     tex.magFilter = tex.minFilter = THREE.NearestFilter;
     tex.generateMipmaps = false;
-    return { geo: geo, tex: tex };
+    // la superficie del volto in un punto (x, y) della testa, o null fuori dal volto: serve al cranio per stare dietro
+    // dentro il volto restituisce la sua profondità; appena fuori (fino a 0,4 volte la sua larghezza, e 2 cm sopra e
+    // sotto) restituisce di quanto abbassare la pelle del cranio perché l'orlo del volto resti sempre davanti
+    function superficie(x, y) {
+      const yc = Math.max(BASSO, Math.min(ALTO, y)), u = x / lerpT(LARGO, yc), fy = Math.max(BASSO - y, y - ALTO, 0);
+      if (fy === 0 && Math.abs(u) <= 1) return { z: profondita(u, x, y) };
+      const ku = Math.max(0, 1 - (Math.abs(u) - 1) / 0.4), ky = Math.max(0, 1 - fy / 0.02);
+      return { abbassa: 0.0025 * Math.min(ku, ky) };
+    }
+    return { geo: geo, tex: tex, superficie: superficie };
   })();
   const volto = fredda(new THREE.MeshPhongMaterial({ map: VOLTO.tex, specular: 0x000000, shininess: 0, flatShading: true }), 1.6);
   const rosso = new THREE.MeshPhongMaterial({ color: 0x9a0c12, emissive: 0x3a0004, specular: 0x552222, shininess: 30, flatShading: true });
@@ -265,19 +274,30 @@ PZ.creaRagazza = function (scena, posa, seme, opzioni) {
     { lati: 14, esp: 2.1, irregolare: 0.012, seme: 82, apertoSotto: true }), gonna);
   pezzo(collo, L([{ h: -0.03, rx: 0.042, rz: 0.042 }, { h: 0.06, rx: 0.038, rz: 0.038 }], { lati: 8, seme: 83 }), pelle);
   // testa: ovale (più minuta di quella del ragazzo), con il volto scolpito davanti
-  pezzo(testa, L(CRANIO, { lati: 14, esp: 2.0, irregolare: 0.002, seme: 84 }), viso);
-  pezzo(testa, VOLTO.geo, volto);                                  // (fase 62) il volto scolpito, davanti al cranio
+  // (fase 64) UN SOLO VOLTO: dove c'è il volto, i punti del cranio vengono spostati 4 mm DIETRO la sua superficie.
+  // Prima il davanti del cranio (una seconda "faccia" liscia) attraversava il volto scolpito qua e là: si vedevano
+  // due facce sovrapposte. Ora davanti si vede solo il volto; attorno al suo orlo la pelle del cranio è abbassata
+  // di 2,5 mm (sfumando), così l'orlo non sfarfalla e non viene coperto.
+  pezzo(testa, L(CRANIO, { lati: 14, esp: 2.0, irregolare: 0.002, seme: 84, forma: function (p, a, h) {
+    if (p.z <= 0) return;
+    const f = VOLTO.superficie(p.x, h);
+    if (f.z !== undefined) p.z = Math.min(p.z, f.z - 0.004); else p.z -= f.abbassa;
+  } }), viso);
+  pezzo(testa, VOLTO.geo, volto);                                  // il volto scolpito
   // la ferita: un piccolo grumo rosso in rilievo sulla tempia destra
   const grumo = pezzo(testa, new THREE.IcosahedronGeometry(0.014, 0), rosso);
-  grumo.position.set(-0.078, 0.122, 0.045);
-  // capelli: calotta sopra e dietro la testa (davanti lascia libero il viso, con una frangia di lato), lunghi dietro
+  grumo.position.set(-0.061, 0.128, 0.066);                       // (fase 64) sul bordo della fronte: i capelli ora coprono la tempia
+  // capelli: calotta sopra e dietro la testa, tirati indietro (fase 64: niente frangia; in basso si chiude sulla
+  // testa, senza fessure), lunghi dietro
   // fino a metà schiena e due ciocche ai lati del viso
-  const sm = function (a, b, x) { const u = Math.max(0, Math.min(1, (x - a) / (b - a))); return u * u * (3 - 2 * u); };
-  pezzo(testa, L([{ h: 0.045, rx: 0.094, rz: 0.104, z: -0.006 }, { h: 0.1, rx: 0.098, rz: 0.11, z: -0.006 }, { h: 0.16, rx: 0.094, rz: 0.106, z: -0.008 },
-    { h: 0.205, rx: 0.08, rz: 0.09, z: -0.01 }, { h: 0.235, rx: 0.05, rz: 0.058, z: -0.012 }, { h: 0.252, rx: 0.012, rz: 0.014, z: -0.014 }],
+  pezzo(testa, L([{ h: 0.022, rx: 0.077, rz: 0.088, z: -0.004 }, { h: 0.045, rx: 0.094, rz: 0.104, z: -0.006 }, { h: 0.1, rx: 0.098, rz: 0.11, z: -0.006 }, { h: 0.16, rx: 0.094, rz: 0.106, z: -0.008 },
+    { h: 0.178, rx: 0.091, rz: 0.104, z: -0.006 }, { h: 0.205, rx: 0.082, rz: 0.094, z: -0.008 }, { h: 0.235, rx: 0.05, rz: 0.058, z: -0.012 }, { h: 0.252, rx: 0.012, rz: 0.014, z: -0.014 }],
     { lati: 14, esp: 2.0, irregolare: 0.008, seme: 85, apertoSotto: true, forma: function (p, a, h) {
-      const davanti = 1 - sm(0.7, 1.25, Math.abs(a)), basso = 1 - sm(0.1, 0.15, h);   // (fase 62) attaccatura un po' più bassa: copre il bordo alto del volto
-      p.z -= davanti * basso * Math.max(0, p.z + 0.01) * (a > 0 ? 1 : 0.55);   // il viso resta scoperto (frangia di lato)
+      // davanti, sotto l'attaccatura, la calotta rientra tutta dentro la testa: i capelli escono dalla pelle lungo
+      // l'attaccatura (circa a y = 0,17, appena sopra il bordo alto del volto) seguendo la curva della fronte, e
+      // scendono sulle tempie fin dove finisce il volto
+      const davanti = 1 - sm(0.55, 0.9, Math.abs(a)), basso = 1 - sm(0.162, 0.175, h);
+      p.z -= davanti * basso * Math.max(0, p.z + 0.01);
     } }), capelli);
   pezzo(testa, L([{ h: 0.13, rx: 0.09, rz: 0.03, z: -0.085 }, { h: 0.0, rx: 0.098, rz: 0.035, z: -0.095 }, { h: -0.18, rx: 0.105, rz: 0.03, z: -0.1 },
     { h: -0.36, rx: 0.09, rz: 0.02, z: -0.095 }, { h: -0.42, rx: 0.06, rz: 0.012, z: -0.09 }], { lati: 10, esp: 2.6, irregolare: 0.012, seme: 86 }), capelli);
