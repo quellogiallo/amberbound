@@ -19,7 +19,6 @@
 PZ.creaRagazza = function (scena, posa, seme, opzioni) {
   const V3 = THREE.Vector3, S = PZ.sartoria, L = S.loft;
   const PI = Math.PI, NATURALE = !!(opzioni && opzioni.naturale);
-  const sm = function (a, b, x) { const u = Math.max(0, Math.min(1, (x - a) / (b - a))); return u * u * (3 - 2 * u); };
 
   // ---------- Materiali: stesse stoffe dipinte del ragazzo, nei colori della ragazza (sbiaditi) ----------
   const fredda = function (m, k) { if (!NATURALE) m.emissive = new THREE.Color(0x1c2434).multiplyScalar(k || 1); return m; };   // luce propria fredda (solo il fantasma)
@@ -35,8 +34,7 @@ PZ.creaRagazza = function (scena, posa, seme, opzioni) {
   const CAPELLI = [0x0b0710, 0x130c18, 0x1c1222, 0x2a1a2d];
   const capelli = fredda(S.materiale({ colori: CAPELLI, pieghe: 22, piegheIn: [0, 1], pendenza: 0.05, seme: 65 }), 0.6);
   const scarpe = fredda(S.materiale({ colori: [0x0e0c12, 0x16131b, 0x201b26, 0x2c2633], pieghe: 2, seme: 66 }), 0.4);
-  // la testa (cranio): solo pelle, ombre sui lati e la ferita sulla tempia destra che cola; il viso vero è il VOLTO
-  // scolpito qui sotto, appoggiato davanti (u attorno alla testa, davanti a u = 0,5; v dal mento in su)
+  // il viso: dipinto a pixel come quello del ragazzo (u attorno alla testa, davanti a u = 0,5; v dal mento in su)
   const viso = (function () {
     const N = 48, cv = document.createElement('canvas'); cv.width = cv.height = N;
     const q = cv.getContext('2d'), img = q.createImageData(N, N), d = img.data, rnd = S.caso(67);
@@ -55,6 +53,19 @@ PZ.creaRagazza = function (scena, posa, seme, opzioni) {
       px(u, v, C[0], 0.35 * (1 - fronte));
     }
     const u1 = 1 / N, v1 = 1 / N;
+    // occhi: incavati e scuri, con le occhiaie del pianto; sopracciglia piegate in giù verso l'esterno (tristezza)
+    [-1, 1].forEach(function (s) {
+      const ue = 0.5 + s * 0.072;
+      for (let a = -2; a <= 2; a++) { px(ue + a * u1, 0.56, [22, 16, 28], 1); px(ue + a * u1, 0.56 + v1, [30, 24, 38], Math.abs(a) < 2 ? 1 : 0.6); }
+      px(ue - s * u1, 0.56 + v1, [210, 225, 240], 0.9);                                         // un filo di luce (bagnato)
+      for (let a = -2; a <= 2; a++) { px(ue + a * u1, 0.53, [88, 80, 104], 0.85); px(ue + a * u1, 0.515, [130, 126, 150], 0.6); }   // occhiaie
+      for (let a = -2; a <= 1; a++) px(ue + s * a * u1, 0.635 - Math.max(0, a) * v1 * 0.8, [52, 40, 58], 0.85);
+      // lacrime e trucco colato: due righe che scendono sulle guance
+      for (let k = 1; k < 10; k++) px(ue + s * (k > 5 ? u1 : 0), 0.52 - k * v1 * 1.1, k < 6 ? [44, 40, 62] : [120, 140, 175], 0.8);
+    });
+    // naso appena accennato, bocca piccola piegata in giù
+    px(0.5, 0.45, C[0], 0.5); px(0.5 + u1, 0.44, C[0], 0.4);
+    for (let a = -2; a <= 2; a++) px(0.5 + a * u1, 0.335 - (Math.abs(a) === 2 ? v1 : 0), [96, 66, 82], 0.9);
     // la ferita sulla tempia destra (alla sua destra, quindi u < 0,5): rosso scuro al centro, rosso vivo attorno,
     // e due righe che colano verso la guancia
     const ut = 0.33, vt = 0.62;
@@ -69,172 +80,6 @@ PZ.creaRagazza = function (scena, posa, seme, opzioni) {
     t.magFilter = t.minFilter = THREE.NearestFilter; t.generateMipmaps = false; t.wrapS = THREE.RepeatWrapping;
     return fredda(new THREE.MeshPhongMaterial({ map: t, specular: 0x000000, shininess: 0, flatShading: true }), 1.6);
   })();
-
-  // ---------- Volto (fase 62) ----------
-  // Lo stesso metodo del volto del ragazzo (ragazzo.js): una superficie sfaccettata di circa 450 triangoli, scolpita
-  // (mento piccolo, mascella sottile con l'angolo appena segnato, zigomi alti, guance un po' scavate, naso piccolo
-  // con le ali, bocca chiusa, orbite morbide, arcate appena accennate) e una texture di 32 x 40 pixel con la stessa proiezione frontale. Qui non c'è il cappuccio: la
-  // superficie nasce dalla forma del cranio (stesse sezioni della testa qui sotto) e ai bordi rientra dentro il cranio,
-  // così il viso e la testa sono un pezzo solo. Un po' irregolare e asimmetrica, come una persona vera.
-  // Misure in metri, nelle coordinate della testa: mento a y = -0,022, bocca a y = 0,036, occhi a y = 0,105, attaccatura dei capelli a y = 0,155.
-  const CRANIO = [{ h: -0.025, rx: 0.03, rz: 0.035, z: 0.02 }, { h: 0.0, rx: 0.06, rz: 0.07, z: 0.012 }, { h: 0.05, rx: 0.08, rz: 0.092 },
-    { h: 0.11, rx: 0.088, rz: 0.1 }, { h: 0.16, rx: 0.085, rz: 0.097 }, { h: 0.2, rx: 0.07, rz: 0.08 }, { h: 0.225, rx: 0.038, rz: 0.045 }, { h: 0.235, rx: 0.01, rz: 0.012 }];
-  const VOLTO = (function () {
-    const ALTO = 0.175, BASSO = -0.022, MEZZA = 0.073;
-    const lerpT = function (tab, y) {
-      if (y <= tab[0][0]) return tab[0][1];
-      for (let i = 1; i < tab.length; i++) if (y <= tab[i][0]) {
-        const a = tab[i - 1], b = tab[i], k = (y - a[0]) / (b[0] - a[0]);
-        return a[1] + (b[1] - a[1]) * k;
-      }
-      return tab[tab.length - 1][1];
-    };
-    const g = function (x, s) { return Math.exp(-(x * x) / (s * s)); };
-    // davanti del cranio (ellisse della sezione) all'altezza y, a distanza x dal centro
-    function cranio(x, y) {
-      let i = 1; while (i < CRANIO.length - 1 && CRANIO[i].h < y) i++;
-      const a = CRANIO[i - 1], b = CRANIO[i], k = Math.max(0, Math.min(1, (y - a.h) / (b.h - a.h)));
-      const rx = a.rx + (b.rx - a.rx) * k, rz = a.rz + (b.rz - a.rz) * k, zc = (a.z || 0) + ((b.z || 0) - (a.z || 0)) * k;
-      return zc + rz * Math.sqrt(Math.max(0, 1 - (x / rx) * (x / rx)));
-    }
-    // mezza larghezza del viso: mento piccolo e appuntito, mascella sottile, zigomi alti, fronte che sale nei capelli
-    const LARGO = [[-0.022, 0.017], [-0.01, 0.028], [0.002, 0.039], [0.016, 0.049], [0.031, 0.056], [0.05, 0.062], [0.07, 0.067],
-      [0.09, 0.07], [0.11, 0.071], [0.13, 0.07], [0.155, 0.066], [0.175, 0.061]];
-    // naso: piccolo, punta un po' all'insù; sporgenza al centro e larghezza (frazione della mezza larghezza)
-    const NASO = [[0.056, 0], [0.061, 0.006], [0.067, 0.013], [0.075, 0.012], [0.087, 0.008], [0.1, 0.004], [0.112, 0.001], [0.12, 0]];
-    const NASO_L = [[0.061, 0.17], [0.07, 0.2], [0.088, 0.12], [0.11, 0.1]];
-    let seme = 19;
-    const caso = function () { seme = (seme * 16807) % 2147483647; return seme / 2147483647 - 0.5; };
-    function profondita(u, x, y) {
-      // (fase 64) il volto è il rilievo SOPRA la superficie del cranio: ai bordi (e in cima) il rilievo va a zero: l'orlo
-      // del volto sta sulla pelle del cranio (che lì sotto è abbassata appena, vedi il cranio più giù)
-      const a = Math.abs(u), lab = g(u, 0.36) * (u < 0 ? 1 : 0.95), base = cranio(x, y);
-      let z = base + 0.005;
-      z += lerpT(NASO, y) * g(u, lerpT(NASO_L, y));                                     // naso
-      z += 0.0035 * g(a - 0.24, 0.08) * g(y - 0.062, 0.005);                            // ali del naso
-      z -= 0.0065 * g(a - 0.42, 0.2) * g(y - 0.104, 0.011);                             // orbite (morbide)
-      z += 0.0028 * g(a - 0.4, 0.3) * g(y - 0.124, 0.006);                              // arcate appena accennate
-      z += 0.006 * g(a - 0.62, 0.15) * g(y - 0.087, 0.01);                              // zigomi alti
-      z -= 0.0028 * g(a - 0.6, 0.15) * g(y - 0.06, 0.011);                              // guance un po' scavate
-      z -= 0.003 * g(a - 0.86, 0.14) * g(y - 0.03, 0.016);                              // angolo della mascella
-      z += lab * (0.0036 * g(y - 0.03, 0.005) - 0.0012 * g(y - 0.036, 0.002) + 0.003 * g(y - 0.041, 0.0035));  // labbra (bocca chiusa)
-      z -= 0.0015 * g(u, 0.12) * g(y - 0.05, 0.004);                                    // solco sopra il labbro
-      z += 0.004 * g(u, 0.26) * g(y - 0.004, 0.009);                                    // mento
-      return base + (z - base) * (1 - Math.pow(a, 6)) * (1 - sm(ALTO - 0.02, ALTO, y));
-    }
-    const U = [-1, -0.8, -0.6, -0.43, -0.28, -0.14, 0, 0.14, 0.28, 0.43, 0.6, 0.8, 1];
-    const Y = [-0.022, -0.01, 0.002, 0.014, 0.023, 0.03, 0.036, 0.042, 0.05, 0.057, 0.064, 0.072, 0.081, 0.091, 0.099, 0.106,
-      0.113, 0.122, 0.133, 0.144, 0.155, 0.165, 0.175];
-    const pos = [], nu = U.length, ny = Y.length;
-
-    for (let j = 0; j < ny; j++) for (let i = 0; i < nu; i++) {
-      const y = Y[j], u = U[i], w = lerpT(LARGO, y) * (u < 0 ? 1.015 : 1);            // lato destro un filo più largo
-      const x = u * w + (j > 0 && j < ny - 1 && i > 0 && i < nu - 1 ? caso() * 0.0014 : 0);
-      const z = profondita(u, x, y) + (i > 0 && i < nu - 1 ? caso() * 0.0009 : 0);
-      pos.push([x, y + (j > 0 && j < ny - 1 ? caso() * 0.0006 : 0), z]);
-    }
-    const P3 = [], UV = [];
-    function vert(i, j) {
-      const v = pos[j * nu + i];
-      P3.push(v[0], v[1], v[2]);
-      UV.push((v[0] + MEZZA) / (2 * MEZZA), (v[1] - BASSO) / (ALTO - BASSO));
-    }
-    for (let j = 0; j < ny - 1; j++) for (let i = 0; i < nu - 1; i++) {
-      if ((i + j) % 2) { vert(i, j); vert(i + 1, j); vert(i + 1, j + 1); vert(i, j); vert(i + 1, j + 1); vert(i, j + 1); }
-      else { vert(i, j); vert(i + 1, j); vert(i, j + 1); vert(i + 1, j); vert(i + 1, j + 1); vert(i, j + 1); }
-    }
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(P3, 3));
-    geo.setAttribute('uv', new THREE.Float32BufferAttribute(UV, 2));
-    geo.computeVertexNormals();
-
-    // Texture: 32 x 40 pixel, stessa proiezione frontale della geometria (come quella del ragazzo)
-    const TW = 32, TH = 40, c = document.createElement('canvas');
-    c.width = TW; c.height = TH;
-    const q = c.getContext('2d'), img = q.createImageData(TW, TH), d = img.data;
-    const rnd = S.caso(93), CP = PELLE.map(function (k) { return [(k >> 16) & 255, (k >> 8) & 255, k & 255]; });
-    const px = function (i) { return -MEZZA + (i + 0.5) / TW * 2 * MEZZA; };
-    const py = function (j) { return ALTO - (j + 0.5) / TH * (ALTO - BASSO); };
-    const colore = function (i, j, c3, k) {
-      if (i < 0 || j < 0 || i >= TW || j >= TH) return;
-      const o = (j * TW + i) * 4; k = k === undefined ? 1 : k;
-      d[o] += (c3[0] - d[o]) * k; d[o + 1] += (c3[1] - d[o + 1]) * k; d[o + 2] += (c3[2] - d[o + 2]) * k;
-    };
-    const aI = function (x) { return Math.round((x + MEZZA) / (2 * MEZZA) * TW - 0.5); };
-    const aJ = function (y) { return Math.round((ALTO - y) / (ALTO - BASSO) * TH - 0.5); };
-    // colori: viva (cameretta) o fantasma (strada)
-    // (fase 63) stessa lingua del volto del ragazzo: tratti minimi di 1-3 pixel, colori spenti, il volume fatto dalle
-    // ombre dipinte (orbite, sotto il naso, sotto il labbro, ai lati) più che dai segni. Riferimento: le ragazze dei
-    // survival horror PS2 (proporzioni naturali, espressione malinconica e un po' inquietante), non un altro stile.
-    const K = NATURALE ? { labbra: [150, 96, 100], piega: [78, 44, 52], pianto: [168, 112, 116], trucco: [74, 58, 70],
-      occhio: [176, 166, 160], iride: [34, 24, 24], ciglia: [30, 22, 28], sopracc: [74, 52, 54], ombra: [110, 72, 70], capelli: [20, 12, 24], sangue: [112, 14, 20] }
-      : { labbra: [128, 120, 146], piega: [62, 56, 82], pianto: [126, 128, 160], trucco: [64, 62, 86],
-      occhio: [184, 190, 202], iride: [26, 24, 36], ciglia: [22, 20, 32], sopracc: [70, 66, 90], ombra: [96, 102, 124], capelli: [16, 10, 20], sangue: [104, 16, 24] };
-    // pelle: il tono del cranio con la grana dei pixel (come il ragazzo), poi le ombre che danno il volume
-    for (let j = 0; j < TH; j++) for (let i = 0; i < TW; i++) {
-      const x = px(i), y = py(j), o = (j * TW + i) * 4, r = rnd(), cc = r < 0.12 ? CP[1] : r < 0.88 ? CP[2] : CP[3], a = Math.abs(x), n = (rnd() - 0.5) * 8;
-      d[o] = CP[2][0] + n; d[o + 1] = CP[2][1] + n; d[o + 2] = CP[2][2] + n; d[o + 3] = 255;
-      colore(i, j, cc, 0.35);
-      colore(i, j, CP[0], 0.3 * Math.min(1, Math.max(0, (a - 0.04) / 0.03)));       // i lati: la stessa ombra del cranio (non si vede il passaggio)
-      const om = 0.3 * Math.min(1, Math.max(0, (0.014 - y) / 0.03))                          // sotto il mento
-        + 0.22 * g(a - 0.027, 0.014) * g(y - 0.112, 0.012)                            // sotto l'arcata, sopra l'occhio
-        + 0.2 * g(a - 0.045, 0.012) * g(y - 0.064, 0.012)                             // guance un po' scavate sotto lo zigomo
-        + 0.18 * g(a - 0.009, 0.004) * g(y - 0.082, 0.014)                            // ai lati del dorso del naso
-        + 0.25 * g(x, 0.009) * g(y - 0.024, 0.004);                                   // sotto il labbro inferiore
-      colore(i, j, K.ombra, Math.min(0.6, om));
-      colore(i, j, CP[3], 0.3 * g(x, 0.007) * g(y - 0.076, 0.016) + 0.22 * g(a - 0.044, 0.01) * g(y - 0.088, 0.008)
-        + 0.18 * g(x, 0.012) * g(y - 0.006, 0.008));                                   // luce: naso, zigomi, mento
-    }
-    // naso: due narici scure e l'ombra sotto la punta
-    colore(aI(-0.0058), aJ(0.059), K.piega, 0.6); colore(aI(0.0058), aJ(0.059), K.piega, 0.6);
-    colore(aI(0), aJ(0.057), K.ombra, 0.4); colore(aI(0), aJ(0.067), CP[3], 0.35);
-    // bocca chiusa: una piega scura e sottile, gli angoli appena in giù; il labbro superiore un tono più scuro della
-    // pelle, l'inferiore appena più pieno, colori spenti
-    {
-      const jb = aJ(0.036);
-      for (let i = aI(-0.016); i <= aI(0.016); i++) {
-        const x = px(i), giu = Math.abs(x) > 0.012 ? 1 : 0;
-        colore(i, jb + giu, K.piega, Math.abs(x) > 0.014 ? 0.6 : 0.85);
-        if (Math.abs(x) < 0.013) colore(i, jb - 1, K.labbra, 0.38);
-        if (Math.abs(x) < 0.011) { colore(i, jb + 1, K.labbra, 0.25); colore(i, jb + 1, K.ombra, 0.2); }
-      }
-    }
-    // occhi: piccoli e un po' socchiusi (più aperti di quelli del ragazzo), palpebra superiore pesante e scura,
-    // bianco spento, iride scura di due pixel; sotto, il bordo arrossato dal pianto
-    [[-1, 0.0272, 0.1046, 0], [1, 0.0268, 0.105, 1]].forEach(function (e) {
-      const s = e[0], cx = s * e[1], i0 = aI(cx), j0 = aJ(e[2]);
-      for (let k = -3; k <= 3; k++) for (let h = -2; h <= 2; h++) colore(i0 + k, j0 + h, K.ombra, 0.42 * g(k / 3.5, 1) * g(h / 2.5, 1));   // orbita
-      for (let k = -2; k <= 2; k++) colore(i0 + k, j0 - 1, K.ciglia, 0.92);                                                 // palpebra
-      colore(i0 + s * 3, j0 - 1, K.ciglia, 0.45); colore(i0 + s * 3, j0, K.ciglia, 0.35);                                   // l'angolo esterno
-      for (let k = -2; k <= 2; k++) colore(i0 + k, j0, K.occhio, Math.abs(k) === 2 ? 0.4 : 0.75);                            // bianco
-      colore(i0 - 1 + e[3], j0, K.iride, 1); colore(i0 + e[3], j0, K.iride, 0.9);                                            // iride
-      for (let k = -2; k <= 2; k++) colore(i0 + k, j0 + 1, K.pianto, Math.abs(k) === 2 ? 0.25 : 0.45);                      // bordo arrossato
-      for (let k = -1; k <= 1; k++) colore(i0 + s * k, j0 + 2, K.ombra, 0.3);                                               // occhiaia
-      // sopracciglia sottili, spente: l'interno sale appena (tristezza), l'esterno scende
-      for (let k = -2; k <= 2; k++) colore(i0 + s * k, j0 - 4 + (k >= 1 ? 1 : 0) - (k === -2 ? 1 : 0), K.sopracc, k === 2 ? 0.45 : 0.7);
-      // il trucco colato con le lacrime: una riga sottile e sbiadita sulla guancia (più lunga sotto l'occhio destro)
-      const lunga = s < 0 ? 8 : 5;
-      for (let k = 2; k < lunga; k++) colore(i0 - s + (k > 5 ? -s : 0), j0 + k, K.trucco, 0.5 - k * 0.04);
-    });
-    // il sangue della tempia destra arriva fino al bordo del viso e cola sottile lungo la guancia
-    for (let k = 0; k < 14; k++) colore(aI(-0.06 + (k > 7 ? 0.0045 : 0)), aJ(0.122) + k, K.sangue, k < 10 ? 0.75 : 0.4);
-    for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) colore(aI(-0.061) + a, aJ(0.128) + b, K.sangue, 0.7);
-    q.putImageData(img, 0, 0);
-    const tex = new THREE.CanvasTexture(c);
-    tex.magFilter = tex.minFilter = THREE.NearestFilter;
-    tex.generateMipmaps = false;
-    // la superficie del volto in un punto (x, y) della testa, o null fuori dal volto: serve al cranio per stare dietro
-    // dentro il volto restituisce la sua profondità; appena fuori (fino a 0,4 volte la sua larghezza, e 2 cm sopra e
-    // sotto) restituisce di quanto abbassare la pelle del cranio perché l'orlo del volto resti sempre davanti
-    function superficie(x, y) {
-      const yc = Math.max(BASSO, Math.min(ALTO, y)), u = x / lerpT(LARGO, yc), fy = Math.max(BASSO - y, y - ALTO, 0);
-      if (fy === 0 && Math.abs(u) <= 1) return { z: profondita(u, x, y) };
-      const ku = Math.max(0, 1 - (Math.abs(u) - 1) / 0.4), ky = Math.max(0, 1 - fy / 0.02);
-      return { abbassa: 0.0025 * Math.min(ku, ky) };
-    }
-    return { geo: geo, tex: tex, superficie: superficie };
-  })();
-  const volto = fredda(new THREE.MeshPhongMaterial({ map: VOLTO.tex, specular: 0x000000, shininess: 0, flatShading: true }), 1.6);
   const rosso = new THREE.MeshPhongMaterial({ color: 0x9a0c12, emissive: 0x3a0004, specular: 0x552222, shininess: 30, flatShading: true });
 
   // ---------- Scheletro (articolazioni come quelle del ragazzo, un po' più piccole) ----------
@@ -273,31 +118,21 @@ PZ.creaRagazza = function (scena, posa, seme, opzioni) {
   const gonnaMesh = pezzo(bacino, L([{ h: 0.02, rx: 0.125, rz: 0.09 }, { h: -0.08, rx: 0.16, rz: 0.12 }, { h: -0.25, rx: 0.2, rz: 0.16 }, { h: -0.42, rx: 0.235, rz: 0.19 }],
     { lati: 14, esp: 2.1, irregolare: 0.012, seme: 82, apertoSotto: true }), gonna);
   pezzo(collo, L([{ h: -0.03, rx: 0.042, rz: 0.042 }, { h: 0.06, rx: 0.038, rz: 0.038 }], { lati: 8, seme: 83 }), pelle);
-  // testa: ovale (più minuta di quella del ragazzo), con il volto scolpito davanti
-  // (fase 64) UN SOLO VOLTO: dove c'è il volto, i punti del cranio vengono spostati 4 mm DIETRO la sua superficie.
-  // Prima il davanti del cranio (una seconda "faccia" liscia) attraversava il volto scolpito qua e là: si vedevano
-  // due facce sovrapposte. Ora davanti si vede solo il volto; attorno al suo orlo la pelle del cranio è abbassata
-  // di 2,5 mm (sfumando), così l'orlo non sfarfalla e non viene coperto.
-  pezzo(testa, L(CRANIO, { lati: 14, esp: 2.0, irregolare: 0.002, seme: 84, forma: function (p, a, h) {
-    if (p.z <= 0) return;
-    const f = VOLTO.superficie(p.x, h);
-    if (f.z !== undefined) p.z = Math.min(p.z, f.z - 0.004); else p.z -= f.abbassa;
-  } }), viso);
-  pezzo(testa, VOLTO.geo, volto);                                  // il volto scolpito
+  // testa: ovale (più minuta di quella del ragazzo), con il viso dipinto
+  pezzo(testa, L([{ h: -0.025, rx: 0.03, rz: 0.035, z: 0.02 }, { h: 0.0, rx: 0.06, rz: 0.07, z: 0.012 }, { h: 0.05, rx: 0.08, rz: 0.092 },
+    { h: 0.11, rx: 0.088, rz: 0.1 }, { h: 0.16, rx: 0.085, rz: 0.097 }, { h: 0.2, rx: 0.07, rz: 0.08 }, { h: 0.225, rx: 0.038, rz: 0.045 }, { h: 0.235, rx: 0.01, rz: 0.012 }],
+    { lati: 14, esp: 2.0, irregolare: 0.002, seme: 84 }), viso);
   // la ferita: un piccolo grumo rosso in rilievo sulla tempia destra
   const grumo = pezzo(testa, new THREE.IcosahedronGeometry(0.014, 0), rosso);
-  grumo.position.set(-0.061, 0.128, 0.066);                       // (fase 64) sul bordo della fronte: i capelli ora coprono la tempia
-  // capelli: calotta sopra e dietro la testa, tirati indietro (fase 64: niente frangia; in basso si chiude sulla
-  // testa, senza fessure), lunghi dietro
+  grumo.position.set(-0.078, 0.122, 0.045);
+  // capelli: calotta sopra e dietro la testa (davanti lascia libero il viso, con una frangia di lato), lunghi dietro
   // fino a metà schiena e due ciocche ai lati del viso
-  pezzo(testa, L([{ h: 0.022, rx: 0.077, rz: 0.088, z: -0.004 }, { h: 0.045, rx: 0.094, rz: 0.104, z: -0.006 }, { h: 0.1, rx: 0.098, rz: 0.11, z: -0.006 }, { h: 0.16, rx: 0.094, rz: 0.106, z: -0.008 },
-    { h: 0.178, rx: 0.091, rz: 0.104, z: -0.006 }, { h: 0.205, rx: 0.082, rz: 0.094, z: -0.008 }, { h: 0.235, rx: 0.05, rz: 0.058, z: -0.012 }, { h: 0.252, rx: 0.012, rz: 0.014, z: -0.014 }],
+  const sm = function (a, b, x) { const u = Math.max(0, Math.min(1, (x - a) / (b - a))); return u * u * (3 - 2 * u); };
+  pezzo(testa, L([{ h: 0.045, rx: 0.094, rz: 0.104, z: -0.006 }, { h: 0.1, rx: 0.098, rz: 0.11, z: -0.006 }, { h: 0.16, rx: 0.094, rz: 0.106, z: -0.008 },
+    { h: 0.205, rx: 0.08, rz: 0.09, z: -0.01 }, { h: 0.235, rx: 0.05, rz: 0.058, z: -0.012 }, { h: 0.252, rx: 0.012, rz: 0.014, z: -0.014 }],
     { lati: 14, esp: 2.0, irregolare: 0.008, seme: 85, apertoSotto: true, forma: function (p, a, h) {
-      // davanti, sotto l'attaccatura, la calotta rientra tutta dentro la testa: i capelli escono dalla pelle lungo
-      // l'attaccatura (circa a y = 0,17, appena sopra il bordo alto del volto) seguendo la curva della fronte, e
-      // scendono sulle tempie fin dove finisce il volto
-      const davanti = 1 - sm(0.55, 0.9, Math.abs(a)), basso = 1 - sm(0.162, 0.175, h);
-      p.z -= davanti * basso * Math.max(0, p.z + 0.01);
+      const davanti = 1 - sm(0.7, 1.25, Math.abs(a)), basso = 1 - sm(0.17, 0.215, h);
+      p.z -= davanti * basso * Math.max(0, p.z + 0.01) * (a > 0 ? 1 : 0.55);   // il viso resta scoperto (frangia di lato)
     } }), capelli);
   pezzo(testa, L([{ h: 0.13, rx: 0.09, rz: 0.03, z: -0.085 }, { h: 0.0, rx: 0.098, rz: 0.035, z: -0.095 }, { h: -0.18, rx: 0.105, rz: 0.03, z: -0.1 },
     { h: -0.36, rx: 0.09, rz: 0.02, z: -0.095 }, { h: -0.42, rx: 0.06, rz: 0.012, z: -0.09 }], { lati: 10, esp: 2.6, irregolare: 0.012, seme: 86 }), capelli);
@@ -486,7 +321,7 @@ PZ.creaRagazza = function (scena, posa, seme, opzioni) {
   let t = rnd() * 10, comparsa = 1, verso = 0, sfarfalla = 0;
   const LARGA = { seduta: 0.8, piedi: 0.66, ginocchio: 0.72, rannicchiata: 1.0, fissa: 0.62, braccia: 0.72 };
   // salto: true = si salta (come una transenna), false = si evita cambiando corsia
-  const R = { gruppo: radice, posa: posa, visibile: false, larghezza: LARGA[posa] || 0.66, salto: !!BASSA[posa], arti: A, ossa: { bacino: bacino, busto: busto, collo: collo, testa: testa } };
+  const R = { gruppo: radice, posa: posa, visibile: false, larghezza: LARGA[posa] || 0.66, salto: !!BASSA[posa] };
   R.mostra = function () { R.visibile = true; radice.visible = true; comparsa = 1; verso = 0; radice.scale.set(1, 1, 1); };
   R.nascondi = function () { R.visibile = false; radice.visible = false; verso = 0; };
   R.appari = function (durata) { R.mostra(); comparsa = 0; verso = 1 / (durata || 0.45); radice.scale.set(1, 0.05, 1); };
