@@ -99,7 +99,10 @@ PZ.CONFIG = {
       // più veloce del 6%. I frammenti per fila calano in proporzione, così in tutto restano gli stessi
       // (fase 69) -8% di difficoltà nella storia: i due valori di prima (1,06 e 1,13) moltiplicati per 0,92
       // -> bici 2,5% più lenta della base, file di ostacoli 4% più fitte della base (prima +6% e +13%)
-      storia: { velocita: -0.025, ostacoli: 0.04 },
+      // (fase 67) -15% di difficoltà nella storia SENZA rallentare l'inizio: la velocità di partenza resta quella;
+      // cala del 15% solo quanto la bici accelera dopo (crescita 0,85, anche nella frenesia); file di ostacoli il 15%
+      // più rade (1,04 x 0,85 = 0,884: -11,6% rispetto alla base). I frammenti per fila crescono in proporzione.
+      storia: { velocita: -0.025, ostacoli: -0.116, crescita: 0.85 },
       pause: { ogni: [[9, 14], [15, 21]], durata: [2.4, 1.2] },
       calda: { ogni: 11, file: [3, 6], peso: 2.2, da: 0.25 },
       cambia: 1.3,
@@ -204,8 +207,8 @@ PZ.CONFIG = {
       margineRidotto: 4, tempoMargineRidotto: 25,  // ...ma per 25 secondi resta 4 m più vicino
       // (fase 66) PARTENZA: appena parte la corsa il demone scatta in "slancio" secondi fino a "vicino" metri (alle tue
       // spalle, le manone sullo schermo); poi, se non sbagli, in "fuga" secondi lo distanzi piano fino alla sua
-      // distanza normale. In questo tratto un errore lo porta addosso ("sfiora": a cattura + sfiora metri) ma non ti prende.
-      partenza: { vicino: 6.5, slancio: 1.3, fuga: 30, sfiora: 2.2 },   // sfiora 2,2: resta comunque dietro la telecamera
+      // distanza normale. In questo tratto il primo errore e ti prende.
+      partenza: { vicino: 6.5, slancio: 1.3, fuga: 30 },
       // (fase 66) PRESENZA: sotto "da" metri le manone entrano dai lati dello schermo (del tutto a "pieno" metri);
       // la città vira al rosso e si sentono respiro e ringhio alle spalle in base alla vicinanza
       presenza: { da: 11, pieno: 5.5, rosso: 0.85 }

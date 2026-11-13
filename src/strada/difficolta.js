@@ -62,7 +62,12 @@ PZ.difficolta = (function () {
     }
     return m;
   })();
+  // (fase 67) nella storia l'accelerazione dopo la partenza si riduce di storia.crescita (la partenza resta uguale)
   function velocitaMetri(x) {
+    const cr = D.storia && D.storia.crescita && !PZ.difficolta.arcade ? D.storia.crescita : 1, v0 = VM.punti[0][1];
+    return v0 + (velocitaMetriBase(x) - v0) * cr;
+  }
+  function velocitaMetriBase(x) {
     const P = VM.punti, n = P.length;
     if (x <= P[0][0]) return P[0][1];
     if (x >= P[n - 1][0]) return P[n - 1][1] + (VM.oltre || 0) * (x - P[n - 1][0]);
@@ -78,7 +83,7 @@ PZ.difficolta = (function () {
   }
   function faseFrammenti(n) { return n <= 25 ? 1 : n <= 50 ? 2 : n <= 75 ? 3 : 4; }
   return { p: p, velocita: velocita, fase: fase, corsa: corsa, pFrammenti: pFrammenti, velocitaCorsa: velocitaCorsa, velocitaPianifica: velocitaPianifica, faseFrammenti: faseFrammenti, velocitaMetri: velocitaMetri, frenesia: frenesia,
-    velocitaFrenesia: function (n) { return (1 + (D.frenesia ? D.frenesia.velocita : 0) * frenesia(n)) * (1 + piuStoria('velocita')); },
+    velocitaFrenesia: function (n) { return (1 + (D.frenesia ? D.frenesia.velocita : 0) * frenesia(n) * (piuStoria('crescita') || 1)) * (1 + piuStoria('velocita')); },
     piuStoria: piuStoria };
   function piuStoria(k) { return D.storia && !PZ.difficolta.arcade ? D.storia[k] || 0 : 0; }
 })();

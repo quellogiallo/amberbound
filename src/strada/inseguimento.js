@@ -20,10 +20,9 @@ PZ.creaInseguimento = function (demone) {
   function inPartenza() { return !!P0 && S.t < P0.slancio + P0.fuga; }
   function errore(tipo) {
     if (inPartenza()) {
-      // all'inizio un errore lo porta addosso (le manone ti sfiorano), ma non ti prende
-      S.dist = Math.max(C.cattura + P0.sfiora, S.dist - (C.perdite[tipo] || 6));
-      S.aggressivita = Math.min(3, S.aggressivita + 1);
-      return false;
+      // all'inizio è alle tue spalle: il primo errore e ti prende
+      S.dist = Math.min(S.dist, C.cattura - 0.2);
+      return true;
     }
     const perdita = (C.perdite[tipo] || 6) * (1 + C.aggressivita * S.aggressivita), prima = S.dist;
     S.dist -= perdita;
