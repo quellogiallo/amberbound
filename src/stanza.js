@@ -384,17 +384,51 @@ PZ.creaStanza = function (scena) {
     [-1, 1].forEach(function (s) { S(0.011, m.oro, 0, s * 0.011, 0.02, chiave, 0.35, 1, 0.7); });
     scatola.userData.chiave = chiave;
   }
-  // la ballerina sul suo perno: piedistallo dorato, una gamba in punta, il tutù, le braccia alzate sopra la testa
+  // (fase 71) LA BALLERINA del carillon, come quelle vere: in punta su una gamba, l'altra piegata col piede al
+  // ginocchio (passé), il tutù a disco largo e piatto, il corpetto stretto in vita, il collo lungo, lo chignon, le
+  // braccia ad arco sopra la testa con le mani che quasi si toccano. Gira sul perno dorato mentre il carillon suona.
+  // Alta 9 cm, in pezzi a poche facce come tutto il resto della stanza. Guarda verso la stanza (+x).
   const ballerina = new THREE.Group(); ballerina.position.set(0, 0.09, 0); scatola.add(ballerina);
-  C(0.014, 0.006, 10, m.oro, 0, 0, 0, ballerina);
-  C(0.0035, 0.034, 5, m.panna, 0, 0.006, 0, ballerina, 0.0045);                         // la gamba
-  { const g = C(0.0035, 0.022, 5, m.panna, 0.008, 0.03, 0, ballerina, 0.003); g.rotation.z = -1.1; }   // l'altra, sollevata
-  C(0.032, 0.008, 12, m.bianco, 0, 0.036, 0, ballerina, 0.012);                         // il tutù
-  C(0.026, 0.006, 12, m.rosaCh, 0, 0.041, 0, ballerina, 0.01);
-  C(0.008, 0.026, 6, m.rosaCh, 0, 0.043, 0, ballerina, 0.006);                          // il corpetto
-  S(0.0085, m.panna, 0, 0.078, 0, ballerina);                                            // la testa
-  S(0.006, m.marrone, -0.003, 0.083, 0, ballerina);                                      // lo chignon
-  [-1, 1].forEach(function (s) { const b = C(0.0025, 0.03, 4, m.panna, 0, 0.066, s * 0.006, ballerina, 0.002); b.rotation.x = -s * 0.35; });   // le braccia, in alto
+  {
+    const V = THREE.Vector3, SU = new V(0, 1, 0);
+    const corpetto = M(0xe0608e), scarpette = M(0xf0a6bf), capelli = M(0x5a3424);
+    // un "arto": cilindro da a a b, raggio ra in a e rb in b
+    const arto = function (a, b, ra, rb, mat, lati) {
+      const d = new V().subVectors(b, a), l = d.length();
+      const me = new THREE.Mesh(new THREE.CylinderGeometry(rb, ra, l, lati || 5), mat);
+      me.position.copy(a).addScaledVector(d, 0.5); me.quaternion.setFromUnitVectors(SU, d.normalize());
+      ballerina.add(me); return me;
+    };
+    const P = function (x, y, z) { return new V(x, y, z); };
+    C(0.013, 0.006, 10, m.oro, 0, 0, 0, ballerina);                                       // il perno
+    C(0.004, 0.003, 8, m.oro, 0, 0.006, 0, ballerina, 0.0025);
+    // la gamba d'appoggio, in punta
+    arto(P(0, 0.009, 0), P(0, 0.016, 0), 0.0014, 0.0019, scarpette);
+    arto(P(0, 0.016, 0), P(0, 0.031, 0.0005), 0.0019, 0.0026, m.panna);
+    arto(P(0, 0.031, 0.0005), P(0.0005, 0.047, 0.002), 0.0026, 0.0036, m.panna);
+    // la gamba piegata: il ginocchio in fuori, il piede appoggiato al ginocchio dell'altra
+    arto(P(0.0005, 0.047, 0.004), P(0.006, 0.039, 0.016), 0.0034, 0.0025, m.panna);
+    arto(P(0.006, 0.039, 0.016), P(0.0015, 0.032, 0.003), 0.0025, 0.0017, m.panna);
+    arto(P(0.0015, 0.032, 0.003), P(0.001, 0.031, 0.0005), 0.0017, 0.0013, scarpette);
+    // il tutù: due dischi larghi e piatti, un po' irregolari, a strati
+    const tutu = C(0.028, 0.0045, 11, m.bianco, 0, 0.044, 0, ballerina, 0.021); tutu.rotation.z = 0.06;
+    const tutu2 = C(0.022, 0.004, 11, m.rosaCh, 0, 0.0475, 0, ballerina, 0.012); tutu2.rotation.z = 0.06;
+    // il corpetto: stretto in vita, più largo al petto
+    arto(P(0, 0.049, 0), P(0, 0.059, 0), 0.0042, 0.0046, corpetto, 6);
+    arto(P(0, 0.059, 0), P(0, 0.066, 0), 0.0046, 0.0052, corpetto, 6);
+    arto(P(0, 0.066, 0), P(0, 0.0675, 0), 0.0052, 0.0036, m.panna, 6);                    // le spalle
+    arto(P(0, 0.067, 0), P(0, 0.073, 0.0003), 0.0017, 0.0016, m.panna);                   // il collo lungo
+    S(0.0052, m.panna, 0.0004, 0.0775, 0, ballerina, 0.95, 1.12, 0.95);                    // la testa
+    S(0.0052, capelli, -0.0012, 0.0792, 0, ballerina, 0.98, 0.96, 1.02);                   // i capelli raccolti
+    S(0.0032, capelli, -0.0045, 0.0835, 0, ballerina);                                     // lo chignon
+    // le braccia ad arco sopra la testa (quinta posizione): spalla, gomito, mano
+    [-1, 1].forEach(function (s) {
+      const sp = P(0, 0.0665, s * 0.0062), go = P(0.0015, 0.0805, s * 0.0118), ma = P(0.002, 0.0905, s * 0.0028);
+      arto(sp, go, 0.0017, 0.0014, m.panna);
+      arto(go, ma, 0.0014, 0.0011, m.panna);
+      S(0.0014, m.panna, ma.x, ma.y, ma.z, ballerina);
+    });
+  }
   S(0.1, m.bianco, -2.27, 0.86, 0.5, null, 1, 1.2, 0.9); S(0.06, m.bianco, -2.27, 1.02, 0.5);   // coniglietto di peluche
   B(0.025, 0.1, 0.02, m.bianco, -2.27, 1.04, 0.47); B(0.025, 0.1, 0.02, m.bianco, -2.27, 1.04, 0.53);
   B(0.02, 0.2, 0.15, m.panna, -2.4, 0.75, 0.62);                                       // cornice con foto
