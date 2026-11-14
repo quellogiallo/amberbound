@@ -160,15 +160,17 @@ PZ.creaStanza = function (scena) {
     g.fillStyle = '#f59abc'; for (let y = 0; y < h; y += 4) for (let x = (y / 4 % 2) * 4; x < w; x += 8) g.fillRect(x, y, 4, 2);
     g.fillStyle = '#fff1e6'; [[3, 3], [11, 9], [6, 12]].forEach(function (p) { g.fillRect(p[0], p[1], 2, 1); g.fillRect(p[0] + 1, p[1] - 1, 1, 3); });
   }, 2, 2));
-  B(0.96, 0.08, 1.15, copertaMat, -1.95, 0.5, -0.95, letto);                         // coperta rosa
-  B(0.7, 0.1, 0.5, copertaMat, -1.9, 0.56, -1.65, letto).rotation.y = 0.35;           // coperte disordinate
-  B(0.5, 0.12, 0.35, copertaMat, -2.1, 0.57, -0.7, letto).rotation.set(0.1, -0.5, 0.15);
-  B(0.5, 0.03, 0.4, m.rosaCh, -1.45, 0.45, -0.55, letto).rotation.set(0, 0.5, -0.9);  // lenzuolo che penzola
-  B(0.4, 0.14, 0.3, m.bianco, -2.12, 0.52, -2.25, letto).rotation.y = 0.12;           // cuscini
-  B(0.4, 0.14, 0.3, m.rosaCh, -1.75, 0.52, -2.25, letto).rotation.y = -0.18;
-  const cuore = new THREE.Mesh(new THREE.OctahedronGeometry(0.15, 0), m.fucsia);      // cuscino a cuore
-  cuore.scale.set(1.1, 0.8, 0.4); cuore.position.set(-1.95, 0.7, -2.0); cuore.rotation.z = 0.3; letto.add(cuore);
-  const orso = new THREE.Group(); orso.position.set(-1.75, 0.6, -1.15); orso.rotation.y = 0.5; letto.add(orso);   // orsetto con fiocco giallo
+  // (fase 71) disordinato ma senza compenetrazioni: ogni pezzo poggia su quello sotto (materasso a 0,52 m, coperta
+  // fino a 0,60), i cuscini non si toccano tra loro né entrano nella testiera, il lenzuolo scende dal bordo del materasso
+  B(0.96, 0.08, 1.15, copertaMat, -1.95, 0.52, -0.95, letto);                        // coperta rosa
+  B(0.7, 0.1, 0.5, copertaMat, -1.9, 0.6, -1.5, letto).rotation.y = 0.35;             // coperte disordinate
+  B(0.5, 0.12, 0.35, copertaMat, -2.1, 0.656, -0.7, letto).rotation.set(0.1, -0.5, 0.15);
+  B(0.5, 0.03, 0.4, m.rosaCh, -1.315, 0.334, -0.55, letto).rotation.set(0, 0, -0.9); // lenzuolo che penzola dal bordo
+  B(0.4, 0.14, 0.3, m.bianco, -2.17, 0.52, -2.22, letto).rotation.y = 0.1;            // cuscini
+  B(0.4, 0.14, 0.3, m.rosaCh, -1.71, 0.52, -2.2, letto).rotation.y = -0.15;
+  const cuore = new THREE.Mesh(new THREE.OctahedronGeometry(0.15, 0), m.fucsia);      // cuscino a cuore, appoggiato davanti ai cuscini
+  cuore.scale.set(1.1, 0.8, 0.4); cuore.position.set(-1.95, 0.64, -1.98); cuore.rotation.z = 0.3; letto.add(cuore);
+  const orso = new THREE.Group(); orso.position.set(-1.65, 0.615, -1.02); orso.rotation.y = 0.5; letto.add(orso);   // orsetto con fiocco giallo
   S(0.1, m.marrone, 0, 0.1, 0, orso, 1, 1.1, 0.9); S(0.075, m.marrone, 0, 0.27, 0.01, orso);
   S(0.03, m.marrone, -0.06, 0.34, 0, orso); S(0.03, m.marrone, 0.06, 0.34, 0, orso);
   S(0.025, m.nero, -0.025, 0.28, 0.07, orso); S(0.025, m.nero, 0.025, 0.28, 0.07, orso);
