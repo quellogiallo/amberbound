@@ -60,6 +60,13 @@ PZ.creaFinale = function (o) {
     const h = raggio.intersectObjects(terra.superfici, false)[0];
     return h ? h.point.y : terra.quota(x, z);
   }
+  // (fase 72) ombre proiettate dalla luna (src/ombre.js): ragazzo e bici stendono la loro sagoma sul terreno, seguendo
+  // la sua pendenza sotto di loro; la luce viaggia al contrario della direzione della luna (config "luce")
+  const ombre = PZ.creaOmbre(scena, Object.assign({ luce: PZ.CONFIG.luce.direzione.map(function (v) { return -v; }) }, PZ.CONFIG.ombre.scogliera));
+  // la quota vera del terreno (col raggio, come i piedi): l'ombra ne chiede tre punti, ma solo ogni 6 fotogrammi
+  const quotaOmbra = function (x, z) { return suolo(x, z); };
+  ombre.segui(bici.gruppo, { macchia: [0.32, 0.85], terra: quotaOmbra });
+  ombre.segui(ragazzo.gruppo, { terra: quotaOmbra });
   const SCENA = new V3(7.6, 0, -50.2); SCENA.y = suolo(SCENA.x, SCENA.z);
   const DIR = PI + 0.15;                                   // verso il mare e la luna (un po' a sinistra)
   const avanti = A.avanti(DIR, new V3()), sinistra = A.sinistra(DIR, new V3());
@@ -681,6 +688,7 @@ PZ.creaFinale = function (o) {
   function disegna() {
     if (F.fase === 'spenta' || F.fase === 'chiusa' || F.fase === 'attesa') return;
     cielo.aggiorna(camera.position);
+    ombre.aggiorna();                                     // (fase 72)
     renderer.render(scena, camera);
   }
   let ultimo = 0, giraDaSolo = true;

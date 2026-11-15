@@ -15,7 +15,9 @@ PZ.creaCorsa = function (opz) {
   const $ = function (id) { return document.getElementById(id); };
   const SCH = PZ.CONFIG.schermo;
   const scena = new THREE.Scene();
-  const citta = PZ.creaCitta(scena);
+  // (fase 72) ombre proiettate di protagonista e auto (src/ombre.js)
+  const ombre = PZ.creaOmbre(scena, PZ.CONFIG.ombre.strada);
+  const citta = PZ.creaCitta(scena, ombre);
   const occhi = PZ.creaOcchi(scena, 140);
   const demone = PZ.creaDemone(scena, occhi, { manone: true });   // (fase 10) con le due manone artigliate
   const rnd = PZ.ps1.casuale(321);
@@ -55,6 +57,10 @@ PZ.creaCorsa = function (opz) {
   manata = PZ.creaManata({ scena: scena, occhi: occhi, LC: citta.LC, V0: D.velocitaIniziale, traffico: traffico });
   const apparizioni = PZ.creaApparizioni(citta, branco);
   const ciclista = PZ.creaCiclista(scena);
+  // (fase 72) chi fa ombra in strada: il ragazzo, la bici (con la macchia sotto le ruote) e ogni auto del traffico
+  ombre.segui(ciclista.bici.gruppo, { macchia: [0.32, 0.85] });
+  ombre.segui(ciclista.ragazzo.gruppo);
+  traffico.auto.forEach(function (a) { ombre.segui(a.gruppo, { macchia: [a.W / 2 + 0.3, a.L / 2 + 0.35] }); });
   const atmosfera = PZ.creaAtmosfera(scena, citta);
   const inseguimento = PZ.creaInseguimento(demone);
   const specchietto = PZ.creaSpecchietto(renderer);
@@ -855,6 +861,7 @@ PZ.creaCorsa = function (opz) {
     disegna();
   }
   function disegna() {
+    ombre.aggiorna();                                   // (fase 72) le ombre seguono ragazzo, bici e auto
     const spec = S.fase === 'corsa';
     // le posizioni di tutti gli oggetti si calcolano una volta sola per fotogramma (prima lo faceva ogni disegno)
     scena.updateMatrixWorld(); const au = scena.autoUpdate; scena.autoUpdate = false;

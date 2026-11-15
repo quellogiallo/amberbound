@@ -7,7 +7,7 @@
 // viene spostato in fondo alla fila, scegliendo a caso tra quelli non in uso. Niente viene creato durante la corsa.
 //
 // Coordinate: x = destra (+) / sinistra (-), y = altezza, z = verso la camera (+). Il ragazzo va verso -z.
-PZ.creaCitta = function (scena) {
+PZ.creaCitta = function (scena, ombre) {   // (fase 72) ombre: le ombre proiettate (src/ombre.js), per le auto parcheggiate
   const CFG = PZ.CONFIG.strada;
   const T = PZ.textureCitta();
   const LC = CFG.larghezzaCorsia;            // larghezza di una corsia
@@ -214,7 +214,7 @@ PZ.creaCitta = function (scena) {
   // (porta vera, che si apre), il marciapiede è sgombro e non ci sono auto in sosta dove passerà la bici.
   function tratto(seme, opz) {
     opz = opz || {};
-    const r = PZ.ps1.casuale(seme), C = new PZ.Costruttore();
+    const r = PZ.ps1.casuale(seme), C = new PZ.Costruttore(), parcheggiate = [];
     // incrocio con una strada laterale (al massimo su un lato) e strisce pedonali
     let lat = null, strisce = null;
     if (r() < 0.38) { const zl = -8 - r() * 6; lat = { s: r() < 0.5 ? -1 : 1, z0: zl, z1: zl - 7 }; strisce = zl + 2.2; }
@@ -310,11 +310,21 @@ PZ.creaCitta = function (scena) {
         if (q < 0.5) {
           const tipi = ['utilitaria', 'utilitaria', 'berlina', 'station', 'furgone'], tipo = tipi[Math.floor(r() * tipi.length)];
           const col = PZ.auto.COLORI[Math.floor(r() * PZ.auto.COLORI.length)];
-          PZ.auto.costruisci(C, tipo, col, s * (BORDO + 0.92), zc + (r() - 0.5) * 0.4, r() < 0.5 ? 0 : Math.PI, false);
+          const pa = [tipo, col, s * (BORDO + 0.92), zc + (r() - 0.5) * 0.4, r() < 0.5 ? 0 : Math.PI];
+          PZ.auto.costruisci(C, pa[0], pa[1], pa[2], pa[3], pa[4], false);
+          parcheggiate.push(pa);
         } else if (q < 0.6 && !cassonettiMessi) { cassonetti(C, s, zc, r); cassonettiMessi = true; }
       }
     });
     const g = C.crea(MAT);
+    // (fase 72) l'ombra delle auto parcheggiate: la loro sagoma appiattita a terra, calcolata una volta sola
+    if (ombre && parcheggiate.length) {
+      const Cs = new PZ.Costruttore();
+      parcheggiate.forEach(function (pa) { PZ.auto.costruisci(Cs, pa[0], pa[1], pa[2], pa[3], pa[4], false); });
+      const stampo = Cs.crea(MAT);
+      ombre.statica(stampo, g);
+      stampo.traverse(function (o) { if (o.geometry) o.geometry.dispose(); });
+    }
     if (opz.partenza) { porta = creaPorta(); porta.gruppo.position.set(MURO, 0, PORTA_Z); g.add(porta.gruppo); }
     g.visible = false;
     scena.add(g);

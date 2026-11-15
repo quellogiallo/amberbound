@@ -102,7 +102,9 @@ PZ.CONFIG = {
       // (fase 67) -15% di difficoltà nella storia SENZA rallentare l'inizio: la velocità di partenza resta quella;
       // cala del 15% solo quanto la bici accelera dopo (crescita 0,85, anche nella frenesia); file di ostacoli il 15%
       // più rade (1,04 x 0,85 = 0,884: -11,6% rispetto alla base). I frammenti per fila crescono in proporzione.
-      storia: { velocita: -0.025, ostacoli: -0.116, crescita: 0.85 },
+      // (fase 72) +10% su tutto, partenza compresa: velocità (1 - 0,025) x 1,1 = 1,0725; ostacoli 0,884 x 1,1 = 0,972;
+      // accelerazione 0,85 x 1,1 = 0,935
+      storia: { velocita: 0.0725, ostacoli: -0.028, crescita: 0.935 },
       pause: { ogni: [[9, 14], [15, 21]], durata: [2.4, 1.2] },
       calda: { ogni: 11, file: [3, 6], peso: 2.2, da: 0.25 },
       cambia: 1.3,
@@ -227,6 +229,11 @@ PZ.CONFIG = {
   livelloMare: -20,
   luna: { posizione: [-100, 124, -630], raggio: 34, gialla: true },
   luce: { direzione: [-0.15, 0.30, -0.94] },
+  // (fase 72) OMBRE PROIETTATE di protagonista e auto (src/ombre.js). luce = la direzione in cui viaggia la luce
+  // (in strada: dall'alto e da sinistra, così l'ombra cade a destra di ragazzo e auto, ben visibile);
+  // nella scogliera viene dalla luna (config "luce"). opacita = quanto è scura l'ombra; macchia = la macchia sotto
+  ombre: { strada: { luce: [0.75, -1, 0.3], opacita: 0.72, opacitaMacchia: 0.85 },
+    scogliera: { opacita: 0.62, opacitaMacchia: 0.7 } },
 
   // (fase 16) MODALITÀ ARCADE (src/strada/arcade.js): corsa infinita, si sblocca finendo la storia.
   // metriPerLivello: la difficoltà (ostacoli, manata, demone) sale con i metri: ogni tanti metri vale come un frammento
