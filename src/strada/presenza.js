@@ -1,6 +1,6 @@
 // (fase 66) LA PRESENZA DEL DEMONE ALLE TUE SPALLE.
 // Quando il demone è vicino non lo vedi (è dietro la telecamera), ma lo SENTI:
-//  - LE MANONE: le sue due mani artigliate entrano dai lati dello schermo (all'altezza del ragazzo, sopra i pulsanti), come se ti stesse allungando le
+//  - LE MANONE: le sue due mani artigliate salgono dal bordo basso dello schermo, come se ti stesse allungando le
 //    braccia addosso da dietro. Più è vicino più entrano; tremano, e a turno scattano in avanti per afferrarti.
 //    Sono le stesse manone del demone (PZ.manoneDemone), con un alone viola dietro che le stacca dalla strada buia.
 //    Arrivano solo ai lati del ragazzo: lui, la strada davanti e gli ostacoli si vedono sempre.
@@ -11,7 +11,7 @@ PZ.creaPresenza = function (o) {
   const scena = o.scena, camera = o.camera, atmosfera = o.atmosfera, C = PZ.CONFIG.strada.demone.presenza;
   const V3 = THREE.Vector3, rnd = PZ.ps1.casuale(6606);
   const liscia = function (a, b, v) { const x = Math.max(0, Math.min(1, (v - a) / (b - a))); return x * x * (3 - 2 * x); };
-  const SCALA = 0.52;
+  const SCALA = 0.55;
   // le due manone: s = +1 quella a destra dello schermo, -1 a sinistra (il pollice verso il centro)
   const mani = [1, -1].map(function (s) {
     const g = new THREE.Group(), m = PZ.manoneDemone(s);
@@ -37,11 +37,11 @@ PZ.creaPresenza = function (o) {
     // tremito nervoso: un nuovo strattone ogni 1/20 di secondo
     mano.tremaT -= dt;
     if (mano.tremaT <= 0) { mano.tremaT = 0.05; const a = 0.012 + 0.02 * e; mano.tx = (rnd() - 0.5) * a; mano.ty = (rnd() - 0.5) * a; mano.tz = (rnd() - 0.5) * a; }
-    W.set(s * (0.86 - 0.46 * e - 0.06 * k) + mano.tx, -0.43 + 0.03 * k + mano.ty, -1.25 - 0.12 * k + mano.tz);
-    A.set(s * 0.1, -0.36 + 0.04 * k, -2.7);                  // verso il ragazzo, ai suoi lati: non lo coprono mai
+    W.set(s * (0.37 - 0.05 * k), -1.4 + 0.62 * e + 0.08 * k + mano.ty, -1.25 - 0.18 * k + mano.tz);   // (fase 73) di nuovo dal bordo basso, grandi
+    A.set(s * 0.1 + mano.tx * 4, -0.2 + 0.1 * k, -2.2);
     Y.subVectors(W, A).normalize();                                 // la mano "pende" lungo -y: -y verso il bersaglio
     Z.copy(GIU).addScaledVector(Y, -GIU.dot(Y)).normalize();        // le dita si piegano verso il basso (palmo in giù)
-    Z.applyAxisAngle(Y, s * 0.7);                                    // girate sul fianco: si vedono gli artigli aperti verso di lui
+    Z.applyAxisAngle(Y, s * 0.25);                                   // un po' girate verso il centro
     X.crossVectors(Y, Z);
     M.makeBasis(X, Y, Z).setPosition(W);
     M2.multiplyMatrices(camera.matrixWorld, M);
