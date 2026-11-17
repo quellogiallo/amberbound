@@ -279,7 +279,13 @@
     // (fase 68) SCHERMATA DI CARICAMENTO: dopo STORIA (o ARCADE) si prepara tutto prima di giocare (la strada, i
     // materiali della cameretta e della strada), così dopo non ci sono più scatti. La frase resta almeno 2,6 secondi.
     function caricamento(poi) {
-      const el = $('caricamento'), barra = el.querySelector('.barra i'), t0 = performance.now();
+      // (fase 75) al posto della barra la pietra d'ambra che rotola (la stessa del caricamento iniziale) e la percentuale
+      const el = $('caricamento'), num = el.querySelector('.pietraCarica b'), t0 = performance.now();
+      let meta = 0, mostra = 0, attiva = true;
+      (function sale() { if (!attiva) return; mostra += Math.max(0.5, (meta - mostra) * 0.15); if (mostra > meta) mostra = meta; num.textContent = Math.floor(mostra) + '%'; requestAnimationFrame(sale); })();
+      if (window.PZpietra) window.PZpietra(el.querySelector('.pietraCarica canvas'), function () { return attiva; });
+      const barra = { style: {} };
+      Object.defineProperty(barra.style, 'transform', { set: function (v) { const m = /scaleX\(([0-9.]+)\)/.exec(v); if (m) meta = Math.round(parseFloat(m[1]) * 100); } });
       const passi = [
         function () { try { renderer.compile(scena, camera); } catch (e) {} },
         function () { preparaCorsa(); }
@@ -298,7 +304,7 @@
         setTimeout(function () {
           poi();
           el.classList.remove('vis');
-          setTimeout(function () { el.style.display = 'none'; }, 900);
+          setTimeout(function () { el.style.display = 'none'; attiva = false; }, 900);
         }, Math.max(500, 2600 - (performance.now() - t0)));
       }
       setTimeout(prossimo, 450);                                     // prima appare la frase, poi si lavora
