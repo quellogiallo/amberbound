@@ -421,23 +421,14 @@
      quando la pagina è pronta arriva a 100% e la schermata sfuma. È tutta qui: non dipende da nient'altro del gioco. -->
 <div id="ambraCarica" data-file="48">
   <b id="ambraCaricaN">0%</b>
-  <div class="gira"><svg viewBox="-50 -60 100 120" aria-hidden="true">
-    <polygon points="0,-58 30,-34 0,-22" fill="#ffe36b"/><polygon points="0,-58 -30,-34 0,-22" fill="#ffc21a"/>
-    <polygon points="30,-34 40,6 0,-22" fill="#f0a20c"/><polygon points="-30,-34 -40,6 0,-22" fill="#ffd23a"/>
-    <polygon points="0,-22 40,6 0,18" fill="#d9860a"/><polygon points="0,-22 -40,6 0,18" fill="#ffb514"/>
-    <polygon points="40,6 22,40 0,18" fill="#b8650a"/><polygon points="-40,6 -22,40 0,18" fill="#e89810"/>
-    <polygon points="0,18 22,40 0,58" fill="#9c5208"/><polygon points="0,18 -22,40 0,58" fill="#cf7c0c"/>
-    <polygon points="-6,-44 4,-40 -2,-30" fill="#fff7c8" opacity=".85"/>
-  </svg></div>
+  <canvas id="ambraPietra" width="300" height="230" aria-hidden="true"></canvas>
 </div>
 <style>
   #ambraCarica { position: fixed; inset: 0; z-index: 9999; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 14px; transition: opacity .6s; font-family: monospace; font-weight: bold; }
   #ambraCarica.via { opacity: 0; pointer-events: none; }
   #ambraCaricaN { color: #ffd21f; font-size: 22px; letter-spacing: .12em; text-shadow: 2px 2px 0 #5a0c22, 0 0 12px rgba(255, 200, 40, .45); min-width: 4.5em; text-align: center; }
-  #ambraCarica .gira { width: 56px; height: 68px; perspective: 160px; filter: drop-shadow(0 0 10px rgba(255, 190, 30, .55)); }
-  #ambraCarica svg { width: 100%; height: 100%; animation: ambraGira 1.6s linear infinite; transform-style: preserve-3d; }
-  @keyframes ambraGira { from { transform: rotateY(0deg); } to { transform: rotateY(360deg); } }
+  #ambraPietra { width: 150px; height: 115px; filter: drop-shadow(0 0 10px rgba(255, 190, 30, .5)); }
 </style>
 <script>
 (function () {
@@ -457,6 +448,63 @@
     requestAnimationFrame(passo);
   }
   requestAnimationFrame(passo);
+
+  // LA PIETRA che rotola: una piccola pietra d'ambra 3D a facce (disegnata qui, senza il motore del gioco che sta
+  // ancora arrivando), lasciata cadere: cade, rimbalza due volte sempre più piano, rotola un po' e si ferma
+  // dondolando; poi ricomincia. Le facce sono colorate dalla luce che arriva dall'alto a sinistra.
+  var cv = document.getElementById('ambraPietra'), g = cv.getContext('2d'), W = cv.width, H = cv.height, R = 38, SUOLO = H - 24;
+  // una bipiramide pentagonale irregolare: sembra una pietra scheggiata, non un cristallo perfetto
+  var V = [[0, 1.15, 0.1], [0.05, -1.05, -0.05]], F = [];
+  [1, 0.85, 1.05, 0.9, 0.95].forEach(function (r, i) { var a = i / 5 * Math.PI * 2 + 0.3; V.push([Math.cos(a) * r, (i % 2 ? 0.12 : -0.08), Math.sin(a) * r]); });
+  for (var i = 0; i < 5; i++) { var j = (i + 1) % 5; F.push([0, 2 + j, 2 + i]); F.push([1, 2 + i, 2 + j]); }
+  var LUCE = [-0.45, 0.75, 0.5], ll = Math.hypot(LUCE[0], LUCE[1], LUCE[2]); LUCE = LUCE.map(function (v) { return v / ll; });
+  function ruota(p, ax, ay, az) {
+    var x = p[0], y = p[1], z = p[2], c, s, t;
+    c = Math.cos(ax); s = Math.sin(ax); t = y * c - z * s; z = y * s + z * c; y = t;
+    c = Math.cos(ay); s = Math.sin(ay); t = x * c + z * s; z = -x * s + z * c; x = t;
+    c = Math.cos(az); s = Math.sin(az); t = x * c - y * s; y = x * s + y * c; x = t;
+    return [x, y, z];
+  }
+  var DUR = 2.6, t0 = performance.now();
+  function moto(t) {        // posizione (x, y dal suolo) e rotazione nel ciclo: caduta, due rimbalzi, rotolata, quiete
+    var y, x, rot, k;
+    if (t < 0.45) { k = t / 0.45; y = (1 - k * k) * 120; }                         // cade
+    else if (t < 0.85) { k = (t - 0.45) / 0.4; y = 4 * k * (1 - k) * 34; }          // primo rimbalzo
+    else if (t < 1.1) { k = (t - 0.85) / 0.25; y = 4 * k * (1 - k) * 10; }          // secondo, più piccolo
+    else y = 0;
+    var tr = Math.min(t, 1.9);                                                      // rotola e rallenta fino a fermarsi
+    x = -46 + 92 * (1 - Math.pow(1 - tr / 1.9, 2));
+    rot = x / R;                                                                     // gira quanto ha rotolato
+    var dondola = t > 1.9 ? Math.sin((t - 1.9) * 14) * 0.12 * Math.exp(-(t - 1.9) * 5) : 0;
+    return { x: x, y: y, rz: -rot + dondola, rx: 0.5 + t * 1.3 * (t < 1.9 ? 1 : 0) + (t >= 1.9 ? 1.9 * 1.3 : 0), sq: y === 0 && t < 1.15 && t > 0.43 ? 0.9 : 1 };
+  }
+  function disegna(ora) {
+    if (box.style.display === 'none') return;
+    var t = ((ora - t0) / 1000) % DUR, m = moto(t), sc = R;
+    g.clearRect(0, 0, W, H);
+    // l'ombra a terra: più piccola e chiara quando la pietra è in aria
+    var al = Math.max(0.15, 1 - m.y / 130);
+    g.fillStyle = 'rgba(255, 170, 20,' + (0.18 * al) + ')';
+    g.beginPath(); g.ellipse(W / 2 + m.x, SUOLO + 4, R * 1.1 * al, 5 * al, 0, 0, Math.PI * 2); g.fill();
+    var P = V.map(function (p) { var q = ruota(p, m.rx, 0.4, m.rz); return [q[0] * sc, q[1] * sc * m.sq, q[2] * sc]; });
+    var facce = F.map(function (f) {
+      var a = P[f[0]], b = P[f[1]], c = P[f[2]];
+      var u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], v = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
+      var n = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]], nl = Math.hypot(n[0], n[1], n[2]) || 1;
+      return { f: f, n: [n[0] / nl, n[1] / nl, n[2] / nl], z: (a[2] + b[2] + c[2]) / 3 };
+    }).filter(function (o) { return o.n[2] > 0; }).sort(function (a, b) { return a.z - b.z; });
+    var cx = W / 2 + m.x, cy = SUOLO - m.y - R * 0.95;
+    facce.forEach(function (o) {
+      var l = Math.max(0, o.n[0] * LUCE[0] + o.n[1] * LUCE[1] + o.n[2] * LUCE[2]), k = 0.35 + 0.75 * l;
+      g.fillStyle = 'rgb(' + Math.min(255, Math.round(255 * k)) + ',' + Math.round(175 * k) + ',' + Math.round(20 * k) + ')';
+      g.strokeStyle = 'rgba(255, 240, 170, .35)'; g.lineWidth = 1;
+      g.beginPath();
+      o.f.forEach(function (i, n) { var p = P[i]; if (n) g.lineTo(cx + p[0], cy - p[1]); else g.moveTo(cx + p[0], cy - p[1]); });
+      g.closePath(); g.fill(); g.stroke();
+    });
+    requestAnimationFrame(disegna);
+  }
+  requestAnimationFrame(disegna);
 })();
 </script>
 <div id="stage">
