@@ -416,6 +416,49 @@
 </style>
 </head>
 <body>
+<!-- (fase 74) CARICAMENTO: mentre il browser scarica il gioco, una piccola pietra d'ambra gira e sopra c'è la percentuale.
+     La percentuale conta i file del gioco già arrivati (data-file = quanti sono: aggiornalo se aggiungi un <script>);
+     quando la pagina è pronta arriva a 100% e la schermata sfuma. È tutta qui: non dipende da nient'altro del gioco. -->
+<div id="ambraCarica" data-file="48">
+  <b id="ambraCaricaN">0%</b>
+  <div class="gira"><svg viewBox="-50 -60 100 120" aria-hidden="true">
+    <polygon points="0,-58 30,-34 0,-22" fill="#ffe36b"/><polygon points="0,-58 -30,-34 0,-22" fill="#ffc21a"/>
+    <polygon points="30,-34 40,6 0,-22" fill="#f0a20c"/><polygon points="-30,-34 -40,6 0,-22" fill="#ffd23a"/>
+    <polygon points="0,-22 40,6 0,18" fill="#d9860a"/><polygon points="0,-22 -40,6 0,18" fill="#ffb514"/>
+    <polygon points="40,6 22,40 0,18" fill="#b8650a"/><polygon points="-40,6 -22,40 0,18" fill="#e89810"/>
+    <polygon points="0,18 22,40 0,58" fill="#9c5208"/><polygon points="0,18 -22,40 0,58" fill="#cf7c0c"/>
+    <polygon points="-6,-44 4,-40 -2,-30" fill="#fff7c8" opacity=".85"/>
+  </svg></div>
+</div>
+<style>
+  #ambraCarica { position: fixed; inset: 0; z-index: 9999; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 14px; transition: opacity .6s; font-family: monospace; font-weight: bold; }
+  #ambraCarica.via { opacity: 0; pointer-events: none; }
+  #ambraCaricaN { color: #ffd21f; font-size: 22px; letter-spacing: .12em; text-shadow: 2px 2px 0 #5a0c22, 0 0 12px rgba(255, 200, 40, .45); min-width: 4.5em; text-align: center; }
+  #ambraCarica .gira { width: 56px; height: 68px; perspective: 160px; filter: drop-shadow(0 0 10px rgba(255, 190, 30, .55)); }
+  #ambraCarica svg { width: 100%; height: 100%; animation: ambraGira 1.6s linear infinite; transform-style: preserve-3d; }
+  @keyframes ambraGira { from { transform: rotateY(0deg); } to { transform: rotateY(360deg); } }
+</style>
+<script>
+(function () {
+  var box = document.getElementById('ambraCarica'), N = document.getElementById('ambraCaricaN');
+  var tot = +box.getAttribute('data-file') || 48, arrivati = 0, mostra = 0, meta = 0, finito = false;
+  // ogni file arrivato (codice, font, immagini) fa salire la meta; fino al 95%: l'ultimo 5% è la preparazione del gioco
+  document.addEventListener('load', function (e) {
+    var t = e.target && e.target.tagName;
+    if (t === 'SCRIPT' || t === 'LINK' || t === 'IMG') { arrivati++; meta = Math.max(meta, Math.min(95, Math.round(arrivati / tot * 95))); }
+  }, true);
+  window.addEventListener('load', function () { meta = 100; finito = true; });
+  // il numero sale morbido verso la meta (non salta), poi a 100% la schermata sfuma
+  function passo() {
+    mostra += Math.max(0.4, (meta - mostra) * 0.18); if (mostra > meta) mostra = meta;
+    N.textContent = Math.floor(mostra) + '%';
+    if (finito && mostra >= 100) { setTimeout(function () { box.classList.add('via'); setTimeout(function () { box.style.display = 'none'; }, 700); }, 250); return; }
+    requestAnimationFrame(passo);
+  }
+  requestAnimationFrame(passo);
+})();
+</script>
 <div id="stage">
   <div id="fette" class="ui"></div>
   <div id="specchioFlash" class="ui"></div>
