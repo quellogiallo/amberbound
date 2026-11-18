@@ -73,15 +73,18 @@ PZ.creaTombino = function (o) {
   // (fase 96) DIAGNOSI: aprendo il gioco con ?diag nell'indirizzo il tombino arriva presto (dopo 150 m) e nel sotterraneo
   // compare un riquadro con cosa sta disegnando la scheda video e cosa c'è sopra l'immagine (per i blocchi su iPhone)
   const DIAG = /[?&#]diag/.test(location.search + location.hash);
+  // ?diag=lontano: il riquadro, ma il tombino alla distanza normale (tra 700 e 1200 m)
+  const DIAG_PRESTO = DIAG && !/diag=lontano/.test(location.search + location.hash);
   const DG = { persi: 0, ripristini: 0, render: 0, err: '', calls: 0, tri: 0, el: null, t: 0 };
   if (DIAG) {
     renderer.domElement.addEventListener('webglcontextlost', function () { DG.persi++; });
     renderer.domElement.addEventListener('webglcontextrestored', function () { DG.ripristini++; });
+    window.addEventListener('error', function (e) { DG.err = 'pagina: ' + String(e.message || e).slice(0, 120); });
   }
   const st = { inStrada: null, piani: [], generati: 0, usato: false, tic: 0, t: 0 };
   function reset() {
     st.inStrada = null; st.piani = []; st.generati = 0; st.usato = false; st.t = 0; st.tic = 0;
-    if (DIAG) st.piani.push(150);
+    if (DIAG_PRESTO) st.piani.push(150);
     else if (rnd() < T.probabilita) st.piani.push(T.metri[0] + rnd() * (T.metri[1] - T.metri[0]));
     strada.visible = false; luceStrada.intensity = 0;
     S.simboli = [];                                  // nuova partita: nuova soluzione (decisa alla prima discesa)
@@ -467,6 +470,7 @@ PZ.creaTombino = function (o) {
   function entra(fine) {
     if (S.attivo || !st.inStrada) return false;
     st.usato = true; st.inStrada = null; strada.visible = false; luceStrada.intensity = 0;
+    guasti = 0;
     if (!S.simboli.length) nuovaSoluzione();
     Object.assign(S, { attivo: true, fase: 'scende', t: 0, tempo: T.tempo, k: 0, errori: 0, vinto: false, fine: fine, porta: 0, tensione: 0,
       prossimoSuono: 3 + rnd() * 2, prossimaGoccia: 1, prossimoBattito: 0, scossa: 0, uscita: null, scarto: T.scarto || 0, scartoN: -1 });
@@ -608,7 +612,23 @@ PZ.creaTombino = function (o) {
   }
   // ---------- Un passo sotto terra (tempo vero; in pausa non viene chiamato) ----------
   const tmpP = new V3(), tmpF = new V3(), camPos = new V3(-1.2, 4.4, 6.2), camFuoco = new V3(-1.6, 0.5, 1.5);
+  // (fase 97) SICUREZZA: se qualcosa si rompe sotto terra (un errore nel disegno o nel movimento) il gioco non resta
+  // bloccato sull'immagine della strada: prima i materiali diventano semplici, poi, se non basta, si risale da soli
+  let guasti = 0;
+  function guasto(dove, e) {
+    guasti++; DG.err = dove + ': ' + String(e && e.message || e).slice(0, 120);
+    if (guasti === 1) console.warn('[tombino] ' + DG.err);
+    if (guasti === 20) semplifica();
+    if (guasti >= 90 && S.attivo && !S.uscita) S.uscita = { t: 0, esito: { premio: 0 } };
+  }
   function passo(dt) {
+    try { passoVero(dt); if (guasti > 0) guasti = Math.max(0, guasti - 0.25); }
+    catch (e) {
+      guasto('passo', e);
+      if (S.uscita && S.uscita.esito && !S.uscita.fatta && guasti >= 90) { S.uscita.fatta = true; const f = S.fine; chiudiSotto(); if (f) f(S.uscita.esito); }
+    }
+  }
+  function passoVero(dt) {
     if (!S.attivo) return;
     S.t += dt;
     if (S.msgT > 0) { S.msgT -= dt; if (S.msgT <= 0) msg(''); }
@@ -781,8 +801,7 @@ PZ.creaTombino = function (o) {
     const w = renderer.domElement.width, h = renderer.domElement.height;
     if (Math.abs(cam.aspect - w / h) > 1e-3) { cam.aspect = w / h; cam.updateProjectionMatrix(); }
     renderer.setRenderTarget(null); const ac = renderer.autoClear; renderer.autoClear = true;
-    if (DIAG) { try { renderer.render(sc, cam); DG.render++; DG.calls = renderer.info.render.calls; DG.tri = renderer.info.render.triangles; } catch (e) { DG.err = String(e && e.message || e).slice(0, 120); } }
-    else renderer.render(sc, cam);
+    try { renderer.render(sc, cam); DG.render++; DG.calls = renderer.info.render.calls; DG.tri = renderer.info.render.triangles; } catch (e) { renderer.autoClear = ac; guasto('disegno', e); return; }
     renderer.autoClear = ac;
     if (!semplice && controlli < 3) { controlli++; if (falliti()) { semplifica(); renderer.render(sc, cam); } }
   }

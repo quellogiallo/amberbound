@@ -887,7 +887,7 @@ PZ.audio = (function () {
           el = new Audio(url); el.preload = 'auto';
           el.addEventListener('timeupdate', function () { if (el.currentTime >= C().loopA) el.currentTime = C().loopDa + (el.currentTime - C().loopA); });
           el.addEventListener('ended', function () { el.currentTime = C().loopDa; el.play(); });
-          if (attesa !== null) parti(attesa);
+          if (attesa !== null && inPausa < 0) parti(attesa);
         } catch (e) { el = null; }
       };
       if (location.protocol === 'file:') { riserva(); return; }
@@ -896,7 +896,7 @@ PZ.audio = (function () {
           .then(function (b) { return new Promise(function (ok, ko) { const p = ctx.decodeAudioData(b, ok, ko); if (p && p.catch) p.catch(ko); }); })
           .then(function (b) {
             buf = b;
-            if (attesa !== null) {                         // la corsa era già partita: si entra al punto giusto
+            if (attesa !== null && inPausa < 0) {          // la corsa era già partita: si entra al punto giusto (non in pausa)
               const off = attesa + (ctx.currentTime - tPartenza); attesa = null; parti(off);
             }
           }).catch(riserva);

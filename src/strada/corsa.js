@@ -600,6 +600,9 @@ PZ.creaCorsa = function (opz) {
     if (S.fase === 'fuga') { passoFuga(dt); return; }      // (fase 78)
     if (S.fase === 'finale') { passoFinale(dt); return; }
     if (S.fase === 'morte') { passoMorte(dt); return; }
+    // (fase 97) sotto terra si sente solo la musica del sotterraneo: se la colonna della corsa ripartisse (per qualunque
+    // motivo) la si rimette subito in pausa
+    if (S.fase === 'tombino' && COL.attiva() && !COL.inPausa()) COL.pausa();
     if (S.fase === 'tombino') { if (!PZ.avvisi.aperto()) tombino.passo(dt); return; }      // (fase 80) sotto terra: la strada è ferma (fase 84: e con l'avviso aperto tutto è fermo)
     if (S.fase !== 'corsa') return;
     // OROLOGIO DALINIANO: il tempo del mondo (dtm) scorre più piano (15%); quello vero (dt) resta per i comandi del
@@ -1114,7 +1117,7 @@ PZ.creaCorsa = function (opz) {
     if (!si && !S.pausa) return;
     S.pausa = !!si; tocco = null;
     $('pausa').classList.toggle('vis', S.pausa); ui.corsa.classList.toggle('inPausa', S.pausa);
-    if (S.pausa) COL.pausa(); else if (COL.inPausa && COL.inPausa()) COL.riprendi(0.15);   // (anche quando la musica è un elemento <audio>)
+    if (S.pausa) COL.pausa(); else if (S.fase !== 'tombino' && COL.inPausa && COL.inPausa()) COL.riprendi(0.15);   // (fase 97) sotto terra resta ferma   // (anche quando la musica è un elemento <audio>)
     if (PZ.audioSospendi) PZ.audioSospendi(S.pausa);
   }
   pulsante('riavvia', function () { if (PZ.audio.tocco) PZ.audio.tocco(); pausa(true); });
