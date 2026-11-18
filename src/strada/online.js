@@ -71,7 +71,8 @@ PZ.online = (function () {
     }).catch(function (e) { console.warn('[classifica online] lettura non riuscita:', e && e.message); return null; });
   };
 
-  // si collega subito in sottofondo, così alla prima classifica è già pronto
-  setTimeout(avvia, 1500);
+  // si collega subito in sottofondo, così alla prima classifica è già pronto. (fase 82b) Subito, non dopo 1,5 s: così il
+  // lavoro pesante (i file di Firebase) avviene dietro la schermata di caricamento, non mentre parte la camminata del menu
+  setTimeout(avvia, 0);
   return O;
 })();

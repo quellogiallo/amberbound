@@ -67,7 +67,7 @@ PZ.creaSfondoMenu = function (renderer) {
   const punto = function (s, out) { return percorso.getPointAt(Math.max(0, Math.min(1, s / L)), out); };
   const quota = function (x, z) { return terra.quota(x, z) + 0.08; };
   const S_INIZIO = 14, S_FINE = L - 16, VEL = 1.0, MEZZO = 0.31;        // metri; m/s; metà distanza tra i due
-  const M = { s: S_INIZIO, fase: 0, t: 0, nero: 1 };
+  const M = { s: S_INIZIO, fase: 0, t: 0, nero: 1, dtL: 0 };
   const c = new V3(), avanti = new V3(), sinistra = new V3(), dietro = new V3(), davanti = new V3(), mano = new V3();
   const ALTEZZA = 0.92, CAVIGLIA = 0.077, vel = 0.75;
 
@@ -116,7 +116,10 @@ PZ.creaSfondoMenu = function (renderer) {
     O.A.sx.polso.getWorldPosition(mano);                      // dove arriva la sua mano: lì va quella di lui
     mano.y -= 0.06;
   }
-  function passo(dt) {
+  function passo(dtVero) {
+    // (fase 82b) passo ammorbidito: un fotogramma più lento non dà uno strappo alla camminata
+    M.dtL += (Math.min(0.05, dtVero) - M.dtL) * 0.12;
+    const dt = M.dtL;
     M.t += dt;
     M.s += VEL * dt; M.fase += dt * 8.2 * vel;
     if (M.s > S_FINE) M.nero = Math.min(1, M.nero + dt / 1.2);
@@ -142,13 +145,20 @@ PZ.creaSfondoMenu = function (renderer) {
     renderer.render(scena, camera);
     return M.nero;
   }
+  // (fase 82b) disegna una volta TUTTO (anche ciò che è fuori inquadratura): programmi e immagini pronti prima di partire
+  function prepara() {
+    const salvati = [];
+    scena.traverse(function (o) { salvati.push([o, o.frustumCulled]); o.frustumCulled = false; });
+    passo(0);
+    salvati.forEach(function (v) { v[0].frustumCulled = v[1]; });
+  }
   function libera() {
     scena.traverse(function (o) {
       if (o.geometry) o.geometry.dispose();
       if (o.material) [].concat(o.material).forEach(function (m) { if (m.map) m.map.dispose(); m.dispose(); });
     });
   }
-  const out = { passo: passo, libera: libera, scena: scena, camera: camera, stato: M, L: L, lei: lei, ragazzo: ragazzo };
+  const out = { passo: passo, prepara: prepara, libera: libera, scena: scena, camera: camera, stato: M, L: L, lei: lei, ragazzo: ragazzo };
   window.__menu = out;   // utile per le prove automatiche
   return out;
 };

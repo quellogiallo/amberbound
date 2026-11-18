@@ -484,14 +484,14 @@
     if (t === 'SCRIPT' || t === 'LINK' || t === 'IMG') { arrivati++; meta = Math.max(meta, Math.min(95, Math.round(arrivati / tot * 95))); }
   }, true);
   // (fase 82) la schermata sparisce solo quando lo sfondo del menu ha disegnato i primi fotogrammi (window.PZmenuPronto),
-  // così l'inizio della camminata non scatta; al massimo 5 secondi dopo il caricamento dei file
+  // così l'inizio della camminata non scatta; al massimo 8 secondi dopo il caricamento dei file
   var tFinito = 0;
   window.addEventListener('load', function () { meta = 100; finito = true; tFinito = performance.now(); });
   // il numero sale morbido verso la meta (non salta), poi a 100% la schermata sfuma
   function passo() {
     mostra += Math.max(0.4, (meta - mostra) * 0.18); if (mostra > meta) mostra = meta;
     N.textContent = Math.floor(mostra) + '%';
-    if (finito && mostra >= 100 && (window.PZmenuPronto || performance.now() - tFinito > 5000)) { setTimeout(function () { box.classList.add('via'); setTimeout(function () { box.style.display = 'none'; }, 700); }, 250); return; }
+    if (finito && mostra >= 100 && (window.PZmenuPronto || performance.now() - tFinito > 8000)) { setTimeout(function () { box.classList.add('via'); setTimeout(function () { box.style.display = 'none'; }, 700); }, 250); return; }
     requestAnimationFrame(passo);
   }
   requestAnimationFrame(passo);

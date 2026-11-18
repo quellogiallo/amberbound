@@ -40,7 +40,12 @@
     // (fase 82) i materiali dello sfondo si preparano subito, dietro la schermata di caricamento (prima succedeva al primo
     // fotogramma, proprio quando la camminata cominciava: scatti); la schermata sparisce dopo i primi fotogrammi veri
     let fotogrammiMenu = 0;
-    if (sfondoMenu) { try { renderer.compile(sfondoMenu.scena, sfondoMenu.camera); sfondoMenu.passo(0); } catch (e) { console.warn(e); } } else window.PZmenuPronto = true;
+    if (sfondoMenu) { try { renderer.compile(sfondoMenu.scena, sfondoMenu.camera); sfondoMenu.prepara(); } catch (e) { console.warn(e); } } else window.PZmenuPronto = true;
+    // (fase 82b) la schermata aspetta anche la classifica online (i suoi file pesanti si preparano adesso, non durante la
+    // camminata); se la rete è lenta, al massimo 6 secondi
+    let onlineFatto = false;
+    const finitoOnline = function () { onlineFatto = true; };
+    try { const pr = PZ.online && PZ.online.avvia ? PZ.online.avvia() : null; if (pr && pr.then) { pr.then(finitoOnline, finitoOnline); setTimeout(finitoOnline, 6000); } else onlineFatto = true; } catch (e) { onlineFatto = true; }
     const menuNero = $('menuNero');
 
     // ---------- Stato ----------
@@ -493,7 +498,7 @@
         if (!stato.iniziato) {
           // (fase 82) finché c'è la schermata di caricamento la camminata non avanza (comincia quando la si vede)
           const n = sfondoMenu.passo(window.PZmenuPronto ? dt : 0); if (menuNero) menuNero.style.opacity = n.toFixed(2);
-          if (++fotogrammiMenu === 4) window.PZmenuPronto = true;
+          if (onlineFatto && ++fotogrammiMenu === 8) window.PZmenuPronto = true;   // qualche fotogramma vero, poi via
           return;
         }
         sfondoMenu.libera(); sfondoMenu = null; $('avvio').classList.remove('scena'); stage.classList.remove('menuScena');
