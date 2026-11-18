@@ -21,6 +21,7 @@ PZ.creaCorsa = function (opz) {
   const occhi = PZ.creaOcchi(scena, 140);
   const demone = PZ.creaDemone(scena, occhi, { manone: true });   // (fase 10) con le due manone artigliate
   const GRANDE = PZ.CONFIG.strada.demone.grandezza || 1; demone.scala = GRANDE;   // (fase 77) anche gli occhi
+  const fuga = PZ.creaFuga({ scena: scena });   // (fase 78) la scena a 100/100: lo spiraglio sulla scogliera e il demone che urla
   const rnd = PZ.ps1.casuale(321);
   const branco = (function () {   // le sagome (riciclate), usate sia come ostacoli sia come apparizioni
     const tutte = ['alta', 'curva', 'sottile', 'accucciata', 'storta', 'alta', 'sottile'].map(function (v, i) { return PZ.creaSagoma(scena, occhi, v, 11 + i); });
@@ -584,6 +585,7 @@ PZ.creaCorsa = function (opz) {
       if (PZ.audio.vento) PZ.audio.vento(S.vel / 11);
       return;
     }
+    if (S.fase === 'fuga') { passoFuga(dt); return; }      // (fase 78)
     if (S.fase === 'finale') { passoFinale(dt); return; }
     if (S.fase === 'morte') { passoMorte(dt); return; }
     if (S.fase !== 'corsa') return;
@@ -756,11 +758,86 @@ PZ.creaCorsa = function (opz) {
   // Chiamata una volta sola (PZ.raccolta la chiama una volta, e qui si controlla anche la fase). Un lampo d'ambra
   // copre lo schermo mentre spariscono ostacoli, frammenti e demone; i comandi si spengono; la bici rallenta e
   // continua sulla strada vuota; poi PZ.scogliera.entra(...) (src/strada/scogliera.js).
-  PZ.raccolta.suCompletamento(function () { if (S.fase === 'corsa') completaRaccolta(); });
-  function completaRaccolta() {
+  // (fase 78) a 100/100 prima la FUGA (src/strada/fuga.js): il ragazzo scappa verso lo spiraglio sulla scogliera, il
+  // demone si ferma e urla; poi (o subito, con SALTA SCENA) la scogliera come prima
+  PZ.raccolta.suCompletamento(function () { if (S.fase === 'corsa') iniziaFuga(); });
+  const FU = { cam: new THREE.Vector3(), guarda: new THREE.Vector3(), z0: 0, zB: 0, lampo: false, urlo: false };
+  function iniziaFuga() {
+    S.fase = 'fuga'; S.tFase = 0;
+    COL.ferma(4);                                        // la canzone sfuma
+    if (PZ.audio.vittoria) PZ.audio.vittoria();          // il suono della vittoria, subito
+    spegniLento(); salvia.ferma(true);
+    PZ.avvisi.chiudi(false);
+    traffico.reset(S.tau); transenne.reset(); apparizioni.reset(); branco.reset(); ragazze.reset(); frammenti.svuota();
+    specchietto.nascondi(); eventi.ferma(); paranoia.ferma(); manata.ferma();
+    S.sguardo = null; S.pronto = false; ui.salta.classList.remove('pronto'); PZ.opacita(ui.velo, 0); ui.aiuto.style.opacity = '0';
+    mostraConto('', 0);
+    ui.corsa.classList.add('intro');                     // via il resto dell'interfaccia; compare SALTA SCENA
+    if (!demone.visibile) demone.mostra();
+    demone.gruppo.scale.setScalar(GRANDE);
+    FU.z0 = Math.max(9, Math.min(26, inseguimento.stato.dist)); FU.zB = 0; FU.lampo = false; FU.urlo = false;
+  }
+  function passoFuga(dt) {
+    S.tFase += dt;
+    const t = S.tFase, T = fuga.T, m = PZ.anim.morbida;
+    // il ragazzo accelera verso lo spiraglio e torna al centro della strada
+    S.vel += ((t < T.A ? 24 : t < T.B ? 20 : 30) - S.vel) * (1 - Math.exp(-dt * 1.5));
+    S.F = S.vel / V0; S.tau += S.F * dt; S.metri += S.vel * dt;
+    citta.aggiorna(S.vel * dt, camera);
+    S.x += (0 - S.x) * (1 - Math.exp(-dt * 2.5)); S.xc = S.x;
+    S.inclina += (0 - S.inclina) * Math.min(1, dt * 6);
+    S.ruote += S.vel * dt / R; S.pedivella += S.vel * dt / R / RAPPORTO;
+    ciclista.aggiorna(S.x, S.inclina, S.ruote, S.pedivella, S.tTot, true, 0, { y: 0, pendenza: 0, alzato: 0 });
+    testa.set(S.x, 1.6, 0);
+    // il demone: in A insegue ancora e resta un po' indietro; in B si ferma e si infuria; in C resta là, sempre più lontano
+    let zd;
+    if (t < T.A) zd = FU.z0 + 2.5 * t;
+    else { if (!FU.zB) FU.zB = 11; zd = FU.zB + 1.6 * (t - T.A) + (t > T.B ? 9 * (t - T.B) : 0); }   // B è uno stacco: lì è più vicino
+    demone.posiziona(S.x * 0.5, 0, zd, Math.PI);
+    if (t < T.A) demone.anima(dt, 'corre', 11, testa, 1);
+    else { demone.anima(dt, 'fermo', 0, testa, 1); fuga.rabbia(demone, t, m(T.A, T.A + 0.35, t), dt); }
+    occhi.risalto(t > T.A ? 0.9 * m(T.A, T.A + 0.4, t) : 0);
+    occhi.aggiorna(dt, testa);
+    if (!FU.urlo && t >= T.urlo) { FU.urlo = true; if (PZ.audio.paranoia && PZ.audio.paranoia.urloDemone) PZ.audio.paranoia.urloDemone(); }
+    // lo spiraglio: si apre in A, resta in B, si avvicina e si accende in C
+    const kS = m(0.3, 1.8, t), zS = t < T.B ? -125 : -125 + 65 * m(T.B, T.fine, t);
+    fuga.spiraglio(zS, kS, m(T.fine - 1.0, T.fine, t));
+    // la nebbia si apre verso il fondo
+    scena.fog.near = 30; scena.fog.far = 170;
+    // le inquadrature
+    let fov, scossa = 0;
+    if (t < T.A) {                                       // A: bassi, accanto al ragazzo, verso il fondo della strada
+      FU.cam.set(S.x + 1.5, 1.2, 3.2); FU.guarda.set(0, 4.5, -90); fov = 52 - 6 * m(0, T.A, t);
+    } else if (t < T.B) {                                // B: controcampo sul demone che urla
+      demone.G.testa.getWorldPosition(FU.guarda); FU.guarda.y -= 0.6;
+      FU.cam.set(S.x - 0.9, 1.5, 3.0); fov = 36 - 14 * m(T.A, T.B, t);
+      if (t > T.urlo) scossa = 0.16 * Math.exp(-(t - T.urlo) * 1.6);
+    } else {                                             // C: alle spalle del ragazzo che sfreccia nello spiraglio
+      FU.cam.set(S.x, 2.4 + 0.4 * m(T.B, T.fine, t), 4.8); FU.guarda.set(0, 6, -80); fov = 58 + 8 * m(T.B, T.fine, t);
+    }
+    camera.position.set(FU.cam.x + (Math.random() - 0.5) * scossa, FU.cam.y + (Math.random() - 0.5) * scossa * 0.7, FU.cam.z);
+    camera.lookAt(FU.guarda);
+    if (Math.abs(camera.fov - fov) > 0.01) { camera.fov = fov; camera.updateProjectionMatrix(); }
+    presenza.aggiorna(dt, { attivo: false, dist: 99, vicinanza: 0 });
+    atmosfera.aggiorna(Math.min(1, S.p * 1.05), dt, 0, S.metri);
+    if (PZ.audio.vento) PZ.audio.vento(S.vel / 12);
+    if (!FU.lampo && t >= T.fine - 0.35) { FU.lampo = true; lampo('ambra'); }
+    if (t >= T.fine) finisciFuga();
+  }
+  function finisciFuga() {
+    if (S.fase !== 'fuga') return;
+    fuga.spegni(); occhi.risalto(0);
+    ui.corsa.classList.remove('intro');
+    scena.fog.near = NEBBIA.near; scena.fog.far = NEBBIA.far;
+    camera.fov = CFG.campoVisivo; camera.updateProjectionMatrix();
+    completaRaccolta(true);
+  }
+  function completaRaccolta(dopoFuga) {
     S.fase = 'finale'; S.tFase = 0;
-    COL.ferma(4);                                        // (fase 28) verso la scogliera la canzone sfuma
-    if (PZ.audio.vittoria) PZ.audio.vittoria();          // il suono della vittoria, subito (una volta: si entra qui una volta sola)
+    if (!dopoFuga) {
+      COL.ferma(4);                                        // (fase 28) verso la scogliera la canzone sfuma
+      if (PZ.audio.vittoria) PZ.audio.vittoria();          // il suono della vittoria, subito (una volta: si entra qui una volta sola)
+    }
     spegniLento(); salvia.ferma(true);                   // se stava volando, scende piano
     PZ.avvisi.chiudi(false);
     lampo('ambra');
@@ -989,7 +1066,7 @@ PZ.creaCorsa = function (opz) {
   pulsante('arcMenu', function () { if (PZ.audio.tocco) PZ.audio.tocco(); salvaCorsa(); location.href = location.pathname; });
   $('nick').addEventListener('keydown', function (e) { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); salvaCorsa(); $('nick').blur(); } });
   $('nick').addEventListener('pointerdown', function (e) { e.stopPropagation(); });
-  pulsante('saltaIntro', function () { if (S.fase === 'intro') intro.salta(); });
+  pulsante('saltaIntro', function () { if (S.fase === 'intro') intro.salta(); else if (S.fase === 'fuga') finisciFuga(); });   // (fase 78) salta anche la fuga
   window.addEventListener('keydown', function (e) {
     if (!S.attiva || (e.target && e.target.tagName === 'INPUT')) return;
     if (e.code === 'Escape' || e.code === 'KeyP') { e.preventDefault(); if (!e.repeat) pausa(!S.pausa); return; }
