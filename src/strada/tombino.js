@@ -435,7 +435,7 @@ PZ.creaTombino = function (o) {
     S.attivo = false; S.fase = 'no';
     ui.box.classList.remove('vis', 'urgente'); ui.nero.style.opacity = '0'; ui.lente.classList.remove('vis'); S.lente = false;
     ui.joy.style.display = 'none'; S.joyId = null; S.input.x = S.input.z = 0; S.tasti = {};
-    if (A()) A().ronzio(0);
+    if (A()) { A().ronzio(0); if (A().musicaFerma) A().musicaFerma(0.6); }
   }
   function entra(fine) {
     if (S.attivo || !st.inStrada) return false;
@@ -451,7 +451,7 @@ PZ.creaTombino = function (o) {
     ui.box.classList.add('vis'); ui.box.classList.remove('urgente'); ui.premio.textContent = ''; ui.premio.classList.remove('vis');
     ui.nero.style.transition = 'none'; ui.nero.style.opacity = '1';
     aggiornaTempo(true);
-    if (A()) A().frena();
+    if (A()) { A().frena(); if (A().musicaAvvia) A().musicaAvvia(); }   // (fase 86) la musica parte nel tocco su SCENDI (iPhone)
     return true;
   }
   // ---------- Il puzzle ----------
@@ -649,6 +649,7 @@ PZ.creaTombino = function (o) {
     sc.fog.far = 13 - 2 * kT; sc.fog.near = 5 - 1 * kT;
     PZ.opacita(ui.velo, Math.min(0.9, 0.4 * kT * kT + (S.uscita && S.uscita.preso ? 0.5 : 0)));
     if (A()) A().ronzio(S.fase === 'gioca' ? 0.1 + 0.9 * kT : 0);
+    if (A() && A().musicaAggiorna) A().musicaAggiorna(kT, AT.on || !!(S.uscita && S.uscita.preso));   // (fase 86)
     // i suoni del demone: sempre più vicini e più fitti (da lontano a sinistra o a destra, poi da dietro la scala)
     if (corre && !S.vinto) {
       S.prossimoSuono -= dt;

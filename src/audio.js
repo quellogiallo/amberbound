@@ -130,7 +130,49 @@ PZ.audio = (function () {
       g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(Math.max(0.0002, vol), t + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
       o.connect(g); g.connect(dest); o.start(t); o.stop(t + dur + 0.05);
     }
+    // (fase 86) LA MUSICA DEL SOTTERRANEO (config: audio.sotterraneo): un elemento <audio> in loop che passa da un filtro
+    // e da un volume del mixer. musicaAggiorna(k, zitta): k = ansia 0..1 (si chiude e rallenta ancora un po'),
+    // zitta = silenzio di colpo (quando il demone è alle spalle)
+    let mus = null, musEl = null;
+    function musicaPrepara() {
+      const url = PZ.CONFIG.audio.sotterraneo; if (!url || musEl) return;
+      try { musEl = new Audio(url); musEl.loop = true; musEl.preload = 'auto'; musEl.load(); } catch (e) { musEl = null; }
+    }
+    musicaPrepara();
+    function musVol() { return PZ.CONFIG.audio.volume * (PZ.CONFIG.audio.volumeSotterraneo == null ? 0.8 : PZ.CONFIG.audio.volumeSotterraneo); }
     return {
+      musicaAvvia: function () {
+        if (!ctx || !musEl) return;
+        try {
+          if (!mus) {
+            const s = ctx.createMediaElementSource(musEl), f = ctx.createBiquadFilter(), g = ctx.createGain();
+            f.type = 'lowpass'; f.frequency.value = 2600; f.Q.value = 0.7; g.gain.value = 0.0001;
+            s.connect(f); f.connect(g); g.connect(master); mus = { f: f, g: g, rate: 1, k: -1, zitta: false };
+          }
+          try { musEl.preservesPitch = false; musEl.webkitPreservesPitch = false; musEl.mozPreservesPitch = false; } catch (x) {}
+          musEl.currentTime = 0; musEl.playbackRate = 1; mus.rate = 1; mus.k = -1; mus.zitta = false;
+          const t = ctx.currentTime; mus.g.gain.cancelScheduledValues(t); mus.g.gain.setValueAtTime(0.0001, t); mus.g.gain.linearRampToValueAtTime(musVol(), t + 1.4);
+          const p = musEl.play(); if (p && p.catch) p.catch(function () {});
+        } catch (e) {}
+      },
+      musicaAggiorna: function (k, zitta) {
+        if (!mus || !ctx) return;
+        const t = ctx.currentTime;
+        if (!!zitta !== mus.zitta) {
+          mus.zitta = !!zitta; mus.g.gain.cancelScheduledValues(t); mus.g.gain.setValueAtTime(mus.g.gain.value, t);
+          if (zitta) mus.g.gain.linearRampToValueAtTime(0.0001, t + 0.06); else mus.g.gain.linearRampToValueAtTime(musVol(), t + 0.8);
+        }
+        if (Math.abs(k - mus.k) < 0.01) return; mus.k = k;
+        mus.f.frequency.setTargetAtTime(2600 * Math.pow(420 / 2600, k), t, 0.3);          // da 2.600 Hz fino a 420 Hz: ovattata
+        const r = 1 - 0.08 * k;                                                              // e rallenta ancora un po' (fino al 92%)
+        if (Math.abs(r - mus.rate) > 0.004) { mus.rate = r; try { musEl.playbackRate = r; } catch (e) {} }
+      },
+      musicaFerma: function (sec) {
+        if (!mus || !ctx || !musEl) return;
+        const t = ctx.currentTime, d = sec == null ? 0.6 : sec;
+        mus.g.gain.cancelScheduledValues(t); mus.g.gain.setValueAtTime(mus.g.gain.value, t); mus.g.gain.linearRampToValueAtTime(0.0001, t + d + 0.01);
+        const el = musEl; setTimeout(function () { try { if (mus && mus.g.gain.value < 0.01) el.pause(); } catch (e) {} }, d * 1000 + 120);
+      },
       tic: function (vol, forte) {
         if (!ctx) return; const v = Math.max(0.01, Math.min(1, vol || 1)) * (forte ? 1.6 : 1);
         nota(2500, 0.03, 'square', 0.035 * v, 0, 0.8); nota(1250, 0.05, 'triangle', 0.05 * v); nota(180, 0.08, 'sine', 0.05 * v, 0, 0.7);
