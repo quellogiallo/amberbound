@@ -180,35 +180,53 @@ PZ.creaTombino = function (o) {
   cassa(1.75, 2.65, 0.7, 0.6, 0.6, 0.1); cassa(1.85, 1.85, 0.5, 0.45, 0.5, -0.2);
   // i muri laterali per il giocatore (il limite di giocatore.js è quadrato: qui la camera è più stretta)
   colliders.push({ x0: MX - 0.06, x1: MX + 4, z0: -9, z1: 9 }, { x0: -MX - 4, x1: -MX + 0.06, z0: -9, z1: 9 });
-  // ---------- La porta di ferro (muro nord) con le quattro spie sopra; dietro, la nicchia d'ambra ----------
-  const PW = 1.1, PH = 1.65, ZP = -MURO + 0.03;
-  const telaio = new THREE.Mesh(new THREE.BoxGeometry(PW + 0.24, PH + 0.14, 0.1), ferro); telaio.position.set(0, (PH + 0.14) / 2, ZP + 0.02); sc.add(telaio);
-  const nicchia = new THREE.Mesh(new THREE.BoxGeometry(PW, PH, 0.6), new THREE.MeshBasicMaterial({ color: 0x2a1604, side: THREE.BackSide })); nicchia.position.set(0, PH / 2, ZP - 0.28); sc.add(nicchia);
-  // (fase 83) una luce finta (gli iPhone non reggono troppe luci vere in una scena): la porta si illumina con aloni e
-  // fessure; questa variabile resta solo per non cambiare il resto del codice
-  const luceNicchia = { intensity: 0 };
-  const cardine = new THREE.Group(); cardine.position.set(-PW / 2, 0, ZP + 0.07); sc.add(cardine);
-  const texPorta = tex(canvas(32, 48, function (g) {
-    g.fillStyle = '#2c2a26'; g.fillRect(0, 0, 32, 48); g.fillStyle = '#3a3731'; g.fillRect(2, 2, 28, 44); g.fillStyle = '#25231f'; g.fillRect(4, 4, 24, 18); g.fillRect(4, 26, 24, 18);
-    g.fillStyle = '#5a5246'; for (let i = 0; i < 6; i++) { g.fillRect(3, 3 + i * 8.4, 1, 1); g.fillRect(28, 3 + i * 8.4, 1, 1); }
-    const r = PZ.ps1.casuale(8); for (let i = 0; i < 50; i++) { g.fillStyle = 'rgba(90,40,14,0.6)'; g.fillRect(Math.floor(r() * 32), Math.floor(r() * 48), 1, 2); }
-    g.fillStyle = '#6a2010'; g.fillRect(14, 20, 4, 8);
+  // ---------- (fase 88) IL FORZIERE contro il muro nord, sotto le quattro spie (prima c'era una porta: si scambiava per
+  // l'uscita). Legno scuro, rinforzi di ferro arrugginito, un lucchetto. Risolto l'enigma il lucchetto cade, il
+  // coperchio si alza, esce la luce d'ambra e i frammenti volano verso il ragazzo. ----------
+  const ZP = -MURO + 0.03;                                  // il muro nord (le spie e le tubature ci stanno sopra)
+  const FW = 0.95, FD = 0.55, FH = 0.5, FZ = -MURO + 0.12 + FD / 2;
+  const texLegno = tex(canvas(32, 32, function (g) {
+    const r = PZ.ps1.casuale(12), col = ['#3a2416', '#45291a', '#2e1c10', '#52321e'];
+    for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) { g.fillStyle = col[Math.floor(Math.pow(r(), 1.3) * col.length)]; g.fillRect(x, y, 1, 1); }
+    g.fillStyle = '#1a0f08'; for (let y = 0; y < 32; y += 8) g.fillRect(0, y, 32, 1);          // le assi
+    for (let i = 0; i < 18; i++) { g.fillStyle = 'rgba(20,10,4,0.6)'; g.fillRect(Math.floor(r() * 32), Math.floor(r() * 32), 3 + Math.floor(r() * 5), 1); }
   }));
-  const anta = new THREE.Mesh(new THREE.BoxGeometry(PW, PH, 0.08), mat(new THREE.MeshLambertMaterial({ map: texPorta }))); anta.position.set(PW / 2, PH / 2, 0); cardine.add(anta);
-  const volantino = new THREE.Mesh(new THREE.TorusGeometry(0.13, 0.025, 5, 10), ferro); volantino.position.set(PW / 2 + 0.25, PH / 2, 0.07); cardine.add(volantino);
-  // la luce gialla che filtra dalle fessure della porta
-  const matFessura = new THREE.MeshBasicMaterial({ color: 0xffb030, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false });
-  [[0, PH + 0.005, PW, 0.03], [-PW / 2 - 0.005, PH / 2, 0.03, PH], [PW / 2 + 0.005, PH / 2, 0.03, PH], [0, 0.01, PW, 0.025]].forEach(function (f) {
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(f[2], f[3]), matFessura); m.position.set(f[0], f[1], ZP + 0.13); sc.add(m);
+  const matLegno = mat(new THREE.MeshLambertMaterial({ map: texLegno }));
+  const matFerroR = mat(new THREE.MeshLambertMaterial({ map: ruggine, color: 0x9a8a80 }));
+  const forziere = new THREE.Group(); forziere.position.set(0, 0, FZ); sc.add(forziere);
+  const corpoF = new THREE.Mesh(new THREE.BoxGeometry(FW, FH, FD), matLegno); corpoF.position.y = FH / 2; forziere.add(corpoF);
+  // l'interno: un fondo d'ambra che si vede solo a coperchio aperto
+  const internoF = new THREE.Mesh(new THREE.PlaneGeometry(FW - 0.08, FD - 0.08).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xffb030 }));
+  internoF.position.y = FH + 0.002; internoF.visible = false; forziere.add(internoF);
+  [-FW / 2 + 0.1, FW / 2 - 0.1].forEach(function (x) {                         // fasce di ferro sul corpo
+    const f = new THREE.Mesh(new THREE.BoxGeometry(0.07, FH + 0.02, FD + 0.02), matFerroR); f.position.set(x, FH / 2, 0); forziere.add(f);
   });
-  const aloneFessura = new THREE.Sprite(new THREE.SpriteMaterial({ map: PZ.ps1.alone(255, 170, 40, 5), color: 0xffffff, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false }));
-  aloneFessura.position.set(0, 0.2, ZP + 0.25); aloneFessura.scale.set(2.4, 1.0, 1); sc.add(aloneFessura);
-  // dietro la porta: i frammenti d'ambra che fluttuano
+  const piedeF = new THREE.Mesh(new THREE.BoxGeometry(FW + 0.04, 0.05, FD + 0.04), matFerroR); piedeF.position.y = 0.025; forziere.add(piedeF);
+  // il coperchio bombato, incernierato dietro
+  const coperchio = new THREE.Group(); coperchio.position.set(0, FH, -FD / 2); forziere.add(coperchio);
+  const geoCop = new THREE.CylinderGeometry(FD / 2, FD / 2, FW, 10, 1, false, 0, Math.PI).rotateZ(Math.PI / 2);
+  const cop = new THREE.Mesh(geoCop, matLegno); cop.scale.set(1, 0.55, 1); cop.position.set(0, 0, FD / 2); coperchio.add(cop);
+  [-FW / 2 + 0.1, FW / 2 - 0.1].forEach(function (x) {
+    const f = new THREE.Mesh(geoCop, matFerroR); f.scale.set(0.075 / FW, 0.58, 1.04); f.position.set(x, 0, FD / 2); coperchio.add(f);
+  });
+  // il lucchetto sul davanti
+  const lucchetto = new THREE.Group(); forziere.add(lucchetto);
+  const LY = FH - 0.06, LZ = FD / 2 + 0.03;
+  const corpoL = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.1, 0.04), matFerroR); lucchetto.add(corpoL);
+  const archetto = new THREE.Mesh(new THREE.TorusGeometry(0.035, 0.012, 4, 8, Math.PI), ferro); archetto.position.y = 0.05; lucchetto.add(archetto);
+  function chiudiForziere() { coperchio.rotation.x = 0; lucchetto.position.set(0, LY, LZ); lucchetto.rotation.set(0, 0, 0); lucchetto.visible = true; internoF.visible = false; }
+  chiudiForziere();
+  colliders.push({ x0: -FW / 2 - 0.05, x1: FW / 2 + 0.05, z0: -MURO, z1: FZ + FD / 2 + 0.05 });   // non lo attraversi
+  // la luce che esce dal forziere aperto
+  const aloneForziere = new THREE.Sprite(new THREE.SpriteMaterial({ map: PZ.ps1.alone(255, 175, 50, 5), color: 0xffffff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
+  aloneForziere.position.set(0, FH + 0.35, FZ); aloneForziere.scale.set(2.2, 2.2, 1); sc.add(aloneForziere);
+  const luceNicchia = { intensity: 0 };                     // (resta per non cambiare il resto del codice)
+  // dentro il forziere: i frammenti d'ambra
   const matAmbra = new THREE.MeshPhongMaterial({ color: 0xffa21e, emissive: 0x8a4a00, specular: 0xfff0a0, shininess: 60, flatShading: true });
   const schegge = [];
   for (let i = 0; i < 14; i++) {
-    const m = new THREE.Mesh(new THREE.OctahedronGeometry(0.06 + rnd() * 0.04, 0), matAmbra);
-    m.userData.base = new V3((rnd() - 0.5) * 0.8, 0.35 + rnd() * 1.1, ZP - 0.15 - rnd() * 0.3); m.userData.f = rnd() * 6;
+    const m = new THREE.Mesh(new THREE.OctahedronGeometry(0.05 + rnd() * 0.035, 0), matAmbra);
+    m.userData.base = new V3((rnd() - 0.5) * (FW - 0.25), FH - 0.12 + rnd() * 0.06, FZ + (rnd() - 0.5) * (FD - 0.2)); m.userData.f = rnd() * 6;
     m.position.copy(m.userData.base); sc.add(m); schegge.push(m);
   }
   // le quattro spie: valvola sinistra, principale, valvola nord, valvola destra
@@ -444,7 +462,7 @@ PZ.creaTombino = function (o) {
     Object.assign(S, { attivo: true, fase: 'scende', t: 0, tempo: T.tempo, k: 0, errori: 0, vinto: false, fine: fine, porta: 0, tensione: 0,
       prossimoSuono: 3 + rnd() * 2, prossimaGoccia: 1, prossimoBattito: 0, scossa: 0, uscita: null, scarto: T.scarto || 0, scartoN: -1 });
     giocatore.pos.set(-MX + 0.55, 0, ZS - 0.15); togliAttesa();
-    cardine.rotation.y = 0; luceNicchia.intensity = 0.35; spie.forEach(function (s) { s.material.color.setHex(0x1a0c04); });
+    chiudiForziere(); aloneForziere.material.opacity = 0; spie.forEach(function (s) { s.material.color.setHex(0x1a0c04); });
     tubi.forEach(function (t) { t.m.emissive.setHex(0x000000); });
     VALV.forEach(function (v) { v.ruota.rotation.z = 0; v.giro = 0; v.aperta = false; });
     schegge.forEach(function (m) { m.visible = true; m.position.copy(m.userData.base); m.scale.setScalar(1); });
@@ -629,17 +647,23 @@ PZ.creaTombino = function (o) {
     });
     if (S.porta > 0 && S.porta < 1) { S.porta = Math.min(1, S.porta + dt / 1.6); }
     const ep = liscia((S.porta - 0.3) / 0.7);
-    cardine.rotation.y = 0;              // (fase 87) la porta non si apre mai (si scambiava per l'uscita): l'ambra passa dalle fessure
-    luceNicchia.intensity = 0.35 + 2.4 * ep + (S.vinto ? 0.25 * Math.sin(S.t * 4) : 0.12 * Math.sin(S.t * 5));
-    matFessura.opacity = 0.75 + 0.2 * Math.sin(S.t * 6.3) + 0.25 * ep;
-    aloneFessura.material.opacity = 0.3 + 0.6 * ep; aloneFessura.scale.set(2.4 + 1.6 * ep, 1.0 + 1.8 * ep, 1);
+    // (fase 88) il forziere: prima cade il lucchetto, poi si alza il coperchio e la luce d'ambra esce
+    const el = liscia(S.porta / 0.3);
+    if (S.porta > 0) {
+      lucchetto.position.set(0.04 * el, Math.max(0.05, LY - 0.7 * el * el), LZ + 0.12 * el); lucchetto.rotation.set(0.4 * el, 0, 1.3 * el);
+      if (el > 0.2 && !S.lucchettoCaduto) { S.lucchettoCaduto = true; if (A()) A().colpo(0.35, 0); }
+    } else S.lucchettoCaduto = false;
+    coperchio.rotation.x = -1.95 * ep; internoF.visible = ep > 0.02;
+    aloneForziere.material.opacity = (0.75 + 0.15 * Math.sin(S.t * 4)) * ep; aloneForziere.scale.setScalar(1.6 + 1.2 * ep);
     schegge.forEach(function (m, i) {
       const f = m.userData.f; m.rotation.set(S.t * 1.3 + f, S.t * 1.9 + f, 0);
-      if (S.porta >= 1) {                                   // aperta: volano verso il ragazzo e spariscono
+      const su = 0.55 * ep;                                // salgono dal forziere aperto
+      if (S.porta >= 1) {                                   // poi volano verso il ragazzo e spariscono
         const u = Math.min(1, Math.max(0, (S.porta2 = (S.porta2 || 0)) - i * 0.06));
+        tmpF.set(m.userData.base.x, m.userData.base.y + su, m.userData.base.z);
         tmpP.set(giocatore.pos.x, 1.0, giocatore.pos.z);
-        m.position.lerpVectors(m.userData.base, tmpP, liscia(u)); m.scale.setScalar(1 - 0.8 * u); m.visible = u < 1;
-      } else m.position.set(m.userData.base.x, m.userData.base.y + 0.05 * Math.sin(S.t * 2 + f), m.userData.base.z);
+        m.position.lerpVectors(tmpF, tmpP, liscia(u)); m.scale.setScalar(1 - 0.8 * u); m.visible = u < 1;
+      } else m.position.set(m.userData.base.x, m.userData.base.y + su + 0.04 * ep * Math.sin(S.t * 2 + f), m.userData.base.z);
     });
     if (S.porta >= 1) { const prima = S.porta2 || 0; S.porta2 = prima + dt / 1.2; if (prima < 0.05 && S.porta2 >= 0.05 && PZ.audio.pietra) PZ.audio.pietra(); }
     // l'ansia: la lampadina sfarfalla sempre di più, la luce rossa sale, la nebbia si chiude
