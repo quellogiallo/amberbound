@@ -64,8 +64,8 @@ PZ.audio = (function () {
           if (iv) { clearInterval(iv); iv = null; }
           mix.imposta(vol());
           try { el.currentTime = 0; } catch (e) {}
-          const p = el.play(); if (p && p.catch) p.catch(function () { suona = false; });
           suona = true;
+          const p = el.play(); if (p && p.catch) p.catch(function () { suona = false; });   // bloccato: si riprova al gesto dopo
         } catch (e) { suona = false; }
       },
       ferma: function (sec) {

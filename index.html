@@ -265,7 +265,12 @@
   #tocca b { font: 900 1.15em monospace; letter-spacing: .22em; color: #ffd21f; text-shadow: .06em .06em 0 #5a0c22, 0 0 .7em rgba(255, 200, 40, .45); animation: toccaPulsa 1.6s ease-in-out infinite; }
   #tocca small { font: .72em monospace; letter-spacing: .14em; color: #8a7e70; }
   @keyframes toccaPulsa { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
-  #menuNero { position: absolute; inset: 0; z-index: -1; background: #000; opacity: 0; pointer-events: none; }
+  /* (fase 92) il velo nero della camminata è FUORI dal menu, su un suo livello (will-change): prima stava dentro #avvio e
+     ogni cambio di opacità faceva ridisegnare tutto il menu (titolo in font Drunk compreso) a ogni fotogramma: scatti */
+  #menuNero { position: absolute; inset: 0; z-index: 7; background: #000; opacity: 1; pointer-events: none; will-change: opacity; display: none; }
+  #stage.menuScena #menuNero { display: block; }
+  /* (fase 92) il menu sopra la scogliera animata: un livello suo, disegnato una volta e poi solo sovrapposto */
+  #avvio.scena { will-change: transform; transform: translateZ(0); }
   #avvio.rigioca > :not(.scelte), #avvio.rigioca .scelte > :not(.via) { display: none !important; }
   #scRicomincia { padding: .7em 1.8em; border: .2em solid #b08e34; background: rgba(14, 11, 8, .7); color: #b08e34; font: bold 1em monospace; letter-spacing: .2em; }
   #errore { position: fixed; inset: 0; z-index: 20; display: none; align-items: center; justify-content: center; padding: 2rem; background: #000; color: #b08e34; font: 16px/1.6 monospace; text-align: center; white-space: pre-wrap; }
@@ -322,6 +327,15 @@
   /* sensi di colpa: le frecce invertite diventano azzurre (come prima) */
   #corsa.invertiti .freccia { background: #8a9ccc !important; color: #b6c4e8 !important; animation: frecceGirate .5s ease-out !important; }
   @keyframes sfarfalla { 0%, 100% { background-color: #e3d21c; } 91% { background-color: #8a7f10; } 92% { background-color: #e3d21c; } 95% { background-color: #a89a14; } 96% { background-color: #e3d21c; } }
+  /* (fase 92) nel MENU lo sfarfallio dei tasti è lo stesso, ma fatto con un velo nero che cambia opacità (lo gestisce la
+     scheda video) invece del colore di sfondo (che costringeva il browser a ricalcolare e ridisegnare il menu a ogni
+     fotogramma, sopra la scogliera animata: scatti). Stessi tempi e stessi colori: 39% e 26% di nero sul giallo. */
+  #avvio .via, #avvio #arcadeBtn, #avvio #classificaBtn, #avvio #provaStrada { animation: none !important; }
+  #avvio .via::after, #avvio #arcadeBtn::after, #avvio #classificaBtn::after, #avvio #provaStrada::after {
+    content: ""; position: absolute; inset: 0; z-index: -2; background: #000; opacity: 0; pointer-events: none; will-change: opacity;
+    animation: sfarfallaVelo 5.3s steps(1) infinite; }
+  #avvio .via:active::after, #avvio #arcadeBtn:active::after, #avvio #classificaBtn:active::after, #avvio #provaStrada:active::after { animation: none; opacity: 0; }
+  @keyframes sfarfallaVelo { 0%, 100% { opacity: 0; } 91% { opacity: .39; } 92% { opacity: 0; } 95% { opacity: .26; } 96% { opacity: 0; } }
   #salta { animation-delay: -1.3s !important; } #sx { animation-delay: -2.7s !important; } #dx { animation-delay: -4.1s !important; } #riavvia { animation-delay: -.6s !important; }
   /* ============ (fase 80) IL TOMBINO: SCENDI in strada e la camera sotterranea ============ */
   #scendi { position: absolute; left: 50%; bottom: 7.2em; transform: translateX(-50%); --taglio: .8em; width: 7.6em; height: 3.3em; font-size: 1em; display: none;
@@ -653,7 +667,8 @@
   <div id="passaggio" class="ui"><h2>LA STRADA</h2><p>Fuori, la città dorme.<br>La pietra è calda nella tasca.</p></div>
   <div id="fine"><h1>AMBRA</h1><p>Fine della scena 1.</p><p>Fuori dalla porta, la notte ti aspetta.<br>(La strada arriva nel prossimo aggiornamento.)</p><button id="ricomincia">RICOMINCIA</button></div>
   <div id="caricamento"><p>L'hai fatto.<br>Ora non puoi più tornare indietro.</p><div class="pietraCarica"><b>0%</b><canvas width="300" height="230" aria-hidden="true"></canvas></div></div>
-  <div id="avvio"><div id="menuNero"></div><h1 class="titolo">AMBERBOUND</h1><p class="sottotitolo">il legame d'Ambra</p><p>Una cameretta. Una ragazza a terra.<br>Una pietra che brilla.</p>
+  <div id="menuNero"></div>
+  <div id="avvio"><h1 class="titolo">AMBERBOUND</h1><p class="sottotitolo">il legame d'Ambra</p><p>Una cameretta. Una ragazza a terra.<br>Una pietra che brilla.</p>
     <p style="color:#b3a796">Muoviti trascinando il dito sul lato sinistro dello schermo.<br>Vicino a un oggetto compare il pulsante <b style="color:#b08e34">INTERAGISCI</b>.<br><small>(PC: WASD o frecce, E o Spazio)</small></p>
     <div class="scelte"><div class="via">&#9654; STORIA</div>
       <button id="arcadeBtn" class="bloccato"><span class="lucchetto"></span>&#8734; ARCADE</button>

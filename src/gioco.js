@@ -56,8 +56,22 @@
         PZ.audio.avvia(true); if (PZ.audio.menu) PZ.audio.menu.avvia();   // (fase 91) solo la musica del menu
         tocca.classList.remove('vis');
       };
-      tocca.addEventListener('pointerdown', entra);
+      // (fase 92) l'iPhone lascia partire l'audio solo da certi gesti: con il dito vale il momento in cui si STACCA
+      // (pointerup / touchend), non quando si appoggia; con il mouse vale la pressione. Si entra lì, una volta sola.
+      tocca.addEventListener('pointerdown', function (e) { e.preventDefault(); e.stopPropagation(); if (e.pointerType === 'mouse') entra(e); });
+      tocca.addEventListener('pointerup', function (e) { if (e.pointerType !== 'mouse') entra(e); });
+      tocca.addEventListener('touchend', function (e) { entra(e); }, { passive: false });
+      tocca.addEventListener('click', function (e) { entra(e); });
       window.addEventListener('keydown', function (e) { if (!window.PZmenuVisto && !(e.target && e.target.tagName === 'INPUT')) entra(e); }, true);
+      // se il browser ha bloccato comunque l'avvio, la musica riparte al primo gesto successivo (una volta sola)
+      const riprova = function () {
+        if (!PZ.audio.menu || PZ.audio.menu.suona() || stato.iniziato) return togli();
+        PZ.audio.avvia(true); PZ.audio.menu.avvia();
+        if (PZ.audio.menu.suona()) togli();
+      };
+      const EV = ['pointerup', 'touchend', 'click', 'keydown'];
+      const togli = function () { EV.forEach(function (n) { window.removeEventListener(n, riprova, true); }); };
+      tocca.addEventListener('pointerup', function () { setTimeout(function () { if (PZ.audio.menu && !PZ.audio.menu.suona()) EV.forEach(function (n) { window.addEventListener(n, riprova, true); }); }, 400); });
     }
     let musicaMenuPronta = !(PZ.audio.menu && sfondoMenu);
     if (!musicaMenuPronta) { const fatta = function () { musicaMenuPronta = true; }; PZ.audio.menu.scarica().then(fatta, fatta); setTimeout(fatta, 6000); }
@@ -526,10 +540,10 @@
             if (ok && dt < 0.045 && Math.abs(dt - dtPrecMenu) < 0.008) fotogrammiMenu++; else fotogrammiMenu = 0;   // regolari, anche a 30 fps
             dtPrecMenu = dt;
             if (fotogrammiMenu >= 50 || performance.now() - tMenu0 > 11000) { sfondoMenu.ricomincia(); window.PZmenuPronto = true; }
-            if (menuNero) menuNero.style.opacity = '1';
+            if (menuNero) PZ.opacita(menuNero, 1);
             return;
           }
-          const n = sfondoMenu.passo(window.PZmenuVisto ? dt : 0); if (menuNero) menuNero.style.opacity = n.toFixed(2);
+          const n = sfondoMenu.passo(window.PZmenuVisto ? dt : 0); if (menuNero) PZ.opacita(menuNero, n);   // (fase 92) solo quando cambia
           return;
         }
         sfondoMenu.libera(); sfondoMenu = null; $('avvio').classList.remove('scena'); stage.classList.remove('menuScena');
