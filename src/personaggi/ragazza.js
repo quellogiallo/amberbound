@@ -380,6 +380,7 @@ PZ.creaRagazza = function (scena, posa, seme, opzioni) {
       sp.material.opacity = 0.28 + 0.1 * Math.sin(t * 1.1 + u.a);
     });
   };
+  R.ossa = { A: A, bacino: bacino, busto: busto, collo: collo, testa: testa };   // (fase 81) per farla camminare nel menu
   return R;
 };
 

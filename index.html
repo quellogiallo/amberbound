@@ -252,6 +252,14 @@
   #esamina .esTasti { position: absolute; left: 0; right: 0; bottom: 2.2em; display: flex; justify-content: center; gap: 1em; }
   #esamina .esApri, #esamina .esChiudi { padding: .6em 1.6em; border: .18em solid #b08e34; background: rgba(14, 11, 8, .8); color: #f2e41c; font: bold .9em monospace; letter-spacing: .2em; cursor: pointer; }
   #scMenu { display: block; margin: 1.1em auto 0; padding: .6em 1.4em; border: .15em solid #7d6a3a; background: rgba(14, 11, 8, .7); color: #b3a796; font: bold .85em monospace; letter-spacing: .2em; cursor: pointer; }
+  /* (fase 81) lo sfondo del menu è la scogliera al tramonto (src/menu.js): il fondo diventa una sfumatura scura che
+     tiene leggibili le scritte in alto e lascia vedere il sole, il mare e loro due in basso */
+  #avvio.scena { background: linear-gradient(to bottom, rgba(14, 7, 18, .86) 0%, rgba(14, 7, 18, .74) 40%, rgba(14, 7, 18, .5) 62%, rgba(14, 7, 18, .12) 80%, rgba(14, 7, 18, 0) 90%); }
+  #avvio.scena p { color: #d8ccc4; text-shadow: 0 .08em .25em #000, 0 0 .6em rgba(0, 0, 0, .8); }
+  #avvio.scena p.sottotitolo { text-shadow: .06em .06em 0 #000, 0 0 .6em rgba(0, 0, 0, .9); }
+  #avvio.scena #arcadeNota { text-shadow: 0 .08em .25em #000, 0 0 .5em #000; }
+  #stage.menuScena #inv, #stage.menuScena #aiuto, #stage.menuScena #didascalia, #stage.menuScena #btn { visibility: hidden; }
+  #menuNero { position: absolute; inset: 0; z-index: -1; background: #000; opacity: 0; pointer-events: none; }
   #avvio.rigioca > :not(.scelte), #avvio.rigioca .scelte > :not(.via) { display: none !important; }
   #scRicomincia { padding: .7em 1.8em; border: .2em solid #b08e34; background: rgba(14, 11, 8, .7); color: #b08e34; font: bold 1em monospace; letter-spacing: .2em; }
   #errore { position: fixed; inset: 0; z-index: 20; display: none; align-items: center; justify-content: center; padding: 2rem; background: #000; color: #b08e34; font: 16px/1.6 monospace; text-align: center; white-space: pre-wrap; }
@@ -455,7 +463,7 @@
 <!-- (fase 74) CARICAMENTO: mentre il browser scarica il gioco, una piccola pietra d'ambra gira e sopra c'è la percentuale.
      La percentuale conta i file del gioco già arrivati (data-file = quanti sono: aggiornalo se aggiungi un <script>);
      quando la pagina è pronta arriva a 100% e la schermata sfuma. È tutta qui: non dipende da nient'altro del gioco. -->
-<div id="ambraCarica" data-file="49">
+<div id="ambraCarica" data-file="50">
   <b id="ambraCaricaN">0%</b>
   <canvas id="ambraPietra" width="300" height="230" aria-hidden="true"></canvas>
 </div>
@@ -469,7 +477,7 @@
 <script>
 (function () {
   var box = document.getElementById('ambraCarica'), N = document.getElementById('ambraCaricaN');
-  var tot = +box.getAttribute('data-file') || 49, arrivati = 0, mostra = 0, meta = 0, finito = false;
+  var tot = +box.getAttribute('data-file') || 50, arrivati = 0, mostra = 0, meta = 0, finito = false;
   // ogni file arrivato (codice, font, immagini) fa salire la meta; fino al 95%: l'ultimo 5% è la preparazione del gioco
   document.addEventListener('load', function (e) {
     var t = e.target && e.target.tagName;
@@ -603,7 +611,7 @@
   <div id="passaggio" class="ui"><h2>LA STRADA</h2><p>Fuori, la città dorme.<br>La pietra è calda nella tasca.</p></div>
   <div id="fine"><h1>AMBRA</h1><p>Fine della scena 1.</p><p>Fuori dalla porta, la notte ti aspetta.<br>(La strada arriva nel prossimo aggiornamento.)</p><button id="ricomincia">RICOMINCIA</button></div>
   <div id="caricamento"><p>L'hai fatto.<br>Ora non puoi più tornare indietro.</p><div class="pietraCarica"><b>0%</b><canvas width="300" height="230" aria-hidden="true"></canvas></div></div>
-  <div id="avvio"><h1 class="titolo">AMBERBOUND</h1><p class="sottotitolo">il legame d'Ambra</p><p>Una cameretta. Una ragazza a terra.<br>Una pietra che brilla.</p>
+  <div id="avvio"><div id="menuNero"></div><h1 class="titolo">AMBERBOUND</h1><p class="sottotitolo">il legame d'Ambra</p><p>Una cameretta. Una ragazza a terra.<br>Una pietra che brilla.</p>
     <p style="color:#b3a796">Muoviti trascinando il dito sul lato sinistro dello schermo.<br>Vicino a un oggetto compare il pulsante <b style="color:#b08e34">INTERAGISCI</b>.<br><small>(PC: WASD o frecce, E o Spazio)</small></p>
     <div class="scelte"><div class="via">&#9654; STORIA</div>
       <button id="arcadeBtn" class="bloccato"><span class="lucchetto"></span>&#8734; ARCADE</button>
@@ -665,6 +673,7 @@
 <script src="src/scogliera/luci.js"></script>
 <script src="src/scogliera/cielo.js"></script>
 <script src="src/scogliera/finale.js"></script>
+<script src="src/menu.js"></script>
 <script src="src/gioco.js"></script>
 </body>
 </html>
