@@ -134,10 +134,11 @@ PZ.creaRagazza = function (scena, posa, seme, opzioni) {
       const davanti = 1 - sm(0.7, 1.25, Math.abs(a)), basso = 1 - sm(0.17, 0.215, h);
       p.z -= davanti * basso * Math.max(0, p.z + 0.01) * (a > 0 ? 1 : 0.55);   // il viso resta scoperto (frangia di lato)
     } }), capelli);
-  pezzo(testa, L([{ h: 0.13, rx: 0.09, rz: 0.03, z: -0.085 }, { h: 0.0, rx: 0.098, rz: 0.035, z: -0.095 }, { h: -0.18, rx: 0.105, rz: 0.03, z: -0.1 },
+  const capelliDietro = pezzo(testa, L([{ h: 0.13, rx: 0.09, rz: 0.03, z: -0.085 }, { h: 0.0, rx: 0.098, rz: 0.035, z: -0.095 }, { h: -0.18, rx: 0.105, rz: 0.03, z: -0.1 },
     { h: -0.36, rx: 0.09, rz: 0.02, z: -0.095 }, { h: -0.42, rx: 0.06, rz: 0.012, z: -0.09 }], { lati: 10, esp: 2.6, irregolare: 0.012, seme: 86 }), capelli);
+  const ciocche = [];
   [-1, 1].forEach(function (s) {
-    pezzo(testa, L([{ h: 0.12, rx: 0.016, rz: 0.022, x: s * 0.088, z: 0.03 }, { h: 0.0, rx: 0.019, rz: 0.024, x: s * 0.094, z: 0.03 },
+    ciocche[s > 0 ? 1 : 0] = pezzo(testa, L([{ h: 0.12, rx: 0.016, rz: 0.022, x: s * 0.088, z: 0.03 }, { h: 0.0, rx: 0.019, rz: 0.024, x: s * 0.094, z: 0.03 },
       { h: -0.16, rx: 0.016, rz: 0.02, x: s * 0.1, z: 0.02 }, { h: -0.22, rx: 0.008, rz: 0.01, x: s * 0.1, z: 0.015 }], { lati: 6, irregolare: 0.006, seme: 87 + s }), capelli);
   });
 
@@ -236,6 +237,38 @@ PZ.creaRagazza = function (scena, posa, seme, opzioni) {
     A.dx.spalla.rotation.set(-0.15, 0, -2.35); A.dx.gomito.rotation.set(0, 0, -0.5);            // il destro alzato: saluta
     testa.rotation.set(0.08, 0, 0.16);                               // testa inclinata, guarda il ragazzo
     animati = [testa, A.dx.gomito];
+  }
+  // (fase 81b) SOLO PER IL MENU (opzioni.cammina): cammina mano nella mano. Ossa libere (gambe, braccia, bacino,
+  // busto, testa) da posizione neutra, e le correzioni di geometria che servono in movimento (src/menu.js)
+  if (opzioni && opzioni.cammina) {
+    bacino.position.set(0, 0.86, 0); [bacino, busto, collo, testa].forEach(function (o) { o.rotation.set(0, 0, 0); });
+    ['sx', 'dx'].forEach(function (n) { ['spalla', 'gomito', 'polso', 'anca', 'ginocchio', 'caviglia'].forEach(function (k) { A[n][k].rotation.set(0, 0, 0); }); });
+    animati = [bacino, busto, testa];
+    ['sx', 'dx'].forEach(function (n) { ['spalla', 'gomito', 'polso', 'anca', 'ginocchio', 'caviglia'].forEach(function (k) { animati.push(A[n][k]); }); });
+    // gonna, capelli lunghi e ciocche hanno le sezioni dall'alto in basso: le facce guardano verso l'interno, così
+    // da fuori se ne vede solo il lato di dentro e le gambe e la schiena "passano attraverso". Qui si girano.
+    const gira = function (m) {
+      const g = m.geometry, Pp = g.attributes.position.array, U = g.attributes.uv.array;
+      for (let i = 0; i < Pp.length; i += 9) for (let c = 0; c < 3; c++) { const t = Pp[i + 3 + c]; Pp[i + 3 + c] = Pp[i + 6 + c]; Pp[i + 6 + c] = t; }
+      for (let i = 0; i < U.length; i += 6) for (let c = 0; c < 2; c++) { const t = U[i + 2 + c]; U[i + 2 + c] = U[i + 4 + c]; U[i + 4 + c] = t; }
+    };
+    const sposta = function (m, f) { const Pp = m.geometry.attributes.position.array; for (let i = 0; i < Pp.length; i += 3) f(Pp, i); };
+    [gonnaMesh, capelliDietro, ciocche[0], ciocche[1]].forEach(gira);
+    // i capelli lunghi stavano dentro la nuca e dentro la schiena: scendono un poco più indietro, aderenti
+    sposta(capelliDietro, function (Pp, i) { const y = Pp[i + 1]; Pp[i + 2] -= 0.022 + 0.03 * Math.max(0, Math.min(1, (0.06 - y) / 0.2)); });
+    // all'altezza della nuca si allargano e girano un poco attorno alla testa (prima da dietro di lato si vedeva il cranio);
+    // in cima, dove entrano sotto la calotta, si stringono: gli angoli non sporgono più di lato
+    const lis = function (a, b, x) { const u = Math.max(0, Math.min(1, (x - a) / (b - a))); return u * u * (3 - 2 * u); };
+    sposta(capelliDietro, function (Pp, i) {
+      const y = Pp[i + 1], w = lis(-0.14, -0.04, y) * (1 - lis(0.06, 0.12, y)), su = lis(0.07, 0.13, y);
+      Pp[i] *= (1 + 0.2 * w) * (1 - 0.45 * su);
+      Pp[i + 2] += 0.05 * Math.min(1, Math.pow(Pp[i] / 0.11, 2)) * w;
+    });
+    // le ciocche ai lati del viso entravano nelle spalle: sotto il mento scivolano davanti, sopra il petto
+    ciocche.forEach(function (m) { sposta(m, function (Pp, i) { const y = Pp[i + 1], u = Math.max(0, Math.min(1, (-0.02 - y) / 0.15)); Pp[i + 2] += 0.088 * u * u * (3 - 2 * u);
+      Pp[i] += Math.sign(Pp[i]) * 0.018 * (1 - u); }); });   // in alto appena più in fuori: non escono più dalla guancia
+    [gonnaMesh, capelliDietro, ciocche[0], ciocche[1]].forEach(function (m) { m.geometry.attributes.position.needsUpdate = true; m.geometry.computeVertexNormals(); });
+    radice.updateMatrixWorld(true);
   }
   // unisce per materiale tutti i pezzi che dipendono dallo stesso gruppo (fermo o animato): poche chiamate di disegno
   radice.updateMatrixWorld(true);

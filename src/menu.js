@@ -57,7 +57,7 @@ PZ.creaSfondoMenu = function (renderer) {
 
   // ---------- Loro due ----------
   const ragazzo = PZ.creaRagazzo(scena);
-  const lei = PZ.creaRagazza(scena, 'fissa', 3, { naturale: true });
+  const lei = PZ.creaRagazza(scena, 'fissa', 3, { naturale: true, cammina: true });
   lei.mostra();
   const O = lei.ossa;
   const Pz = { pos: new V3(), dir: 0, dirPiedi: 0, bacino: { x: 0, z: 0 }, busto: { x: 0, y: 0, z: 0 }, testa: { x: 0, y: 0, z: 0 },
@@ -148,7 +148,7 @@ PZ.creaSfondoMenu = function (renderer) {
       if (o.material) [].concat(o.material).forEach(function (m) { if (m.map) m.map.dispose(); m.dispose(); });
     });
   }
-  const out = { passo: passo, libera: libera, scena: scena, camera: camera, stato: M, L: L };
+  const out = { passo: passo, libera: libera, scena: scena, camera: camera, stato: M, L: L, lei: lei, ragazzo: ragazzo };
   window.__menu = out;   // utile per le prove automatiche
   return out;
 };
