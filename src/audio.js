@@ -622,6 +622,39 @@ PZ.audio = (function () {
     const brillo = ctx.createBiquadFilter(), bg = ctx.createGain(); brillo.type = 'highpass'; brillo.frequency.value = 2500; bg.gain.value = 0.18;
     voce.connect(brillo); brillo.connect(bg); bg.connect(uscita);
   }
+  // (fase 78) L'URLO DEL DEMONE quando gli sfuggi: lo stesso urlo della ragazza del jumpscare, ma un'ottava e mezza
+  // più in basso (frequenze x 0,35) e più lungo, con altre voci che gli stonano contro (una seconda minore sopra, un
+  // tritono, un'ottava sotto ancora): dissonante, rabbioso. Formanti più bassi (una gola enorme), più distorsione e
+  // un brontolio sotto che fa tremare. Va dritto all'uscita, forte, con una lunga coda nell'eco.
+  function urloDemone() {
+    if (!ctx) return;
+    const t = ctx.currentTime + 0.005, D = 2.6, K = 0.35;
+    const uscita = ctx.createGain(); uscita.gain.value = 2.6 * PZ.CONFIG.audio.volume; uscita.connect(limite);
+    attiviP.push({ g: uscita, fine: t + D + 0.4 });
+    const invio = ctx.createGain(); invio.gain.value = 0.75; uscita.connect(invio); invio.connect(bus());
+    const voce = ctx.createGain(); inviluppo(voce.gain, t, [[0.05, 1], [0.35, 0.9], [D - 0.6, 0.8], [D, 0]]);
+    const dist = ctx.createWaveShaper(), curva = new Float32Array(1024);
+    for (let i = 0; i < 1024; i++) { const x = i / 511.5 - 1; curva[i] = Math.tanh(4.2 * x); }
+    dist.curve = curva;
+    // [rapporto, volume]: le voci dell'urlo (come la ragazza) e quelle che stonano
+    [[1, 0.5], [1.013, 0.35], [1.0595, 0.3], [1.414, 0.22], [0.5, 0.35], [0.497, 0.2]].forEach(function (o) {
+      const w = onda('sawtooth', t, D + 0.05), f = w.frequency, r = o[0] * K;
+      f.setValueAtTime(620 * r, t); f.exponentialRampToValueAtTime(1180 * r, t + 0.16);
+      f.linearRampToValueAtTime(1260 * r, t + 0.8); f.linearRampToValueAtTime(1120 * r, t + D - 0.5); f.exponentialRampToValueAtTime(560 * r, t + D);
+      const vib = onda('sine', t, D + 0.05), vg = ctx.createGain(); vib.frequency.value = 5.5 + Math.random() * 2; vg.gain.value = 30 * r;
+      vib.connect(vg); vg.connect(f);
+      const g = ctx.createGain(); g.gain.value = o[1]; w.connect(g); g.connect(dist);
+    });
+    const sf = soffioLungo(t, D + 0.05), bp = ctx.createBiquadFilter(), sg = ctx.createGain();
+    bp.type = 'bandpass'; bp.frequency.value = 900; bp.Q.value = 0.7; sg.gain.value = 0.6; sf.connect(bp); bp.connect(sg); sg.connect(dist);
+    dist.connect(voce);
+    formanti(voce, uscita, t, [[0, 420, 800, 1900], [0.6, 480, 880, 2100], [D, 380, 720, 1700]], 1.5);
+    // il brontolio sotto: un'onda grave e ruvida che trema
+    const b = onda('sawtooth', t, D + 0.1), bg = ctx.createGain(), lp = ctx.createBiquadFilter();
+    b.frequency.setValueAtTime(48, t); b.frequency.linearRampToValueAtTime(41, t + D);
+    lp.type = 'lowpass'; lp.frequency.value = 160; inviluppo(bg.gain, t, [[0.08, 0.55], [D - 0.4, 0.45], [D + 0.1, 0]]);
+    b.connect(lp); lp.connect(bg); bg.connect(uscita);
+  }
   const paranoia = {
     // bisbiglio: sillabe sussurrate (rumore passato per filtri che si spostano come le consonanti e le vocali)
     bisbiglio: function (pan, vol, cupo) {
@@ -672,6 +705,7 @@ PZ.audio = (function () {
       v.fine = u + 0.5;
     },
     // il jumpscare: uno strappo acuto, un colpo grave, poi per un attimo il mondo sonoro si abbassa
+    urloDemone: function () { try { urloDemone(); } catch (e) {} },   // (fase 78) quando gli sfuggi a 100/100
     jumpscare: function () {
       if (!ctx) return;
       if (!campione(PZ.CONFIG.audio.paranoia && PZ.CONFIG.audio.paranoia.jumpscare, 0, 0.9, false)) {
