@@ -105,7 +105,8 @@ PZ.CONFIG = {
       // (fase 72) +10% su tutto, partenza compresa: velocità (1 - 0,025) x 1,1 = 1,0725; ostacoli 0,884 x 1,1 = 0,972;
       // accelerazione 0,85 x 1,1 = 0,935
       // (fase 76) ancora +10% su tutto: velocità 1,0725 x 1,1 = 1,18; ostacoli 0,972 x 1,1 = 1,069; accelerazione 0,935 x 1,1 = 1,0285
-      storia: { velocita: 0.18, ostacoli: 0.069, crescita: 1.0285 },
+      // (fase 79) partenza uguale; accelerazione -10% (1,0285 x 0,9 = 0,926); ostacoli -5% (1,069 x 0,95 = 1,016)
+      storia: { velocita: 0.18, ostacoli: 0.016, crescita: 0.926 },
       pause: { ogni: [[9, 14], [15, 21]], durata: [2.4, 1.2] },
       calda: { ogni: 11, file: [3, 6], peso: 2.2, da: 0.25 },
       cambia: 1.3,
