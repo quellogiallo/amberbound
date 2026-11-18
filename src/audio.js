@@ -141,7 +141,7 @@ PZ.audio = (function () {
     musicaPrepara();
     function musVol() { return PZ.CONFIG.audio.volume * (PZ.CONFIG.audio.volumeSotterraneo == null ? 0.8 : PZ.CONFIG.audio.volumeSotterraneo); }
     return {
-      musicaAvvia: function () {
+      musicaAvvia: function (muta) {
         if (!ctx || !musEl) return;
         try {
           if (!mus) {
@@ -151,9 +151,17 @@ PZ.audio = (function () {
           }
           try { musEl.preservesPitch = false; musEl.webkitPreservesPitch = false; musEl.mozPreservesPitch = false; } catch (x) {}
           musEl.currentTime = 0; musEl.playbackRate = 1; mus.rate = 1; mus.k = -1; mus.zitta = false;
-          const t = ctx.currentTime; mus.g.gain.cancelScheduledValues(t); mus.g.gain.setValueAtTime(0.0001, t); mus.g.gain.linearRampToValueAtTime(musVol(), t + 1.4);
+          const t = ctx.currentTime; mus.g.gain.cancelScheduledValues(t); mus.g.gain.setValueAtTime(0.0001, t);
+          if (!muta) mus.g.gain.linearRampToValueAtTime(musVol(), t + 1.4); else mus.zitta = true;        // muta: parte in silenzio (si accende dopo)
           const p = musEl.play(); if (p && p.catch) p.catch(function () {});
         } catch (e) {}
+      },
+      // (fase 87) dopo il tutorial: dall'inizio della canzone, entrando piano
+      musicaAccendi: function () {
+        if (!mus || !ctx || !musEl) return;
+        try { musEl.currentTime = 0; } catch (e) {}
+        const t = ctx.currentTime; mus.zitta = false; mus.g.gain.cancelScheduledValues(t); mus.g.gain.setValueAtTime(0.0001, t); mus.g.gain.linearRampToValueAtTime(musVol(), t + 1.4);
+        const p = musEl.play(); if (p && p.catch) p.catch(function () {});
       },
       musicaAggiorna: function (k, zitta) {
         if (!mus || !ctx) return;

@@ -451,7 +451,10 @@ PZ.creaTombino = function (o) {
     ui.box.classList.add('vis'); ui.box.classList.remove('urgente'); ui.premio.textContent = ''; ui.premio.classList.remove('vis');
     ui.nero.style.transition = 'none'; ui.nero.style.opacity = '1';
     aggiornaTempo(true);
-    if (A()) { A().frena(); if (A().musicaAvvia) A().musicaAvvia(); }   // (fase 86) la musica parte nel tocco su SCENDI (iPhone)
+    // (fase 86-87) la musica si avvia nel tocco su SCENDI (sull'iPhone deve partire da un tocco); se arriva il tutorial
+    // resta muta e si sente solo quando lo chiudi
+    S.musicaDopo = !!(PZ.avvisi && !PZ.avvisi.visto('sotterraneo'));
+    if (A()) { A().frena(); if (A().musicaAvvia) A().musicaAvvia(S.musicaDopo); }
     return true;
   }
   // ---------- Il puzzle ----------
@@ -463,7 +466,7 @@ PZ.creaTombino = function (o) {
   function giraValvola(i) {
     const v = VALV[i];
     if (S.scarto > 0) avviaTempo();                 // (fase 83) girare una valvola fa partire il tempo
-    if (S.vinto || v.aperta) { msg(S.vinto ? 'LA PORTA È APERTA' : 'È GIÀ APERTA', 1.4); return; }
+    if (S.vinto || v.aperta) { msg(S.vinto ? 'FATTO · TORNA ALLA SCALA' : 'È GIÀ APERTA', 1.4); return; }
     if (A()) A().valvola();
     v.giro = 0.65;
     if (S.seq[S.k] === i) {
@@ -496,7 +499,7 @@ PZ.creaTombino = function (o) {
     S.vinto = true; S.porta = 0.001;
     tubi[3].m.emissive.setHex(0x9a5200); spie.forEach(function (s) { s.material.color.setHex(0xffc040); });
     setTimeout(function () { if (S.attivo && A()) A().porta(); }, 500);
-    msg(S.errori === 0 ? 'PERFETTO' : 'LA PORTA SI APRE', 2.4); aggiornaTempo(true);
+    msg((S.errori === 0 ? 'PERFETTO' : 'FATTO') + '\nTORNA ALLA SCALA', 1e6); aggiornaTempo(true);   // resta finché non risali
     ui.premio.textContent = '+' + premio() + ' AMBRA'; ui.premio.classList.add('vis');
     ui.box.classList.remove('urgente');
   }
@@ -573,7 +576,7 @@ PZ.creaTombino = function (o) {
   function aggiornaTempo(forza) {
     const s = Math.max(0, Math.ceil(S.tempo));
     if (!forza && s === tempoMostrato) return; tempoMostrato = s;
-    ui.tempo.textContent = S.vinto ? 'APERTA' : ('00:' + (s < 10 ? '0' : '') + s);
+    ui.tempo.textContent = S.vinto ? '' : ('00:' + (s < 10 ? '0' : '') + s);
     ui.tempo.classList.toggle('poco', !S.vinto && s <= 10);
   }
   // ---------- Un passo sotto terra (tempo vero; in pausa non viene chiamato) ----------
@@ -626,9 +629,9 @@ PZ.creaTombino = function (o) {
     });
     if (S.porta > 0 && S.porta < 1) { S.porta = Math.min(1, S.porta + dt / 1.6); }
     const ep = liscia((S.porta - 0.3) / 0.7);
-    cardine.rotation.y = -1.45 * ep;
+    cardine.rotation.y = 0;              // (fase 87) la porta non si apre mai (si scambiava per l'uscita): l'ambra passa dalle fessure
     luceNicchia.intensity = 0.35 + 2.4 * ep + (S.vinto ? 0.25 * Math.sin(S.t * 4) : 0.12 * Math.sin(S.t * 5));
-    matFessura.opacity = 0.75 + 0.2 * Math.sin(S.t * 6.3) - 0.3 * ep;
+    matFessura.opacity = 0.75 + 0.2 * Math.sin(S.t * 6.3) + 0.25 * ep;
     aloneFessura.material.opacity = 0.3 + 0.6 * ep; aloneFessura.scale.set(2.4 + 1.6 * ep, 1.0 + 1.8 * ep, 1);
     schegge.forEach(function (m, i) {
       const f = m.userData.f; m.rotation.set(S.t * 1.3 + f, S.t * 1.9 + f, 0);
@@ -649,7 +652,8 @@ PZ.creaTombino = function (o) {
     sc.fog.far = 13 - 2 * kT; sc.fog.near = 5 - 1 * kT;
     PZ.opacita(ui.velo, Math.min(0.9, 0.4 * kT * kT + (S.uscita && S.uscita.preso ? 0.5 : 0)));
     if (A()) A().ronzio(S.fase === 'gioca' ? 0.1 + 0.9 * kT : 0);
-    if (A() && A().musicaAggiorna) A().musicaAggiorna(kT, AT.on || !!(S.uscita && S.uscita.preso));   // (fase 86)
+    if (S.musicaDopo && S.fase === 'gioca') { S.musicaDopo = false; if (A() && A().musicaAccendi) A().musicaAccendi(); }   // (fase 87) tutorial chiuso
+    if (A() && A().musicaAggiorna && !S.musicaDopo) A().musicaAggiorna(kT, AT.on || !!(S.uscita && S.uscita.preso));   // (fase 86)
     // i suoni del demone: sempre più vicini e più fitti (da lontano a sinistra o a destra, poi da dietro la scala)
     if (corre && !S.vinto) {
       S.prossimoSuono -= dt;

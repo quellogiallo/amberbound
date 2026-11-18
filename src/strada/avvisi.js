@@ -37,10 +37,10 @@ PZ.avvisi = (function () {
       'È un rischio: hai poco tempo, e se scade <b>il demone ti trova</b>. Non sei obbligato: puoi passarci sopra.'] },
     sotterraneo: { titolo: 'IL SOTTERRANEO', dura: 30000, righe: [
       'Trascina il dito per muoverti (PC: W A S D). Vicino alle cose compare il pulsante per <b>GIRARE</b>, <b>GUARDARE</b> o <b>RISALIRE</b>.',
-      'Apri la porta girando le <b>3 valvole nell\'ordine giusto</b>. Ogni valvola ha un simbolo: <b>LUNA</b>, <b>OCCHIO</b>, <b>PIETRA</b>.',
+      'Sblocca la porta di ferro girando le <b>3 valvole nell\'ordine giusto</b>. Ogni valvola ha un simbolo: <b>LUNA</b>, <b>OCCHIO</b>, <b>PIETRA</b>.',
       'L\'ordine te lo dice l\'<b>orologio dipinto sul muro</b>: parti dal simbolo indicato dalla <b>lancetta</b> e segui la <b>freccia</b>.',
       'Hai <b>' + TB.tempo + ' secondi</b> (il tempo parte dopo il conto alla rovescia). Valvola sbagliata: vapore, <b>-' + TB.penalita + ' secondi</b> e si ricomincia.',
-      'Porta aperta: torna alla <b>scala</b> per risalire con l\'ambra. Puoi risalire anche prima, ma <b>senza premio</b>.'] },
+      'Sbloccata, la porta resta chiusa: l\'<b>ambra esce dalle fessure</b> e viene da te. Poi <b>torna alla scala</b>: è l\'unica uscita. Puoi risalire anche prima, ma <b>senza premio</b>.'] },
     maria: { titolo: 'O AVE MARIA', righe: [
       'Prendila passandoci attraverso: la bici <b>vola per qualche secondo</b> sopra auto, transenne e demone.',
       'È sempre in punti rischiosi: <b>sopra una transenna va presa saltando</b>.'] }
