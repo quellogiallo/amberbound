@@ -269,5 +269,8 @@ PZ.creaEventi = function (o) {
   }
   reset();
   return { aggiorna: aggiorna, disegna: disegna, ferma: ferma, reset: reset, forza: forza, stato: E, gocce: gocce, tela: tela, fanale: fanale,
+    // (fase 94) nasconde lo strato delle lacrime (sotto il tombino: restava sopra la camera sotterranea con l'ultima
+    // immagine della strada). Ricompare da solo al prossimo disegno in strada, se servono ancora lacrime.
+    nascondi: function () { visibile = false; tela.style.display = 'none'; },
     invertiti: function () { return E.inverti && !E.fermo; }, attivo: function () { return !!(E.blackout || E.colpa); }, annullaColpa: annullaColpa };
 };

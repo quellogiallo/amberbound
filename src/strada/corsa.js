@@ -784,6 +784,9 @@ PZ.creaCorsa = function (opz) {
     specchietto.nascondi(); traffico.pausaSuoni(); presenza.reset(); paranoia.ferma();
     COL.pausa(); if (PZ.audio.vento) PZ.audio.vento(0);
     mostraConto('', 0); PZ.opacita(ui.velo, 0);
+    // (fase 94) LA CAUSA DEL BUG: con i sensi di colpa (o le lacrime ancora sullo schermo) lo strato delle lacrime, una
+    // copia della strada, restava sopra la camera sotterranea. Sotto terra si nasconde, e i suoni non sono più ovattati
+    eventi.nascondi(); if (PZ.audio.ovatta) PZ.audio.ovatta(0);
     ui.corsa.classList.add('sotto');
     return true;
   }
