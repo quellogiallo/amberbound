@@ -150,7 +150,18 @@ PZ.CONFIG = {
     // che chiedono un cambio di corsia o un rischio: scia/sciaMax/cambio/rischio = [all'inizio, alla massima difficoltà]
     // (fase 9: circa il 17% di frammenti in meno: prima scia [0.5, 0.22], sciaMax [4, 2], cambio [0.5, 0.75], salto 0.85, rischio [0.4, 0.7])
     // (fase 58) quanti: 0.84 = il 16% di frammenti in meno in strada (l'obiettivo resta 100)
-    frammenti: { quanti: 0.84, obiettivo: 100, scia: [0.42, 0.18], sciaMax: [4, 2], passoScia: 0.24, cambio: [0.42, 0.62], salto: 0.7, rischio: [0.33, 0.58] },
+    // (fase 80) quanti: 0.798 = il 5% di frammenti in meno in strada (0,84 x 0,95), per bilanciare il premio del tombino
+    frammenti: { quanti: 0.798, obiettivo: 100, scia: [0.42, 0.18], sciaMax: [4, 2], passoScia: 0.24, cambio: [0.42, 0.62], salto: 0.7, rischio: [0.33, 0.58] },
+
+    // (fase 80) IL TOMBINO (src/strada/tombino.js): evento opzionale. A ogni partita, con probabilità "probabilita",
+    // compare un tombino da cui esce una luce gialla e un ticchettio d'orologio, dopo un punto a caso tra metri[0] e
+    // metri[1]; se non ci entri, con probabilità "ancora" ricompare "dopo" metri più avanti (al massimo "max" volte).
+    // Nella sua corsia, per "finestra" secondi prima di arrivarci, compare SCENDI (PC: E o freccia giù).
+    // Sotto: "tempo" secondi per risolvere il puzzle delle valvole, poi il demone ti trova (game over). Ogni valvola
+    // sbagliata toglie "penalita" secondi e azzera la sequenza. Premio (all'uscita dalla scala): "premio" frammenti,
+    // "perfetto" se non hai sbagliato nessuna valvola. Una sola volta per partita. arcade: false = solo nella storia.
+    tombino: { probabilita: 0.6, metri: [380, 1100], ancora: 0.5, dopo: [350, 600], max: 2, finestra: 1.7,
+      tempo: 45, penalita: 4, premio: 20, perfetto: 30, arcade: false, invulUscita: 2.2 },
 
     // PARANOIA (src/strada/paranoia.js): l'intensità segue la vicinanza del demone. da = metri prima dei quali non succede
     // niente; ragazzaDa = da qui la ragazza può comparire come allucinazione; jumpscareDa = da qui il jumpscare è

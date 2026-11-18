@@ -265,7 +265,7 @@
      così anche gli angoli tagliati hanno il bordo), superficie graffiata, scritta monospazio pesante con un'ombra
      sfasata nera e rossa (stampa rovinata), un dettaglio rosso sui pulsanti principali. Premuti: si abbassano e si
      accendono. Ogni tanto il bordo sfarfalla appena (solo il colore: non costa niente al telefono). */
-  #btn, #scInteragisci, #chiudiTel, #ricomincia, #riavvia, .freccia, #salta, #saltaIntro, #riprova, #scRicomincia, #provaStrada, #avvio .via, #arcadeBtn, #classificaBtn, #salvaNick, #arcMenu, #chiudiClassifica, .potereScelta {
+  #btn, #scInteragisci, #chiudiTel, #ricomincia, #riavvia, .freccia, #salta, #saltaIntro, #riprova, #scRicomincia, #provaStrada, #avvio .via, #arcadeBtn, #classificaBtn, #salvaNick, #arcMenu, #chiudiClassifica, .potereScelta, #scendi, #sottoAgisci, #sottoPausa {
     --taglio: .55em;
     isolation: isolate; border: 0 !important; border-radius: 0 !important; box-shadow: none !important;
     background: #e3d21c; color: #f2e41c !important;
@@ -275,7 +275,7 @@
     animation: sfarfalla 5.3s steps(1) infinite !important;
     -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; cursor: pointer;
   }
-  #btn::before, #scInteragisci::before, #chiudiTel::before, #ricomincia::before, #riavvia::before, .freccia::before, #salta::before, #saltaIntro::before, #riprova::before, #scRicomincia::before, #provaStrada::before, #avvio .via::before, #arcadeBtn::before, #classificaBtn::before, #salvaNick::before, #arcMenu::before, #chiudiClassifica::before, .potereScelta::before {
+  #btn::before, #scInteragisci::before, #chiudiTel::before, #ricomincia::before, #riavvia::before, .freccia::before, #salta::before, #saltaIntro::before, #riprova::before, #scRicomincia::before, #provaStrada::before, #avvio .via::before, #arcadeBtn::before, #classificaBtn::before, #salvaNick::before, #arcMenu::before, #chiudiClassifica::before, .potereScelta::before, #scendi::before, #sottoAgisci::before, #sottoPausa::before {
     content: ""; position: absolute; inset: .17em; z-index: -1;
     clip-path: polygon(calc(var(--taglio) - .1em) 0, calc(100% - var(--taglio) + .1em) 0, 100% calc(var(--taglio) - .1em), 100% calc(100% - var(--taglio) + .1em), calc(100% - var(--taglio) + .1em) 100%, calc(var(--taglio) - .1em) 100%, 0 calc(100% - var(--taglio) + .1em), 0 calc(var(--taglio) - .1em));
     background:
@@ -309,6 +309,40 @@
   #corsa.invertiti .freccia { background: #8a9ccc !important; color: #b6c4e8 !important; animation: frecceGirate .5s ease-out !important; }
   @keyframes sfarfalla { 0%, 100% { background-color: #e3d21c; } 91% { background-color: #8a7f10; } 92% { background-color: #e3d21c; } 95% { background-color: #a89a14; } 96% { background-color: #e3d21c; } }
   #salta { animation-delay: -1.3s !important; } #sx { animation-delay: -2.7s !important; } #dx { animation-delay: -4.1s !important; } #riavvia { animation-delay: -.6s !important; }
+  /* ============ (fase 80) IL TOMBINO: SCENDI in strada e la camera sotterranea ============ */
+  #scendi { position: absolute; left: 50%; bottom: 7.2em; transform: translateX(-50%); --taglio: .8em; width: 7.6em; height: 3.3em; font-size: 1em; display: none;
+    background: #ffb02a !important; color: #1a0e00 !important; text-shadow: none; animation: scendiPulsa .45s ease-in-out infinite alternate !important; }
+  #scendi.vis { display: block; }
+  #scendi::before { background: #2a1800 !important; }
+  #scendi span { position: relative; color: #ffc24a; text-shadow: .07em .07em 0 #000; }
+  #scendi:active { transform: translateX(-50%) scale(.95); }
+  @keyframes scendiPulsa { from { box-shadow: none; filter: brightness(.85); } to { filter: brightness(1.25); } }
+  #corsa.sotto > *:not(#pausa):not(#conto) { visibility: hidden !important; }
+  #sotto { position: absolute; inset: 0; z-index: 4; display: none; touch-action: none; }
+  #sotto.vis { display: block; }
+  #corsa.inPausa ~ #sotto { display: none !important; }
+  #sottoVelo { position: absolute; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(ellipse at center, transparent 50%, rgba(120, 0, 0, .45) 80%, rgba(40, 0, 0, .9)); }
+  #sottoNero { position: absolute; inset: 0; background: #000; pointer-events: none; opacity: 0; }
+  #sottoTempo { position: absolute; left: 0; right: 0; top: .7em; text-align: center; font: 2.4em monospace; font-weight: 900; letter-spacing: .12em; color: #ffc24a;
+    text-shadow: .06em .06em 0 #000, 0 0 .4em rgba(0, 0, 0, .9); pointer-events: none; }
+  #sottoTempo.poco { color: #ff3a22; animation: sottoTrema .18s steps(2) infinite; }
+  @keyframes sottoTrema { 0% { transform: translate(.04em, 0); } 50% { transform: translate(-.05em, .03em); } }
+  #sottoMsg { position: absolute; left: 1em; right: 1em; top: 4.6em; text-align: center; font: .95em monospace; font-weight: 900; letter-spacing: .16em; color: #e8dcb8;
+    text-shadow: .08em .08em 0 #000, 0 0 .5em #000; opacity: 0; transition: opacity .3s; pointer-events: none; }
+  #sottoMsg.vis { opacity: 1; }
+  #sottoPremio { position: absolute; left: 0; right: 0; top: 6.6em; text-align: center; font: 1.4em monospace; font-weight: 900; letter-spacing: .14em; color: #ffb02a;
+    text-shadow: .06em .06em 0 #000, 0 0 .6em rgba(255, 150, 20, .7); opacity: 0; transition: opacity .4s; pointer-events: none; }
+  #sottoPremio.vis { opacity: 1; }
+  #sottoAgisci { position: absolute; right: 1.2em; bottom: 2.2em; --taglio: 1.4em; width: 7.4em; height: 7.4em; font-size: .8em; letter-spacing: .02em; line-height: 1.2; display: none; padding: .3em; }
+  #sottoAgisci.vis { display: block; }
+  #sottoPausa { position: absolute; right: 1em; top: 1em; --taglio: .4em; font-size: .72em; padding: .55em .8em; }
+  #sottoJoy { position: absolute; width: 7em; height: 7em; margin: -3.5em 0 0 -3.5em; border: .2em solid rgba(176, 142, 52, .55); border-radius: 50%; display: none; pointer-events: none; }
+  #sottoManopola { position: absolute; left: 50%; top: 50%; width: 3em; height: 3em; margin: -1.5em 0 0 -1.5em; border-radius: 50%; background: rgba(176, 142, 52, .6); }
+  #sottoLente { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 1em; background: rgba(4, 3, 2, .82); }
+  #sottoLente.vis { display: flex; }
+  #sottoLente canvas { width: 70%; max-width: 22em; height: auto; aspect-ratio: 1 / 1; flex: none; image-rendering: pixelated; filter: drop-shadow(0 0 .6em rgba(255, 160, 40, .45)); }
+  #sottoLente small { color: #b3a796; letter-spacing: .14em; font: .8em monospace; }
+  #sottoAiuto { position: absolute; left: 1.5em; right: 1.5em; bottom: 11em; text-align: center; color: #b3a796; font-size: .8em; line-height: 1.5; pointer-events: none; opacity: .8; }
   /* ============ AVVISI (disclaimer) sulle meccaniche: una volta per giocatore, la corsa è in pausa ============ */
   #avviso { inset: 0; z-index: 9; display: none; align-items: flex-start; justify-content: center; padding-top: 21%; background:
     repeating-linear-gradient(0deg, rgba(0, 0, 0, .22) 0 2px, transparent 2px 4px), rgba(4, 3, 6, .38); touch-action: none; cursor: pointer; }
@@ -421,7 +455,7 @@
 <!-- (fase 74) CARICAMENTO: mentre il browser scarica il gioco, una piccola pietra d'ambra gira e sopra c'è la percentuale.
      La percentuale conta i file del gioco già arrivati (data-file = quanti sono: aggiornalo se aggiungi un <script>);
      quando la pagina è pronta arriva a 100% e la schermata sfuma. È tutta qui: non dipende da nient'altro del gioco. -->
-<div id="ambraCarica" data-file="48">
+<div id="ambraCarica" data-file="49">
   <b id="ambraCaricaN">0%</b>
   <canvas id="ambraPietra" width="300" height="230" aria-hidden="true"></canvas>
 </div>
@@ -435,7 +469,7 @@
 <script>
 (function () {
   var box = document.getElementById('ambraCarica'), N = document.getElementById('ambraCaricaN');
-  var tot = +box.getAttribute('data-file') || 48, arrivati = 0, mostra = 0, meta = 0, finito = false;
+  var tot = +box.getAttribute('data-file') || 49, arrivati = 0, mostra = 0, meta = 0, finito = false;
   // ogni file arrivato (codice, font, immagini) fa salire la meta; fino al 95%: l'ultimo 5% è la preparazione del gioco
   document.addEventListener('load', function (e) {
     var t = e.target && e.target.tagName;
@@ -544,9 +578,14 @@
     <div id="corsaAiuto">Scorri a sinistra o a destra per cambiare corsia.<br>Transenne: tocca SALTA o scorri in su.<br><small>(PC: frecce o A / D, Spazio per saltare)</small></div>
     <button id="sx" class="freccia" aria-label="Corsia a sinistra"><span>&#9664;</span></button>
     <button id="salta" aria-label="Salta">SALTA</button>
+    <button id="scendi" aria-label="Scendi nel tombino"><span>&#9660; SCENDI</span></button>
     <button id="dx" class="freccia" aria-label="Corsia a destra"><span>&#9654;</span></button>
     <button id="saltaIntro">SALTA SCENA &#9656;&#9656;</button>
   </div>
+  <div id="sotto"><div id="sottoVelo"></div><div id="sottoTempo">00:45</div><div id="sottoMsg"></div><div id="sottoPremio"></div>
+    <div id="sottoAiuto">Trascina per muoverti &middot; avvicinati a valvole, muri e scala<br><small>(PC: WASD o frecce, E per interagire)</small></div>
+    <button id="sottoAgisci"></button><button id="sottoPausa">&#10074;&#10074; PAUSA</button>
+    <div id="sottoJoy"><div id="sottoManopola"></div></div><div id="sottoLente"></div><div id="sottoNero"></div></div>
   <div id="scogliera"><div id="scNero"></div>
     <div id="scAiuto">Trascina per girare la pietra<br><small>(PC: mouse, frecce o W A S D)</small></div>
     <button id="scInteragisci">INTERAGISCI</button>
@@ -619,6 +658,7 @@
 <script src="src/strada/inseguimento.js"></script>
 <script src="src/strada/manata.js"></script>
 <script src="src/strada/intro.js"></script>
+<script src="src/strada/tombino.js"></script>
 <script src="src/strada/corsa.js"></script>
 <script src="src/scogliera/terra.js"></script>
 <script src="src/scogliera/oceano.js"></script>

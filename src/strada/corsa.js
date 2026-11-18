@@ -41,6 +41,8 @@ PZ.creaCorsa = function (opz) {
   const ragazze = PZ.creaRagazze(scena, { seduta: 2, ginocchio: 2, rannicchiata: 2, piedi: 2, fissa: 2, braccia: 2 });
   const orologio = PZ.creaOrologio(scena, D.velocitaIniziale);      // l'orologio daliniano (raro): rallenta il mondo
   const salvia = PZ.creaSalvia(scena, D.velocitaIniziale);          // la foglia di salvia gialla (una per partita): la bici vola
+  // (fase 80) il tombino con la luce gialla e il ticchettio: scendi, risolvi le valvole, prendi l'ambra (src/strada/tombino.js)
+  const tombino = PZ.creaTombino({ scena: scena, renderer: renderer, stage: stage, V0: D.velocitaIniziale });
   // per ogni nuova fila di ostacoli: prima i frammenti, poi (forse) l'orologio, dove non ci sono frammenti
   let manata = null;   // la manata del demone (fase 6, src/strada/manata.js): creata subito sotto
   const traffico = PZ.creaTraffico(scena, citta, { transenne: transenne, branco: branco, ragazze: ragazze, suManata: function (r) { if (manata) manata.nuova(r); }, suRiga: function (r, p, auto) {
@@ -53,7 +55,9 @@ PZ.creaCorsa = function (opz) {
     orologio.suRiga(r, p, auto, tR, frammenti);
     if (orologio.stato.inStrada) { S.puFine = tR; return; }
     salvia.suRiga(r, p, auto, frammenti);
-    if (salvia.stato.inStrada) S.puFine = tR;
+    if (salvia.stato.inStrada) { S.puFine = tR; return; }
+    // (fase 80) il tombino: solo dove non è comparso nient'altro, mai durante una manata (non sposta gli altri eventi)
+    if (!(manata && manata.stato.ev)) tombino.suRiga(r, p, auto, S.metri, frammenti);
   } });
   manata = PZ.creaManata({ scena: scena, occhi: occhi, LC: citta.LC, V0: D.velocitaIniziale, traffico: traffico });
   const apparizioni = PZ.creaApparizioni(citta, branco);
@@ -83,7 +87,7 @@ PZ.creaCorsa = function (opz) {
 
   // ---------- Interfaccia ----------
   const ui = { corsa: $('corsa'), metri: $('metri'), urti: $('urti'), dem: $('demoneDist'), conto: $('conto'), aiuto: $('corsaAiuto'),
-    lampo: $('lampoUrto'), velo: $('velo'), salta: $('salta'), saltaIntro: $('saltaIntro'), ambra: $('ambraHud'), ambraN: $('ambraN'), morte: $('morte'), morteN: $('morteN') };
+    lampo: $('lampoUrto'), velo: $('velo'), salta: $('salta'), scendi: $('scendi'), saltaIntro: $('saltaIntro'), ambra: $('ambraHud'), ambraN: $('ambraN'), morte: $('morte'), morteN: $('morteN') };
   let metriMostrati = -1, demMostrato = -1, contoMostrato = '', tConto = 0;
   // le scritte grandi usano il font DRUNK, che non ha accenti né ! ? ' /: qui le lettere accentate diventano semplici
   // e gli altri segni spariscono (un apostrofo diventa uno spazio)
@@ -586,6 +590,7 @@ PZ.creaCorsa = function (opz) {
     }
     if (S.fase === 'finale') { passoFinale(dt); return; }
     if (S.fase === 'morte') { passoMorte(dt); return; }
+    if (S.fase === 'tombino') { tombino.passo(dt); return; }      // (fase 80) sotto terra: la strada è ferma
     if (S.fase !== 'corsa') return;
     // OROLOGIO DALINIANO: il tempo del mondo (dtm) scorre più piano (15%); quello vero (dt) resta per i comandi del
     // ragazzo (cambio corsia, salto), la sua pedalata, la durata del potere, la telecamera e il demone che resta indietro
@@ -665,6 +670,7 @@ PZ.creaCorsa = function (opz) {
     // mentre la bici lampeggia, no: un urto non viene mai premiato
     frammenti.aggiorna(dtm, S.tau);
     orologio.aggiorna(dtm, S.tau, dt);
+    tombino.metri(S.metri); tombino.aggiorna(dtm, S.tau, dt);     // (fase 80)
     if (salvia.inVolo() || orologio.attivo()) S.puFine = Math.max(S.puFine === undefined ? -1e9 : S.puFine, S.t);
     if (S.invul <= 0 && orologio.raccogli(S.x, S.salto.h, S.tau, tauPrima)) prendiOrologio();
     salvia.aggiornaFoglia(dtm, S.tau);
@@ -732,6 +738,9 @@ PZ.creaCorsa = function (opz) {
     const pronto = !!tr && puo && arrivo < PREP + ARIA && (tr.fette ? tr.fette.every(function (f) { return f.colpita || f.z > ZONA_T || saltoRiuscirebbe(f); }) : saltoRiuscirebbe(tr));
     if (pronto !== S.pronto) { S.pronto = pronto; ui.salta.classList.toggle('pronto', pronto); }
     if (pronto && !S.avvisoSalto) { S.avvisoSalto = true; mostraConto('SALTA', 0.9); }
+    // (fase 80) SCENDI: il tombino sta arrivando nella tua corsia
+    const puoScendereT = !salvia.inVolo() && !orologio.attivo() && !S.avvisoProtegge && !(S.furia > 0) && tombino.davanti(S.corsia, S.vel) !== null;
+    if (puoScendereT !== !!S.scendi) { S.scendi = puoScendereT; ui.scendi.classList.toggle('vis', puoScendereT); }
 
     aggiornaCamera(dt);
     if (PZ.audio.vento) PZ.audio.vento(S.vel / 12);
@@ -752,6 +761,37 @@ PZ.creaCorsa = function (opz) {
     }
   }
 
+  // ---------- (fase 80) IL TOMBINO: si scende (la strada si ferma), si risale ----------
+  function scendi() {
+    if (!S.attiva || S.fase !== 'corsa' || !S.scendi || PZ.avvisi.aperto() || ARC.sceltaAperta()) return false;
+    if (!tombino.entra(esceTombino)) return false;
+    S.fase = 'tombino'; S.tFase = 0; S.scendi = false; ui.scendi.classList.remove('vis');
+    S.sguardo = null; scena.fog.near = NEBBIA.near; scena.fog.far = NEBBIA.far;
+    if (S.salto.fase !== 'no') { S.salto.fase = 'no'; S.salto.t = 0; S.salto.h = 0; S.salto.pend = 0; S.salto.alz = 0; S.salto.coda = false; }
+    S.pronto = false; ui.salta.classList.remove('pronto'); ui.aiuto.style.opacity = '0';
+    specchietto.nascondi(); traffico.pausaSuoni(); presenza.reset(); paranoia.ferma();
+    COL.pausa(); if (PZ.audio.vento) PZ.audio.vento(0);
+    mostraConto('', 0); PZ.opacita(ui.velo, 0);
+    ui.corsa.classList.add('sotto');
+    return true;
+  }
+  function esceTombino(esito) {
+    if (S.fase !== 'tombino') return;
+    S.fase = 'corsa'; S.tFase = 9; ui.corsa.classList.remove('sotto');
+    // si riparte da fermo su una strada sgombra (le prossime file arrivano dopo qualche secondo), invulnerabile per un attimo
+    traffico.reset(S.tau); transenne.reset(); apparizioni.reset(); branco.reset(); ragazze.reset();
+    S.invul = PZ.CONFIG.strada.tombino.invulUscita || 2; S.recupero = 0; S.scossa = 0.3;
+    paranoia.stato.attiva = true;
+    if (COL.inPausa && COL.inPausa()) COL.riprendi(0.6);
+    if (esito && esito.preso) { S.invul = 0; cattura(); return; }     // il tempo è finito: il demone ti ha trovato
+    if (esito && esito.premio > 0) {
+      for (let i = 0; i < esito.premio; i++) PZ.raccolta.conta('tombino-' + i);   // una volta per partita (st.usato)
+      lampo('ambra'); aggiornaAmbra(true); if (PZ.audio.pietra) PZ.audio.pietra();
+      if (S.fase === 'corsa') mostraConto(esito.perfetto ? 'PERFETTO' : 'AMBRA', 1.4);
+    } else mostraConto('SCAPPA', 1.2);
+    aggiornaHud(true);
+  }
+
   // ---------- Raccolta completata: fine della corsa, verso la scogliera ----------
   // Chiamata una volta sola (PZ.raccolta la chiama una volta, e qui si controlla anche la fase). Un lampo d'ambra
   // copre lo schermo mentre spariscono ostacoli, frammenti e demone; i comandi si spengono; la bici rallenta e
@@ -764,7 +804,8 @@ PZ.creaCorsa = function (opz) {
     spegniLento(); salvia.ferma(true);                   // se stava volando, scende piano
     PZ.avvisi.chiudi(false);
     lampo('ambra');
-    traffico.reset(S.tau); transenne.reset(); apparizioni.reset(); branco.reset(); ragazze.reset(); frammenti.svuota();
+    traffico.reset(S.tau); transenne.reset(); apparizioni.reset(); branco.reset(); ragazze.reset(); frammenti.svuota(); tombino.reset();
+    S.scendi = false; ui.scendi.classList.remove('vis');
     demone.nascondi(); specchietto.nascondi(); eventi.ferma(); paranoia.ferma(); manata.ferma();
     S.sguardo = null; scena.fog.near = NEBBIA.near; scena.fog.far = NEBBIA.far;
     S.pronto = false; ui.salta.classList.remove('pronto'); PZ.opacita(ui.velo, 0); ui.aiuto.style.opacity = '0';
@@ -820,6 +861,7 @@ PZ.creaCorsa = function (opz) {
     PZ.avvisi.chiudi(false);                             // un avviso lasciato a metà non conta come letto
     paranoia.reset();                                     // paranoia da zero: niente figure, suoni, deformazioni
     presenza.reset();                                     // (fase 66) niente manone, niente rosso
+    tombino.reset(); S.scendi = false; ui.scendi.classList.remove('vis'); ui.corsa.classList.remove('sotto');   // (fase 80)
     const prova = (CFG && PZ.CONFIG.test && PZ.CONFIG.test.scorciatoiaStrada) ? /[?&#]ambra=(\d+)/.exec(location.search + location.hash) : null;
     if (prova) PZ.raccolta.imposta(Math.min(PZ.raccolta.obiettivo - 1, +prova[1]));
     S.puFine = -1e9;
@@ -862,6 +904,7 @@ PZ.creaCorsa = function (opz) {
     disegna();
   }
   function disegna() {
+    if (S.fase === 'tombino' && tombino.attivo()) { tombino.disegna(); return; }    // (fase 80) la camera sotterranea
     ombre.aggiorna();                                   // (fase 72) le ombre seguono ragazzo, bici e auto
     const spec = S.fase === 'corsa';
     // le posizioni di tutti gli oggetti si calcolano una volta sola per fotogramma (prima lo faceva ogni disegno)
@@ -926,6 +969,7 @@ PZ.creaCorsa = function (opz) {
     // (fase 11) anche il finale sulla scogliera si prepara qui, dietro lo schermo nero: prima nasceva (e la scheda
     // video preparava i suoi materiali) proprio nell'istante dei 100 frammenti, e il gioco si bloccava
     try { if (PZ.scogliera.prepara) PZ.scogliera.prepara(); } catch (e) { console.warn(e); }
+    try { tombino.prepara(); } catch (e) { console.warn(e); }           // (fase 80) anche la camera sotto il tombino
     riavvia();
     preparaScritte();
     mostraConto('', 0); specchietto.nascondi(); aggiornaHud(true);   // nessuna traccia del rodaggio
@@ -966,10 +1010,11 @@ PZ.creaCorsa = function (opz) {
   pulsante('sx', function () { cambia(-1); });
   pulsante('dx', function () { cambia(1); });
   pulsante('salta', function () { salta(); });
+  pulsante('scendi', function () { scendi(); });          // (fase 80)
   // (fase 41) MENU PAUSA (storia e arcade): il pulsante in alto a destra, o Esc / P sul PC. Il mondo e tutto l'audio si
   // fermano; CONTINUA riprende, RICOMINCIA rifà la corsa da capo (stessa modalità), TORNA AL MENU torna alla
   // schermata iniziale. Se si cambia app o scheda durante la corsa, si mette in pausa da sola.
-  function puoPausa() { return S.attiva && (S.fase === 'corsa' || S.fase === 'intro') && !ui.corsa.classList.contains('morte') && !(ARC.sceltaAperta && ARC.sceltaAperta()) && !(PZ.avvisi && PZ.avvisi.aperto && PZ.avvisi.aperto()); }
+  function puoPausa() { return S.attiva && (S.fase === 'corsa' || S.fase === 'intro' || S.fase === 'tombino') && !ui.corsa.classList.contains('morte') && !(ARC.sceltaAperta && ARC.sceltaAperta()) && !(PZ.avvisi && PZ.avvisi.aperto && PZ.avvisi.aperto()); }
   function pausa(si) {
     if (si && (S.pausa || !puoPausa())) return;
     if (!si && !S.pausa) return;
@@ -998,6 +1043,7 @@ PZ.creaCorsa = function (opz) {
     const su = e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW';
     if (sinistra || destra) { e.preventDefault(); if (!e.repeat) cambia(sinistra ? -1 : 1); }
     else if (su) { e.preventDefault(); if (!e.repeat) { if (S.fase === 'intro') return; salta(); } }
+    else if ((e.code === 'KeyE' || e.code === 'ArrowDown' || e.code === 'KeyS') && !e.repeat) { if (S.fase === 'corsa') { e.preventDefault(); scendi(); } }
     else if (e.code === 'KeyR' && !e.repeat) riavvia();
     else if ((e.code === 'Enter' || e.code === 'Escape') && S.fase === 'intro') intro.salta();
   });
@@ -1005,7 +1051,7 @@ PZ.creaCorsa = function (opz) {
   const corsa = { avvia: avvia, riavvia: riavvia, cambia: cambia, salta: salta, passo: passo, disegna: disegna, stato: S, traffico: traffico, citta: citta,
     ciclista: ciclista, camera: camera, scena: scena, renderer: renderer, intro: intro, inseguimento: inseguimento, demone: demone, occhi: occhi,
     branco: branco, ragazze: ragazze, apparizioni: apparizioni, transenne: transenne, specchietto: specchietto, atmosfera: atmosfera, quota: quota,
-    frammenti: frammenti, raccolta: PZ.raccolta, eventi: eventi, orologio: orologio, salvia: salvia, paranoia: paranoia, mostraConto: mostraConto, sciogli: sciogli, manata: manata, prendiSalvia: prendiSalvia };
+    frammenti: frammenti, raccolta: PZ.raccolta, eventi: eventi, orologio: orologio, salvia: salvia, paranoia: paranoia, mostraConto: mostraConto, sciogli: sciogli, manata: manata, prendiSalvia: prendiSalvia, tombino: tombino, scendi: scendi };
   window.__strada = corsa;   // utile per le prove automatiche
   return corsa;
 };

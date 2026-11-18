@@ -115,6 +115,60 @@ PZ.audio = (function () {
     o.connect(b); s.connect(gs); gs.connect(b); b.connect(g); g.connect(master);
     o.start(t); o.stop(t + dur + 0.02); s.start(t, Math.random() * 0.5); s.stop(t + dur + 0.02);
   }
+  // (fase 80) IL TOMBINO E IL SOTTOSUOLO: il ticchettio sotto la grata, gocce, valvole, il vapore, i colpi del demone
+  // sulle tubature, la porta di ferro e un ronzio elettrico che cresce con l'ansia (ronzio(k): 0 = spento)
+  const sotto = (function () {
+    let ronzio = null;
+    function panP(pan) {
+      const p = ctx.createStereoPanner ? ctx.createStereoPanner() : ctx.createGain(); if (p.pan) p.pan.value = pan || 0;
+      p.connect(master); return p;
+    }
+    function notaP(dest, f, dur, tipo, vol, quando, scivola) {
+      const t = ctx.currentTime + (quando || 0), o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = tipo || 'sine'; o.frequency.setValueAtTime(f, t);
+      if (scivola) o.frequency.exponentialRampToValueAtTime(Math.max(20, f * scivola), t + dur);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(Math.max(0.0002, vol), t + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(dest); o.start(t); o.stop(t + dur + 0.05);
+    }
+    return {
+      tic: function (vol, forte) {
+        if (!ctx) return; const v = Math.max(0.01, Math.min(1, vol || 1)) * (forte ? 1.6 : 1);
+        nota(2500, 0.03, 'square', 0.035 * v, 0, 0.8); nota(1250, 0.05, 'triangle', 0.05 * v); nota(180, 0.08, 'sine', 0.05 * v, 0, 0.7);
+      },
+      frena: function () { soffio(3200, 500, 0.45, 0.22); nota(140, 0.4, 'sawtooth', 0.05, 0, 0.6); },
+      goccia: function (vol, pan) {
+        if (!ctx) return; const v = vol || 0.5, f = 1300 + Math.random() * 1100, d = panP(pan);
+        notaP(d, f, 0.09, 'sine', 0.07 * v, 0, 1.9); notaP(d, f * 0.5, 0.25, 'sine', 0.025 * v, 0.03, 0.9);
+      },
+      valvola: function () { nota(330, 0.55, 'sawtooth', 0.035, 0, 1.5); nota(347, 0.5, 'square', 0.02, 0.05, 1.4); soffio(700, 2000, 0.5, 0.05); nota(95, 0.2, 'sine', 0.2, 0.45, 0.7); },
+      giusto: function (i) { const f = [196, 247, 294, 392][i || 0]; nota(f, 1.1, 'triangle', 0.1); nota(f * 2, 0.7, 'sine', 0.04, 0.05); soffio(250, 1100, 0.9, 0.07); },
+      sbagliato: function () { soffio(7000, 2600, 1.2, 0.3); soffio(2500, 900, 0.9, 0.12, 0.1); nota(110, 0.7, 'sawtooth', 0.1, 0, 0.5); nota(116, 0.7, 'sawtooth', 0.08, 0, 0.5); },
+      colpo: function (vol, pan) {
+        if (!ctx) return; const v = Math.max(0.05, Math.min(1, vol || 0.5)), d = panP(pan);
+        notaP(d, 70, 0.5, 'sine', 0.45 * v, 0, 0.6); notaP(d, 311, 0.8, 'square', 0.05 * v, 0, 0.98); notaP(d, 467, 0.7, 'square', 0.04 * v, 0.005, 0.97); notaP(d, 1240, 0.4, 'sine', 0.03 * v, 0, 0.99);
+      },
+      raschio: function (vol, pan) {
+        if (!ctx) return; const v = Math.max(0.05, Math.min(1, vol || 0.5)), d = panP(pan), t = ctx.currentTime;
+        const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+        s.buffer = rumore(); f.type = 'bandpass'; f.Q.value = 6; f.frequency.setValueAtTime(1800, t); f.frequency.linearRampToValueAtTime(700, t + 1.2);
+        g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.25 * v, t + 0.3); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.3);
+        s.connect(f); f.connect(g); g.connect(d); s.start(t); s.stop(t + 1.4);
+      },
+      porta: function () { soffio(220, 60, 1.8, 0.3); nota(55, 1.8, 'sawtooth', 0.1, 0, 0.7); nota(58, 1.8, 'sawtooth', 0.08, 0.02, 0.7); nota(880, 1.4, 'sine', 0.03, 0.4); nota(1318, 1.6, 'sine', 0.03, 0.6); },
+      ronzio: function (k) {
+        if (!ctx) return;
+        if (k <= 0) { if (ronzio) { const r = ronzio, t = ctx.currentTime; ronzio = null; r.g.gain.cancelScheduledValues(t); r.g.gain.setValueAtTime(r.g.gain.value, t); r.g.gain.linearRampToValueAtTime(0.0001, t + 0.4); setTimeout(function () { r.os.forEach(function (o) { try { o.stop(); } catch (e) {} }); }, 600); } return; }
+        if (!ronzio) {
+          const g = ctx.createGain(), lp = ctx.createBiquadFilter(); g.gain.value = 0.0001; lp.type = 'lowpass'; lp.frequency.value = 380; lp.connect(g); g.connect(master);
+          const os = [50, 100.6, 49.3].map(function (f, i) { const o = ctx.createOscillator(); o.type = i === 1 ? 'square' : 'sawtooth'; o.frequency.value = f; const gg = ctx.createGain(); gg.gain.value = i === 1 ? 0.25 : 0.5; o.connect(gg); gg.connect(lp); o.start(); return o; });
+          ronzio = { g: g, lp: lp, os: os };
+        }
+        const t = ctx.currentTime;
+        ronzio.g.gain.setTargetAtTime(0.03 + 0.11 * k, t, 0.2); ronzio.lp.frequency.setTargetAtTime(300 + 900 * k, t, 0.3);
+        ronzio.os[2].frequency.setTargetAtTime(49.3 - 4 * k, t, 0.5);
+      }
+    };
+  })();
   const strada = {
     scarto: function () { soffio(900, 2400, 0.18, 0.12); },
     urto: function () { soffio(600, 120, 0.35, 0.5); nota(90, 0.3, 'sine', 0.35, 0, 0.45); },
@@ -1094,6 +1148,7 @@ PZ.audio = (function () {
     scappa: demoni.scappa, ambra: demoni.ambra, salto: demoni.salto, atterraggio: demoni.atterraggio, transenna: demoni.transenna, sagomaUrto: demoni.sagomaUrto, cattura: demoni.cattura,
     passoStanza: strada.passoStanza, passoStrada: strada.passoStrada, passoTerra: strada.passoTerra, scarto: strada.scarto, urto: strada.urto, distruzione: strada.distruzione, clacson: strada.clacson, clacsonVicino: strada.clacsonVicino, bip: strada.bip, vento: strada.vento,
     avvia: avvia, stingerDemone: stingerDemone, fermaStinger: fermaStinger,
+    sotto: sotto,   // (fase 80) il tombino
     tocco: function () { nota(660, 0.08, 'square', 0.05); },
     messaggio: function () { nota(880, 0.12, 'triangle', 0.12); nota(1320, 0.18, 'triangle', 0.1, 0.1); },
     specchio: function () { nota(120, 0.9, 'sawtooth', 0.12, 0, 0.5); nota(121.5, 0.9, 'sawtooth', 0.1, 0, 0.5); },
