@@ -104,7 +104,8 @@ PZ.CONFIG = {
       // più rade (1,04 x 0,85 = 0,884: -11,6% rispetto alla base). I frammenti per fila crescono in proporzione.
       // (fase 72) +10% su tutto, partenza compresa: velocità (1 - 0,025) x 1,1 = 1,0725; ostacoli 0,884 x 1,1 = 0,972;
       // accelerazione 0,85 x 1,1 = 0,935
-      storia: { velocita: 0.0725, ostacoli: -0.028, crescita: 0.935 },
+      // (fase 76) ancora +10% su tutto: velocità 1,0725 x 1,1 = 1,18; ostacoli 0,972 x 1,1 = 1,069; accelerazione 0,935 x 1,1 = 1,0285
+      storia: { velocita: 0.18, ostacoli: 0.069, crescita: 1.0285 },
       pause: { ogni: [[9, 14], [15, 21]], durata: [2.4, 1.2] },
       calda: { ogni: 11, file: [3, 6], peso: 2.2, da: 0.25 },
       cambia: 1.3,
@@ -135,7 +136,7 @@ PZ.CONFIG = {
       primoDopo: [2, 5],
       // (fase 59) max = quante volte al massimo per run
       blackout: { ogni: [42, 24], durata: [3.5, 6.5], max: 3 },
-      colpa: { ogni: [34, 19], durata: [3.2, 5.5], max: 3 },
+      colpa: { ogni: [34, 19], durata: [5.2, 7.5], max: 3 },   // (fase 76) +2 secondi
       pausa: 6                 // secondi minimi tra la fine di un evento e l'inizio del successivo
     },
 
