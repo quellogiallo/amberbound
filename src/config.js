@@ -166,7 +166,7 @@ PZ.CONFIG = {
     // Sotto: "tempo" secondi per risolvere il puzzle delle valvole, poi il demone ti trova (game over). Ogni valvola
     // sbagliata toglie "penalita" secondi e azzera la sequenza. Premio (all'uscita dalla scala): "premio" frammenti,
     // "perfetto" se non hai sbagliato nessuna valvola. Una sola volta per partita. arcade: false = solo nella storia.
-    tombino: { probabilita: 1, metri: [380, 700], ancora: 0, dopo: [350, 600], max: 1, finestra: 1.7,   // (fase 93) sicuro, una volta a partita (prima 0.6, 380-1100 m, ancora 0.5, max 2)
+    tombino: { probabilita: 1, metri: [700, 1200], ancora: 0, dopo: [350, 600], max: 1, finestra: 1.7,   // (fase 93-95) sicuro, una volta a partita, tra 700 e 1200 m (prima 0.6, 380-1100 m, ancora 0.5, max 2)
       tempo: 30, penalita: 3, premio: 20, perfetto: 30, arcade: false, invulUscita: 2.2,   // (fase 85) prima 45 s e -4 s
       scarto: 8 },   // (fase 83) secondi di scarto all'inizio: il tempo è fermo, istruzioni a schermo (girare una valvola lo fa partire)
 
