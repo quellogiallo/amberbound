@@ -20,6 +20,7 @@ PZ.creaCorsa = function (opz) {
   const citta = PZ.creaCitta(scena, ombre);
   const occhi = PZ.creaOcchi(scena, 140);
   const demone = PZ.creaDemone(scena, occhi, { manone: true });   // (fase 10) con le due manone artigliate
+  const GRANDE = PZ.CONFIG.strada.demone.grandezza || 1; demone.scala = GRANDE;   // (fase 77) anche gli occhi
   const rnd = PZ.ps1.casuale(321);
   const branco = (function () {   // le sagome (riciclate), usate sia come ostacoli sia come apparizioni
     const tutte = ['alta', 'curva', 'sottile', 'accucciata', 'storta', 'alta', 'sottile'].map(function (v, i) { return PZ.creaSagoma(scena, occhi, v, 11 + i); });
@@ -825,7 +826,7 @@ PZ.creaCorsa = function (opz) {
     salvia.reset();                                       // nuova soglia per la foglia di salvia (dopo l'eventuale prova)
     aggiornaAmbra(false);
     scena.fog.near = NEBBIA.near; scena.fog.far = NEBBIA.far;
-    demone.mostra(); demone.gruppo.scale.set(1, 1, 1); demone.gruppo.visible = true;
+    demone.mostra(); demone.gruppo.scale.setScalar(GRANDE); demone.gruppo.visible = true;
     ui.corsa.classList.remove('intro');
     ui.aiuto.style.opacity = '0';
     intro.pulisci();

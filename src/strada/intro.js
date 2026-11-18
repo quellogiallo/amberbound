@@ -393,7 +393,8 @@ PZ.creaIntro = function (ctx) {
     if (t >= T.demone) {
       if (!dem.visibile) { dem.mostra(); suona('demone', 'demoneAppare'); if (t < T.zoomFine) suona('stinger', 'stingerDemone'); }
       const comparsa = A.morbida(T.demone, T.demone + 0.5, t);
-      dem.gruppo.scale.set(1, Math.max(0.05, comparsa), 1);
+      const gr = PZ.CONFIG.strada.demone.grandezza || 1; dem.scala = gr;   // (fase 77) il 30% più grosso
+      dem.gruppo.scale.set(gr, gr * Math.max(0.05, comparsa), gr);
       dem.gruppo.visible = comparsa > 0.98 || Math.sin(t * 55) > -0.2;
       const zCammina = DEM0.z - 1.55 * (Math.min(t, T.sella) - T.demone);
       const kc = A.morbida(T.sella, T.fine, t);
@@ -411,9 +412,10 @@ PZ.creaIntro = function (ctx) {
     // (resta lì circa un secondo, con un leggero tremolio di camera a mano), poi torna larga e il ragazzo si gira
     const kz = A.morbida(T.demone + 0.08, T.demone + 0.4, t) * (1 - A.morbida(T.zoomFine + 0.02, T.zoomFine + 0.24, t));
     if (kz > 0) {
-      dem.gruppo.getWorldPosition(tmp3); tmp3.y += 2.05;
+      const grz = PZ.CONFIG.strada.demone.grandezza || 1;   // (fase 77) il demone è più grosso: la testa è più in alto e più grande
+      dem.gruppo.getWorldPosition(tmp3); tmp3.y += 2.05 * grz;
       cg.lerp(tmp3, kz);
-      fov = A.mix(fov, 6.5, kz);
+      fov = A.mix(fov, 6.5 * grz, kz);
       const tr = 0.04 * kz; cg.x += tr * Math.sin(t * 23); cg.y += tr * 0.7 * Math.sin(t * 31 + 1);
     }
     // inquadratura C: lo sguardo segue anche il ragazzo che corre alla bici (fino all'inizio del giro)

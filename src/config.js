@@ -214,7 +214,8 @@ PZ.CONFIG = {
       partenza: { vicino: 6.5, slancio: 1.3, fuga: 30 },
       // (fase 66) PRESENZA: sotto "da" metri le manone entrano dai lati dello schermo (del tutto a "pieno" metri);
       // la città vira al rosso e si sentono respiro e ringhio alle spalle in base alla vicinanza
-      presenza: { da: 11, pieno: 5.5, rosso: 0.85 }
+      presenza: { da: 11, pieno: 5.5, rosso: 0.85 },
+      grandezza: 1.3            // (fase 77) il demone che insegue è il 30% più grosso (non quello della manata, non le manone sullo schermo)
     },
 
     // CLACSON: un'auto ogni ogni[0]-ogni[1] (a caso) suona mentre viene incontro: si sente da "da" metri, sfuma in

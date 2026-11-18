@@ -98,6 +98,8 @@ PZ.creaSpecchietto = function (renderer) {
   // (che la nebbia non copre) resta ben visibile, e le auto già passate escono di scena senza "sparire" a vista
   const NEBBIA_DIETRO = { vicino: 5, lontano: 30 };
   const cam = new THREE.PerspectiveCamera(27, W / H, 0.2, NEBBIA_DIETRO.lontano + 2);
+  // (fase 77) il demone è più grosso: lo specchietto guarda un po' più in alto, così la testa resta dentro anche da vicino
+  const GR_SPEC = PZ.CONFIG.strada.demone.grandezza || 1;
   const cornice = document.getElementById('specchio');
   const ortho = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1), scenaQuad = new THREE.Scene();
   const quad = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: rt.texture, depthTest: false, depthWrite: false, transparent: true }));
@@ -121,7 +123,7 @@ PZ.creaSpecchietto = function (renderer) {
   function immagine(scena, xBici, dist) {
     if (vis < 0.02) return;
     if (n++ % CFG.ogniFotogrammi === 0) {
-      cam.position.set(xBici, 2.05, 0.35); cam.lookAt(xBici * 0.7, 1.35, Math.max(8, Math.min(26, dist || 18)));
+      cam.position.set(xBici, 2.05, 0.35); cam.lookAt(xBici * 0.7, 1.35 * GR_SPEC, Math.max(8, Math.min(26, dist || 18)));
       const f = scena.fog, n0 = f.near, f0 = f.far;
       f.near = NEBBIA_DIETRO.vicino; f.far = NEBBIA_DIETRO.lontano;
       renderer.setRenderTarget(rt); renderer.render(scena, cam); renderer.setRenderTarget(null);
