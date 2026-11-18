@@ -819,7 +819,8 @@ PZ.creaCorsa = function (opz) {
   // continua sulla strada vuota; poi PZ.scogliera.entra(...) (src/strada/scogliera.js).
   // (fase 78) a 100/100 prima la FUGA (src/strada/fuga.js): il ragazzo scappa verso lo spiraglio sulla scogliera, il
   // demone si ferma e urla; poi (o subito, con SALTA SCENA) la scogliera come prima
-  PZ.raccolta.suCompletamento(function () { if (S.fase === 'corsa') iniziaFuga(); });
+  // (fase 98) la fuga è tolta: a 100/100 si va dritti alla scogliera, come prima (fuga.js resta, non viene più usata)
+  PZ.raccolta.suCompletamento(function () { if (S.fase === 'corsa') completaRaccolta(false); });
   const FU = { cam: new THREE.Vector3(), guarda: new THREE.Vector3(), z0: 0, zB: 0, lampo: false, urlo: false };
   function iniziaFuga() {
     S.fase = 'fuga'; S.tFase = 0;
