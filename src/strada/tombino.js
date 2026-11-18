@@ -353,7 +353,48 @@ PZ.creaTombino = function (o) {
     // la luce rossa pulsa, la lampadina impazzisce
     luceRossa.intensity = 2.6 + 0.8 * Math.sin(t * 9); lampadina.intensity = rnd() < 0.35 ? 0.15 : 1.1; bulbo.material.color.setHex(lampadina.intensity < 0.5 ? 0x3a2a14 : 0xffe0a0);
   }
+  // (fase 80c) A 5 SECONDI: il demone compare alle spalle del ragazzo e resta immobile ad aspettare (solo gli occhi
+  // ti seguono); a 0 ti corre addosso, poi il jumpscare. Se apri la porta in tempo, sparisce.
+  const AT = { on: false, corsa: false, x: 0, z: 0, coll: null, t: 0 };
+  function appareAlleSpalle() {
+    const d = giocatore.dir(), gx = giocatore.pos.x, gz = giocatore.pos.z;
+    // "dietro di te" visto da chi gioca: oltre il ragazzo rispetto alla telecamera (più a nord), così lo vedi
+    // incombere sopra la sua spalla. Contro il muro nord: di fianco, alla stessa altezza
+    let x = gx + 0.35 * (gx > 0 ? -1 : 1), z = gz - 1.4;
+    if (z < -MURO + 0.6) { z = Math.max(-MURO + 0.6, gz); x = gx + (gx > 0 ? -1.3 : 1.3); }
+    x = Math.max(-MX + 0.45, Math.min(MX - 0.45, x));
+    AT.on = true; AT.corsa = false; AT.t = 0; AT.x = x; AT.z = z;
+    demoneS.mostra(); demoneS.posiziona(x, 0, z, Math.atan2(gx - x, gz - z));
+    AT.coll = { x0: x - 0.35, x1: x + 0.35, z0: z - 0.35, z1: z + 0.35 }; colliders.push(AT.coll);   // non lo attraversi
+    luceRossa.position.set(x, 2.1, z + 0.3); S.scossa = Math.max(S.scossa, 0.5);
+    if (A()) A().colpo(1, 0); if (PZ.audio.ringhio) PZ.audio.ringhio(0.9, 0); if (PZ.audio.battito) PZ.audio.battito(1.6);
+  }
+  function togliAttesa() {
+    if (AT.coll) { const i = colliders.indexOf(AT.coll); if (i >= 0) colliders.splice(i, 1); AT.coll = null; }
+    if (AT.on) demoneS.nascondi(); AT.on = false; AT.corsa = false;
+    luceRossa.position.set(0.5, 2.0, 1.4);
+  }
+  // ogni fotogramma mentre aspetta (o mentre corre verso di te): vero quando ti ha raggiunto
+  function passoAttesa(dt) {
+    if (!AT.on) return false;
+    AT.t += dt;
+    const gx = giocatore.pos.x, gz = giocatore.pos.z;
+    J.bers.set(gx, 1.5, gz);
+    if (AT.corsa) {
+      const dx = gx - AT.x, dz = gz - AT.z, dd = Math.hypot(dx, dz), v = 5.5 * dt;
+      if (dd <= 0.75) return true;
+      AT.x += dx / dd * Math.min(v, dd); AT.z += dz / dd * Math.min(v, dd);
+      demoneS.posiziona(AT.x, 0, AT.z, Math.atan2(dx, dz)); demoneS.anima(dt, 'corre', 14, J.bers, 1);
+    } else {
+      demoneS.anima(dt, 'fermo', 0, J.bers, 1);
+      const R0 = demoneS.gruppo; R0.position.y = 0.012 * Math.sin(AT.t * 2.2);          // respira appena
+    }
+    occhiS.aggiorna(dt, J.bers);
+    luceRossa.intensity = Math.max(luceRossa.intensity, 1.8 + 0.6 * Math.sin(AT.t * 4));
+    return false;
+  }
   function fineJumpscare() {
+    togliAttesa();
     demoneS.nascondi(); if (giocatore.ragazzo && giocatore.ragazzo.gruppo) giocatore.ragazzo.gruppo.visible = true;
     if (cam.fov !== 52) { cam.fov = 52; cam.updateProjectionMatrix(); }
     luceRossa.position.set(0.5, 2.0, 1.4); J.t = 0;
@@ -391,7 +432,7 @@ PZ.creaTombino = function (o) {
     if (!S.simboli.length) nuovaSoluzione();
     Object.assign(S, { attivo: true, fase: 'scende', t: 0, tempo: T.tempo, k: 0, errori: 0, vinto: false, fine: fine, porta: 0, tensione: 0,
       prossimoSuono: 3 + rnd() * 2, prossimaGoccia: 1, prossimoBattito: 0, scossa: 0, uscita: null });
-    giocatore.pos.set(-MX + 0.55, 0, ZS - 0.15);
+    giocatore.pos.set(-MX + 0.55, 0, ZS - 0.15); togliAttesa();
     cardine.rotation.y = 0; luceNicchia.intensity = 0.35; spie.forEach(function (s) { s.material.color.setHex(0x1a0c04); });
     tubi.forEach(function (t) { t.m.emissive.setHex(0x000000); });
     VALV.forEach(function (v) { v.ruota.rotation.z = 0; v.giro = 0; v.aperta = false; });
@@ -451,7 +492,7 @@ PZ.creaTombino = function (o) {
     if (S.uscita) return;
     S.uscita = { t: 0, esito: { premio: 0, preso: true }, preso: true };
     if (PZ.audio.ringhio) PZ.audio.ringhio(1, 0);
-    S.scossa = 1;
+    S.scossa = 0.4;
   }
   // ---------- Interazione: la cosa più vicina (valvola, orologio dipinto, scala) ----------
   const OGG = [
@@ -531,6 +572,8 @@ PZ.creaTombino = function (o) {
     const gioca = S.fase === 'gioca' && !S.uscita;
     // il tempo scende (fermo quando la porta è aperta)
     if (gioca && !S.vinto) { S.tempo -= dt; if (S.tempo <= 0) { S.tempo = 0; preso(); } }
+    if (gioca && !S.vinto && S.tempo <= 5 && !AT.on) appareAlleSpalle();      // (fase 80c)
+    if (S.vinto && AT.on && !S.uscita) { togliAttesa(); S.scossa = Math.max(S.scossa, 0.3); if (A()) A().colpo(0.5, 0); }
     aggiornaTempo(false);
     PZ.opacita(ui.aiuto, S.fase === 'gioca' && S.t < 8 ? 0.85 : 0);
     const kT = S.vinto ? Math.max(0, S.tensione - dt * 0.5) : liscia(1 - S.tempo / T.tempo);
@@ -597,16 +640,19 @@ PZ.creaTombino = function (o) {
     if (S.prossimaGoccia <= 0) { S.prossimaGoccia = 0.9 + rnd() * 2.2; if (A()) A().goccia(0.5, (rnd() - 0.5) * 1.4); }
     gocce.forEach(function (g) { g.userData.y -= dt * 4; if (g.userData.y < 0) { g.userData.y = ALTO; g.userData.x = (rnd() - 0.5) * 3.8; g.userData.z = (rnd() - 0.5) * 5.5; } g.position.set(g.userData.x, g.userData.y, g.userData.z); });
     // occhi nel buio (dalla metà del tempo): in un angolo lontano dalla luce, per un attimo
-    if (kT > 0.5 && !S.vinto && rnd() < dt * (0.25 + 0.8 * kT) && !S.occhiT) {
+    if (kT > 0.5 && !S.vinto && !AT.on && rnd() < dt * (0.25 + 0.8 * kT) && !S.occhiT) {
       S.occhiT = 0.5 + rnd() * 0.9; const ang = [[1.95, 0.2, -2.7], [1.95, 0.9, 3.1], [-1.95, 1.6, 0.9], [0.4, 0.4, 3.3]][Math.floor(rnd() * 4)];
       occhi[0].position.set(ang[0] - 0.07, ang[1] + 0.9, ang[2]); occhi[1].position.set(ang[0] + 0.07, ang[1] + 0.9, ang[2]);
     }
     if (S.occhiT > 0) { S.occhiT -= dt; matOcchi.opacity = Math.min(1, S.occhiT * 4) * (0.6 + 0.4 * kT); if (S.occhiT <= 0) { S.occhiT = 0; matOcchi.opacity = 0; } }
+    if (!S.uscita) passoAttesa(dt);
     // uscita (scala o demone): nero, poi si torna in strada
     if (S.uscita) {
       S.uscita.t += dt;
-      if (S.uscita.preso) { luceRossa.intensity = 3; lampadina.intensity = rnd() < 0.5 ? 0 : 0.3; matOcchi.opacity = 1; occhi[0].position.set(giocatore.pos.x - 0.09, 1.55, giocatore.pos.z + 1.1); occhi[1].position.set(giocatore.pos.x + 0.09, 1.55, giocatore.pos.z + 1.1); }
-      if (S.uscita.preso && S.uscita.t > 0.35) {             // (fase 80b) il demone salta fuori qui sotto
+      if (S.uscita.preso) { luceRossa.intensity = 3; lampadina.intensity = rnd() < 0.5 ? 0 : 0.3; if (!AT.on) appareAlleSpalle(); AT.corsa = true; }
+      const raggiunto = S.uscita.preso && passoAttesa(dt);
+      if (S.uscita.preso && (raggiunto || S.uscita.t > 1.2)) {             // (fase 80b-c) ti ha raggiunto: il jumpscare qui sotto
+        togliAttesa();
         const f = S.fine; chiudiSotto(); iniziaJumpscare();
         if (f) f({ premio: 0, preso: true, sotto: true });
         return;
@@ -623,6 +669,7 @@ PZ.creaTombino = function (o) {
     const gx = giocatore.pos.x, gz = giocatore.pos.z;
     tmpP.set(gx * 0.3, 5.6, Math.min(gz + 4.4, 6.6));
     tmpF.set(gx * 0.45, 0.4, Math.min(gz - 0.9, 1.0));
+    if (AT.on) { tmpP.y += 0.6; tmpP.z += 0.6; tmpF.y += 0.5; tmpF.z = Math.min(tmpF.z, (gz + AT.z) / 2); }   // (fase 80c) si vede anche la sua testa
     const k = 1 - Math.exp(-dt * 5);
     camPos.lerp(tmpP, k); camFuoco.lerp(tmpF, k);
     cam.position.copy(camPos);
