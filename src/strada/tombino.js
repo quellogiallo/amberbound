@@ -184,7 +184,9 @@ PZ.creaTombino = function (o) {
   const PW = 1.1, PH = 1.65, ZP = -MURO + 0.03;
   const telaio = new THREE.Mesh(new THREE.BoxGeometry(PW + 0.24, PH + 0.14, 0.1), ferro); telaio.position.set(0, (PH + 0.14) / 2, ZP + 0.02); sc.add(telaio);
   const nicchia = new THREE.Mesh(new THREE.BoxGeometry(PW, PH, 0.6), new THREE.MeshBasicMaterial({ color: 0x2a1604, side: THREE.BackSide })); nicchia.position.set(0, PH / 2, ZP - 0.28); sc.add(nicchia);
-  const luceNicchia = new THREE.PointLight(0xffa020, 0.35, 4.5, 2); luceNicchia.position.set(0, 1.0, ZP + 0.3); sc.add(luceNicchia);
+  // (fase 83) una luce finta (gli iPhone non reggono troppe luci vere in una scena): la porta si illumina con aloni e
+  // fessure; questa variabile resta solo per non cambiare il resto del codice
+  const luceNicchia = { intensity: 0 };
   const cardine = new THREE.Group(); cardine.position.set(-PW / 2, 0, ZP + 0.07); sc.add(cardine);
   const texPorta = tex(canvas(32, 48, function (g) {
     g.fillStyle = '#2c2a26'; g.fillRect(0, 0, 32, 48); g.fillStyle = '#3a3731'; g.fillRect(2, 2, 28, 44); g.fillStyle = '#25231f'; g.fillRect(4, 4, 24, 18); g.fillRect(4, 26, 24, 18);
@@ -307,7 +309,7 @@ PZ.creaTombino = function (o) {
   // la luce fredda della strada che scende dal tombino: una pozza azzurrina ai piedi della scala
   const pozzaLuce = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 1.8).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: PZ.ps1.alone(150, 175, 235, 5), transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false }));
   pozzaLuce.position.set(-MX + 0.55, 0.02, ZS); sc.add(pozzaLuce);
-  const luceScala = new THREE.PointLight(0x8aa0d8, 0.5, 3.5, 2); luceScala.position.set(-MX + 0.7, 2.2, ZS); sc.add(luceScala);
+  // (fase 83) niente luce vera sulla scala: basta la pozza azzurrina qui sopra
   const PRESA_SCALA = new V3(-MX + 0.4, 0, ZS);
   // ---------- Luci: una lampadina appesa che sfarfalla, una luce rossa che cresce con l'ansia ----------
   sc.add(new THREE.HemisphereLight(0x7a7460, 0x2a2218, 1.7));   // (visibilità) +70%
@@ -440,7 +442,7 @@ PZ.creaTombino = function (o) {
     st.usato = true; st.inStrada = null; strada.visible = false; luceStrada.intensity = 0;
     if (!S.simboli.length) nuovaSoluzione();
     Object.assign(S, { attivo: true, fase: 'scende', t: 0, tempo: T.tempo, k: 0, errori: 0, vinto: false, fine: fine, porta: 0, tensione: 0,
-      prossimoSuono: 3 + rnd() * 2, prossimaGoccia: 1, prossimoBattito: 0, scossa: 0, uscita: null });
+      prossimoSuono: 3 + rnd() * 2, prossimaGoccia: 1, prossimoBattito: 0, scossa: 0, uscita: null, scarto: T.scarto || 0, scartoN: -1 });
     giocatore.pos.set(-MX + 0.55, 0, ZS - 0.15); togliAttesa();
     cardine.rotation.y = 0; luceNicchia.intensity = 0.35; spie.forEach(function (s) { s.material.color.setHex(0x1a0c04); });
     tubi.forEach(function (t) { t.m.emissive.setHex(0x000000); });
@@ -453,8 +455,14 @@ PZ.creaTombino = function (o) {
     return true;
   }
   // ---------- Il puzzle ----------
+  function avviaTempo() {
+    if (!(S.scarto > 0) && S.scartoN === 0) return;
+    S.scarto = 0; S.scartoN = 0; msg('IL TEMPO SCORRE', 1.6); S.scossa = Math.max(S.scossa, 0.25);
+    if (PZ.audio.battito) PZ.audio.battito(1.4); if (A()) A().colpo(0.6, 0);
+  }
   function giraValvola(i) {
     const v = VALV[i];
+    if (S.scarto > 0) avviaTempo();                 // (fase 83) girare una valvola fa partire il tempo
     if (S.vinto || v.aperta) { msg(S.vinto ? 'LA PORTA È APERTA' : 'È GIÀ APERTA', 1.4); return; }
     if (A()) A().valvola();
     v.giro = 0.65;
@@ -576,15 +584,22 @@ PZ.creaTombino = function (o) {
     if (S.msgT > 0) { S.msgT -= dt; if (S.msgT <= 0) msg(''); }
     // entrata: nero, poi la camera si apre
     if (S.fase === 'scende') {
-      if (S.t > 0.45) { S.fase = 'gioca'; ui.nero.style.transition = 'opacity .7s'; ui.nero.style.opacity = '0'; msg('RISOLVI PRIMA CHE TI TROVI', 2.6); camPos.set(-0.5, 5.6, 6.6); camFuoco.set(-0.75, 0.4, 1.4); }
+      if (S.t > 0.45) { S.fase = 'gioca'; ui.nero.style.transition = 'opacity .7s'; ui.nero.style.opacity = '0'; camPos.set(-0.5, 5.6, 6.6); camFuoco.set(-0.75, 0.4, 1.4); }
     }
-    const gioca = S.fase === 'gioca' && !S.uscita;
-    // il tempo scende (fermo quando la porta è aperta)
-    if (gioca && !S.vinto) { S.tempo -= dt; if (S.tempo <= 0) { S.tempo = 0; preso(); } }
-    if (gioca && !S.vinto && S.tempo <= 5 && !AT.on) appareAlleSpalle();      // (fase 80c)
+    // (fase 83) SECONDI DI SCARTO: all'inizio il tempo è fermo e le istruzioni restano a schermo con il conto alla
+    // rovescia; ci si può guardare intorno (e GUARDA l'orologio). Girare una valvola fa partire subito il tempo.
+    if (S.fase === 'gioca' && S.scarto > 0 && !S.uscita) {
+      S.scarto -= dt;
+      if (S.scarto > 0) { const n = Math.ceil(S.scarto); if (n !== S.scartoN) { S.scartoN = n; msg('TROVA L\'ORDINE DELLE VALVOLE\nTE LO DICE L\'OROLOGIO SUL MURO\n\nIL TEMPO PARTE TRA ' + n, 9); } }
+      else avviaTempo();
+    }
+    const gioca = S.fase === 'gioca' && !S.uscita, corre = gioca && !(S.scarto > 0);
+    // il tempo scende (fermo quando la porta è aperta e nei secondi di scarto)
+    if (corre && !S.vinto) { S.tempo -= dt; if (S.tempo <= 0) { S.tempo = 0; preso(); } }
+    if (corre && !S.vinto && S.tempo <= 5 && !AT.on) appareAlleSpalle();      // (fase 80c)
     if (S.vinto && AT.on && !S.uscita) { togliAttesa(); S.scossa = Math.max(S.scossa, 0.3); if (A()) A().colpo(0.5, 0); }
     aggiornaTempo(false);
-    PZ.opacita(ui.aiuto, S.fase === 'gioca' && S.t < 5.5 ? 0.85 : 0);
+    PZ.opacita(ui.aiuto, S.fase === 'gioca' && S.t < (T.scarto || 0) + 3 ? 0.85 : 0);
     const kT = S.vinto ? Math.max(0, S.tensione - dt * 0.5) : liscia(1 - S.tempo / T.tempo);
     S.tensione = kT;
     if (!S.vinto) ui.box.classList.toggle('urgente', S.tempo <= 10 && S.fase === 'gioca');
@@ -613,7 +628,7 @@ PZ.creaTombino = function (o) {
     cardine.rotation.y = -1.45 * ep;
     luceNicchia.intensity = 0.35 + 2.4 * ep + (S.vinto ? 0.25 * Math.sin(S.t * 4) : 0.12 * Math.sin(S.t * 5));
     matFessura.opacity = 0.75 + 0.2 * Math.sin(S.t * 6.3) - 0.3 * ep;
-    aloneFessura.material.opacity = 0.3 + 0.5 * ep;
+    aloneFessura.material.opacity = 0.3 + 0.6 * ep; aloneFessura.scale.set(2.4 + 1.6 * ep, 1.0 + 1.8 * ep, 1);
     schegge.forEach(function (m, i) {
       const f = m.userData.f; m.rotation.set(S.t * 1.3 + f, S.t * 1.9 + f, 0);
       if (S.porta >= 1) {                                   // aperta: volano verso il ragazzo e spariscono
@@ -634,7 +649,7 @@ PZ.creaTombino = function (o) {
     PZ.opacita(ui.velo, Math.min(0.9, 0.4 * kT * kT + (S.uscita && S.uscita.preso ? 0.5 : 0)));
     if (A()) A().ronzio(S.fase === 'gioca' ? 0.1 + 0.9 * kT : 0);
     // i suoni del demone: sempre più vicini e più fitti (da lontano a sinistra o a destra, poi da dietro la scala)
-    if (gioca && !S.vinto) {
+    if (corre && !S.vinto) {
       S.prossimoSuono -= dt;
       if (S.prossimoSuono <= 0) {
         S.prossimoSuono = (5.5 - 4.2 * kT) * (0.7 + 0.6 * rnd());
@@ -687,14 +702,46 @@ PZ.creaTombino = function (o) {
     if (kT > 0.75 && !S.vinto) { cam.position.x += (rnd() - 0.5) * 0.03 * kT; cam.position.y += (rnd() - 0.5) * 0.03 * kT; }
     cam.lookAt(camFuoco);
   }
+  // (fase 83) se la scheda video non riesce a preparare un materiale della camera (succedeva su iPhone: restava
+  // l'immagine della strada) i materiali diventano semplici, senza luci: si vede tutto, un po' più piatto
+  let semplice = false, controlli = 0;
+  function falliti() { const pr = renderer.info.programs || []; return pr.some(function (p) { return p.diagnostics && p.diagnostics.runnable === false; }); }
+  function semplifica() {
+    if (semplice) return; semplice = true;
+    sc.traverse(function (o) {
+      if (!o.isMesh || !o.material) return;
+      const m = o.material;
+      if (!(m.isMeshLambertMaterial || m.isMeshPhongMaterial || m.isMeshStandardMaterial)) return;
+      const b = new THREE.MeshBasicMaterial({ map: m.map || null, color: (m.color ? m.color.clone() : new THREE.Color(0xffffff)).multiplyScalar(0.75),
+        transparent: m.transparent, opacity: m.opacity, side: m.side, alphaTest: m.alphaTest || 0 });
+      if (m.emissive && (m.emissive.r + m.emissive.g + m.emissive.b) > 0.3) b.color.add(m.emissive.clone().multiplyScalar(0.5));
+      o.material = b;
+    });
+    console.warn('[tombino] materiali semplificati');
+  }
   function disegna() {
+    const gl = renderer.getContext();
+    if (gl.isContextLost && gl.isContextLost()) { if (S.attivo && !S.uscita) S.uscita = { t: 0, esito: { premio: 0 } }; return; }   // la scheda video si è fermata: si risale
     const w = renderer.domElement.width, h = renderer.domElement.height;
     if (Math.abs(cam.aspect - w / h) > 1e-3) { cam.aspect = w / h; cam.updateProjectionMatrix(); }
+    renderer.setRenderTarget(null); const ac = renderer.autoClear; renderer.autoClear = true;
     renderer.render(sc, cam);
+    renderer.autoClear = ac;
+    if (!semplice && controlli < 3) { controlli++; if (falliti()) { semplifica(); renderer.render(sc, cam); } }
   }
   // prepara i materiali della camera (dietro lo schermo nero del caricamento), così la prima discesa non scatta
   function prepara() {
-    try { nuovaSoluzione(); S.simboli = []; demoneS.mostra(); demoneS.posiziona(0, 0, DZ, 0); renderer.compile(sc, cam); renderer.render(sc, cam); demoneS.nascondi(); } catch (e) { console.warn(e); }
+    try {
+      nuovaSoluzione(); S.simboli = []; demoneS.mostra(); demoneS.posiziona(0, 0, DZ, 0);
+      cam.position.set(0, 5.6, 6.6); cam.lookAt(0, 0.4, 0); cam.updateMatrixWorld();
+      renderer.compile(sc, cam);
+      // (fase 83) disegna una volta TUTTO, anche fuori inquadratura: immagini e programmi pronti prima di scendere
+      const salvati = []; sc.traverse(function (o) { salvati.push([o, o.frustumCulled]); o.frustumCulled = false; });
+      renderer.setRenderTarget(null); renderer.render(sc, cam);
+      salvati.forEach(function (v) { v[0].frustumCulled = v[1]; });
+      demoneS.nascondi();
+      if (falliti()) { semplifica(); renderer.render(sc, cam); }
+    } catch (e) { console.warn(e); }
   }
   return { reset: reset, suRiga: suRiga, aggiorna: aggiorna, davanti: davanti, metri: metri, entra: entra, passo: passo, disegna: disegna, prepara: prepara, jumpscare: jumpscare,
     attivo: function () { return S.attivo; },

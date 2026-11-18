@@ -161,7 +161,8 @@ PZ.CONFIG = {
     // sbagliata toglie "penalita" secondi e azzera la sequenza. Premio (all'uscita dalla scala): "premio" frammenti,
     // "perfetto" se non hai sbagliato nessuna valvola. Una sola volta per partita. arcade: false = solo nella storia.
     tombino: { probabilita: 0.6, metri: [380, 1100], ancora: 0.5, dopo: [350, 600], max: 2, finestra: 1.7,
-      tempo: 45, penalita: 4, premio: 20, perfetto: 30, arcade: false, invulUscita: 2.2 },
+      tempo: 45, penalita: 4, premio: 20, perfetto: 30, arcade: false, invulUscita: 2.2,
+      scarto: 8 },   // (fase 83) secondi di scarto all'inizio: il tempo è fermo, istruzioni a schermo (girare una valvola lo fa partire)
 
     // PARANOIA (src/strada/paranoia.js): l'intensità segue la vicinanza del demone. da = metri prima dei quali non succede
     // niente; ragazzaDa = da qui la ragazza può comparire come allucinazione; jumpscareDa = da qui il jumpscare è

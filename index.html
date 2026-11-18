@@ -335,9 +335,10 @@
     text-shadow: .06em .06em 0 #000, 0 0 .4em rgba(0, 0, 0, .9); pointer-events: none; }
   #sottoTempo.poco { color: #ff3a22; animation: sottoTrema .18s steps(2) infinite; }
   @keyframes sottoTrema { 0% { transform: translate(.04em, 0); } 50% { transform: translate(-.05em, .03em); } }
-  #sottoMsg { position: absolute; left: 1em; right: 1em; top: 4.6em; text-align: center; font: .95em monospace; font-weight: 900; letter-spacing: .16em; color: #e8dcb8;
+  #sottoMsg { position: absolute; left: 1em; right: 1em; top: 4.6em; text-align: center; white-space: pre-line; line-height: 1.5; font: .95em monospace; font-weight: 900; letter-spacing: .16em; color: #e8dcb8;
     text-shadow: .08em .08em 0 #000, 0 0 .5em #000; opacity: 0; transition: opacity .3s; pointer-events: none; }
   #sottoMsg.vis { opacity: 1; }
+  #sottoMsg:not(:empty) { background: rgba(4, 3, 2, .5); padding: .35em .5em; }
   #sottoPremio { position: absolute; left: 0; right: 0; top: 6.6em; text-align: center; font: 1.4em monospace; font-weight: 900; letter-spacing: .14em; color: #ffb02a;
     text-shadow: .06em .06em 0 #000, 0 0 .6em rgba(255, 150, 20, .7); opacity: 0; transition: opacity .4s; pointer-events: none; }
   #sottoPremio.vis { opacity: 1; }
