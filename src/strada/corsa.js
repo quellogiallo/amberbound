@@ -820,6 +820,7 @@ PZ.creaCorsa = function (opz) {
     PZ.avvisi.chiudi(false);
     traffico.reset(S.tau); transenne.reset(); apparizioni.reset(); branco.reset(); ragazze.reset(); frammenti.svuota();
     specchietto.nascondi(); eventi.ferma(); paranoia.ferma(); manata.ferma();
+    tombino.reset(); S.scendi = false; ui.scendi.classList.remove('vis');   // (fase 80) niente tombino durante la fuga
     S.sguardo = null; S.pronto = false; ui.salta.classList.remove('pronto'); PZ.opacita(ui.velo, 0); ui.aiuto.style.opacity = '0';
     mostraConto('', 0);
     ui.corsa.classList.add('intro');                     // via il resto dell'interfaccia; compare SALTA SCENA

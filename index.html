@@ -484,7 +484,7 @@
 <!-- (fase 74) CARICAMENTO: mentre il browser scarica il gioco, una piccola pietra d'ambra gira e sopra c'è la percentuale.
      La percentuale conta i file del gioco già arrivati (data-file = quanti sono: aggiornalo se aggiungi un <script>);
      quando la pagina è pronta arriva a 100% e la schermata sfuma. È tutta qui: non dipende da nient'altro del gioco. -->
-<div id="ambraCarica" data-file="50">
+<div id="ambraCarica" data-file="51">
   <b id="ambraCaricaN">0%</b>
   <canvas id="ambraPietra" width="300" height="230" aria-hidden="true"></canvas>
 </div>
@@ -498,7 +498,7 @@
 <script>
 (function () {
   var box = document.getElementById('ambraCarica'), N = document.getElementById('ambraCaricaN');
-  var tot = +box.getAttribute('data-file') || 50, arrivati = 0, mostra = 0, meta = 0, finito = false;
+  var tot = +box.getAttribute('data-file') || 51, arrivati = 0, mostra = 0, meta = 0, finito = false;
   // ogni file arrivato (codice, font, immagini) fa salire la meta; fino al 95%: l'ultimo 5% è la preparazione del gioco
   document.addEventListener('load', function (e) {
     var t = e.target && e.target.tagName;
