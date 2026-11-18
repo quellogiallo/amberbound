@@ -259,6 +259,12 @@
   #avvio.scena p.sottotitolo { text-shadow: .06em .06em 0 #000, 0 0 .6em rgba(0, 0, 0, .9); }
   #avvio.scena #arcadeNota { text-shadow: 0 .08em .25em #000, 0 0 .5em #000; }
   #stage.menuScena #inv, #stage.menuScena #aiuto, #stage.menuScena #didascalia, #stage.menuScena #btn { visibility: hidden; }
+  /* (fase 89) TOCCA PER ENTRARE: dopo il caricamento, prima del menu (la musica può partire solo da un tocco) */
+  #tocca { position: absolute; inset: 0; z-index: 10; display: none; flex-direction: column; align-items: center; justify-content: center; gap: .8em; background: #000; cursor: pointer; touch-action: none; }
+  #tocca.vis { display: flex; }
+  #tocca b { font: 900 1.15em monospace; letter-spacing: .22em; color: #ffd21f; text-shadow: .06em .06em 0 #5a0c22, 0 0 .7em rgba(255, 200, 40, .45); animation: toccaPulsa 1.6s ease-in-out infinite; }
+  #tocca small { font: .72em monospace; letter-spacing: .14em; color: #8a7e70; }
+  @keyframes toccaPulsa { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
   #menuNero { position: absolute; inset: 0; z-index: -1; background: #000; opacity: 0; pointer-events: none; }
   #avvio.rigioca > :not(.scelte), #avvio.rigioca .scelte > :not(.via) { display: none !important; }
   #scRicomincia { padding: .7em 1.8em; border: .2em solid #b08e34; background: rgba(14, 11, 8, .7); color: #b08e34; font: bold 1em monospace; letter-spacing: .2em; }
@@ -654,6 +660,7 @@
       <div id="arcadeNota">FINISCI LA STORIA PER SBLOCCARLA</div>
       <button id="classificaBtn">CLASSIFICA</button></div>
     <button id="provaStrada">PROVA LA STRADA (test)</button></div>
+  <div id="tocca"><b>TOCCA PER ENTRARE</b><small>(PC: un tasto o un clic)</small></div>
   <div id="classificaMenu"><h2>CLASSIFICA</h2><ol id="classificaLista" class="classifica"></ol><button id="chiudiClassifica">CHIUDI</button></div>
 </div>
 <div id="errore"></div>

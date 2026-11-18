@@ -43,6 +43,24 @@
     if (sfondoMenu) { try { renderer.compile(sfondoMenu.scena, sfondoMenu.camera); sfondoMenu.prepara(); } catch (e) { console.warn(e); } } else window.PZmenuPronto = true;
     // (fase 82b) la schermata aspetta anche la classifica online (i suoi file pesanti si preparano adesso, non durante la
     // camminata); se la rete è lenta, al massimo 6 secondi
+    // (fase 89) TOCCA PER ENTRARE: la musica del menu parte dall'impatto del basso nell'istante del tocco, e il menu
+    // appare insieme al colpo. La camminata comincia da lì. La schermata aspetta anche la musica decodificata.
+    const tocca = $('tocca');
+    window.PZmenuVisto = !sfondoMenu || !tocca;
+    if (sfondoMenu && tocca) {
+      tocca.classList.add('vis');
+      const entra = function (e) {
+        if (window.PZmenuVisto) return;
+        if (e) { e.preventDefault(); e.stopPropagation(); if (e.stopImmediatePropagation) e.stopImmediatePropagation(); }
+        window.PZmenuVisto = true;
+        PZ.audio.avvia(); if (PZ.audio.menu) PZ.audio.menu.avvia();
+        tocca.classList.remove('vis');
+      };
+      tocca.addEventListener('pointerdown', entra);
+      window.addEventListener('keydown', function (e) { if (!window.PZmenuVisto && !(e.target && e.target.tagName === 'INPUT')) entra(e); }, true);
+    }
+    let musicaMenuPronta = !(PZ.audio.menu && sfondoMenu);
+    if (!musicaMenuPronta) { const fatta = function () { musicaMenuPronta = true; }; PZ.audio.menu.scarica().then(fatta, fatta); setTimeout(fatta, 6000); }
     let onlineFatto = false;
     const finitoOnline = function () { onlineFatto = true; };
     try { const pr = PZ.online && PZ.online.avvia ? PZ.online.avvia() : null; if (pr && pr.then) { pr.then(finitoOnline, finitoOnline); setTimeout(finitoOnline, 6000); } else onlineFatto = true; } catch (e) { onlineFatto = true; }
@@ -423,6 +441,7 @@
     function avvia(e) {
       if (stato.iniziato) return;
       stato.iniziato = true; PZ.audio.avvia(); $('avvio').style.display = 'none';
+      if (PZ.audio.menu) PZ.audio.menu.ferma(2);          // (fase 89) la musica del menu sfuma
       if (vuoleStrada()) { vaiInStrada(true); return; }
       caricamento(function () {
         musicaStanza();
@@ -459,6 +478,7 @@
         return;
       }
       stato.iniziato = true; PZ.audio.avvia(); PZ.audio.tocco(); $('avvio').style.display = 'none';
+      if (PZ.audio.menu) PZ.audio.menu.ferma(2);
       PZ.arcade.attiva = true; PZ.raccolta.arcade = true;
       const pass = $('passaggio');
       pass.querySelector('h2').textContent = 'ARCADE';
@@ -481,6 +501,7 @@
         e.preventDefault(); e.stopPropagation();
         if (stato.iniziato) return;
         stato.iniziato = true; PZ.audio.avvia(); $('avvio').style.display = 'none';
+        if (PZ.audio.menu) PZ.audio.menu.ferma(1);
         vaiInStrada(true);
       });
       if (vuoleStrada()) document.querySelector('#avvio .via').textContent = '\u25b6 TOCCA PER LA STRADA (test)';
@@ -497,8 +518,8 @@
       if (sfondoMenu) {
         if (!stato.iniziato) {
           // (fase 82) finché c'è la schermata di caricamento la camminata non avanza (comincia quando la si vede)
-          const n = sfondoMenu.passo(window.PZmenuPronto ? dt : 0); if (menuNero) menuNero.style.opacity = n.toFixed(2);
-          if (onlineFatto && ++fotogrammiMenu === 8) window.PZmenuPronto = true;   // qualche fotogramma vero, poi via
+          const n = sfondoMenu.passo(window.PZmenuPronto && window.PZmenuVisto ? dt : 0); if (menuNero) menuNero.style.opacity = n.toFixed(2);
+          if (onlineFatto && musicaMenuPronta && ++fotogrammiMenu === 8) window.PZmenuPronto = true;   // qualche fotogramma vero, poi via
           return;
         }
         sfondoMenu.libera(); sfondoMenu = null; $('avvio').classList.remove('scena'); stage.classList.remove('menuScena');

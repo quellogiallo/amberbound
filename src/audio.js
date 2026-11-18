@@ -26,6 +26,46 @@ PZ.audio = (function () {
     pezziFinale.carica();           // (fase 36) Pezzidicarne per il finale
     colonna.carica();               // (fase 28) la colonna sonora si scarica subito: è pronta quando si apre la porta
   }
+  // ---- (fase 89) LA MUSICA DEL MENU: si scarica e si decodifica subito all'apertura (senza aspettare il primo tocco:
+  // la decodifica non ha bisogno dell'audio acceso), così al tocco su "TOCCA PER ENTRARE" parte dall'impatto del basso
+  // senza attese. Suona in loop esatto (loopEnd = config audio.menuLoop); ferma(sec) la sfuma.
+  const menuMus = (function () {
+    let buf = null, carica = null, src = null, g = null, vuole = false, el = null;
+    function scarica() {
+      const url = PZ.CONFIG.audio.menu; if (!url) return Promise.resolve(false);
+      if (carica) return carica;
+      const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+      carica = fetch(url).then(function (r) { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+        .then(function (b) { return new Promise(function (ok, ko) { const oc = new OAC(2, 1, 44100); const p = oc.decodeAudioData(b, ok, ko); if (p && p.catch) p.catch(ko); }); })
+        .then(function (b) { buf = b; if (vuole) parti(); return true; })
+        .catch(function () { buf = false; if (vuole) parti(); return false; });
+      return carica;
+    }
+    function vol() { return PZ.CONFIG.audio.volumeMenu == null ? 0.85 : PZ.CONFIG.audio.volumeMenu; }
+    function parti() {
+      if (!ctx || src || el) return;
+      if (buf) {
+        g = ctx.createGain(); g.gain.value = vol(); g.connect(master);
+        src = ctx.createBufferSource(); src.buffer = buf; src.loop = true; src.loopStart = 0;
+        src.loopEnd = Math.min(buf.duration, PZ.CONFIG.audio.menuLoop || buf.duration);
+        src.connect(g); src.start();
+      } else if (buf === false) {                       // non si è potuta decodificare: un elemento <audio> (loop meno preciso)
+        try { el = new Audio(PZ.CONFIG.audio.menu); el.loop = true; const m = colonnaCollega(el); m.imposta(PZ.CONFIG.audio.volume * vol()); const p = el.play(); if (p && p.catch) p.catch(function () {}); } catch (e) { el = null; }
+      }
+    }
+    return {
+      scarica: scarica,
+      avvia: function () { vuole = true; scarica(); if (buf !== null) parti(); },
+      ferma: function (sec) {
+        vuole = false; const d = sec == null ? 2 : sec;
+        if (src && g && ctx) { const t = ctx.currentTime, s = src; g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(0.0001, t + d); try { s.stop(t + d + 0.05); } catch (e) {} src = null; }
+        if (el) { const e = el; el = null; let k = 1; const iv = setInterval(function () { k -= 0.05 / Math.max(0.1, d); try { e.volume = Math.max(0, k * e.volume); } catch (x) {} if (k <= 0) { clearInterval(iv); try { e.pause(); } catch (x) {} } }, 50); }
+      },
+      suona: function () { return !!(src || el); }
+    };
+  })();
+  function colonnaCollega(el) { return PZ.audio && PZ.audio.collega ? PZ.audio.collega(el) : { imposta: function (v) { try { el.volume = v; } catch (e) {} } }; }
+  menuMus.scarica();
   // ---- (fase 14) STINGER DEL DEMONE: un file vero (PZ.CONFIG.audio.stingerDemone), caricato appena parte l'audio così
   // è pronto quando serve. Suona dritto all'uscita (non lo abbassano gli altri effetti né lo zittisce la morte: è il
   // suono del jumpscare); lo ferma solo fermaStinger (RIPROVA, riavvio). Se il browser non lo carica con fetch (pagina
@@ -1199,6 +1239,7 @@ PZ.audio = (function () {
     passoStanza: strada.passoStanza, passoStrada: strada.passoStrada, passoTerra: strada.passoTerra, scarto: strada.scarto, urto: strada.urto, distruzione: strada.distruzione, clacson: strada.clacson, clacsonVicino: strada.clacsonVicino, bip: strada.bip, vento: strada.vento,
     avvia: avvia, stingerDemone: stingerDemone, fermaStinger: fermaStinger,
     sotto: sotto,   // (fase 80) il tombino
+    menu: menuMus,  // (fase 89) la musica del menu
     tocco: function () { nota(660, 0.08, 'square', 0.05); },
     messaggio: function () { nota(880, 0.12, 'triangle', 0.12); nota(1320, 0.18, 'triangle', 0.1, 0.1); },
     specchio: function () { nota(120, 0.9, 'sawtooth', 0.12, 0, 0.5); nota(121.5, 0.9, 'sawtooth', 0.1, 0, 0.5); },
