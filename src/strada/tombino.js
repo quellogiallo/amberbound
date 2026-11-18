@@ -58,10 +58,15 @@ PZ.creaTombino = function (o) {
   const matGrata = PZ.ps1.aggancia(new THREE.MeshLambertMaterial({ map: texGrata, emissive: 0xffb02a, emissiveMap: texLuceGrata, emissiveIntensity: 1 }));
   const grata = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.64, 0.05, 16), matGrata); grata.position.y = 0.025; strada.add(grata);
   const colletto = new THREE.Mesh(new THREE.RingGeometry(0.62, 0.8, 16).rotateX(-Math.PI / 2), new THREE.MeshLambertMaterial({ color: 0x0f0e0d })); colletto.position.y = 0.012; strada.add(colletto);
-  const colonna = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.52, 3.4, 12, 1, true), new THREE.MeshBasicMaterial({ color: 0xffb436, map: texColonna, transparent: true, opacity: 0.2, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: true }));
-  colonna.position.y = 1.72; strada.add(colonna);
-  const aloneTerra = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 3.4).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: PZ.ps1.alone(255, 176, 50, 6), transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false }));
+  const colonna = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.52, 6, 12, 1, true), new THREE.MeshBasicMaterial({ color: 0xffb436, map: texColonna, transparent: true, opacity: 0.2, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
+  colonna.position.y = 3.02;   // (visibilità) alta e senza foschia: si nota da lontano strada.add(colonna);
+  const aloneTerra = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 4.2).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: PZ.ps1.alone(255, 176, 50, 6), transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
   aloneTerra.position.y = 0.06; strada.add(aloneTerra);
+  // (visibilità) il nucleo della colonna e un bagliore sulla grata: un punto giallo che si nota anche da lontano
+  const nucleo = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.3, 4.5, 10, 1, true), new THREE.MeshBasicMaterial({ color: 0xffc040, map: texColonna, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
+  nucleo.position.y = 2.25; strada.add(nucleo);
+  const faro = new THREE.Sprite(new THREE.SpriteMaterial({ map: PZ.ps1.alone(255, 190, 70, 6), transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+  faro.position.y = 0.35; faro.scale.set(3.2, 1.6, 1); strada.add(faro);
   // la luce che esce dal tombino illumina la bici quando ci passa: sempre in scena (spenta), così non si ricompila niente
   const luceStrada = new THREE.PointLight(0xffa83a, 0, 7, 2); luceStrada.position.set(0, 0.5, 0); scena.add(luceStrada);
 
@@ -107,7 +112,9 @@ PZ.creaTombino = function (o) {
     // la luce respira e ogni tanto trema, come una fiamma sotto la grata
     const fl = 0.82 + 0.12 * Math.sin(st.t * 3.1) + 0.06 * Math.sin(st.t * 11.7) - (rnd() < 0.03 ? 0.25 : 0);
     matGrata.emissiveIntensity = fl;
-    colonna.material.opacity = 0.24 * fl; aloneTerra.material.opacity = 0.5 * fl;
+    const lontano = Math.max(0, Math.min(1, (z + 95) / 35));     // esce piano dal buio in fondo alla strada
+    colonna.material.opacity = 0.45 * fl * lontano; aloneTerra.material.opacity = 0.6 * fl * lontano;
+    nucleo.material.opacity = 0.55 * fl * lontano; faro.material.opacity = 0.85 * fl * lontano;
     luceStrada.position.set(s.x, 0.45, z); luceStrada.intensity = z > -45 ? 1.4 * fl * Math.min(1, (z + 45) / 20) : 0;
     // il ticchettio: si sente avvicinandosi (e da vicino è forte)
     st.tic -= dtVero || dt;
@@ -256,8 +263,8 @@ PZ.creaTombino = function (o) {
     for (let k = 0; k < 2; k++) { const r = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.03, 0.03), rossa); r.rotation.z = k * Math.PI / 2; v.ruota.add(r); }
     v.ruota.add(new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.08, 6).rotateX(Math.PI / 2), rossa));
     v.cv = document.createElement('canvas'); v.cv.width = v.cv.height = 32; v.tex = tex(v.cv);
-    v.targa = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.42), mat(new THREE.MeshLambertMaterial({ map: v.tex, emissive: 0x2a2416, emissiveMap: v.tex })));
-    v.targa.position.copy(v.p).addScaledVector(v.n, 0.05); v.targa.position.y = 1.55; v.targa.lookAt(v.targa.position.clone().add(v.n)); sc.add(v.targa);
+    v.targa = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.62), mat(new THREE.MeshLambertMaterial({ map: v.tex, emissive: 0xffffff, emissiveMap: v.tex, emissiveIntensity: 0.6 })));
+    v.targa.position.copy(v.p).addScaledVector(v.n, 0.05); v.targa.position.y = 1.62; v.targa.lookAt(v.targa.position.clone().add(v.n)); sc.add(v.targa);
     v.vapore = [];
   });
   // l'orologio dipinto (a sinistra della porta): un cerchio d'ambra, le tacche, i tre simboli sulle ore, la lancetta
@@ -303,8 +310,8 @@ PZ.creaTombino = function (o) {
   const luceScala = new THREE.PointLight(0x8aa0d8, 0.5, 3.5, 2); luceScala.position.set(-MX + 0.7, 2.2, ZS); sc.add(luceScala);
   const PRESA_SCALA = new V3(-MX + 0.4, 0, ZS);
   // ---------- Luci: una lampadina appesa che sfarfalla, una luce rossa che cresce con l'ansia ----------
-  sc.add(new THREE.HemisphereLight(0x5a5646, 0x16120c, 1.0));
-  const lampadina = new THREE.PointLight(0xffd090, 1.6, 9, 1.6); lampadina.position.set(0.2, 2.35, -0.2); sc.add(lampadina);
+  sc.add(new THREE.HemisphereLight(0x7a7460, 0x2a2218, 1.7));   // (visibilità) +70%
+  const lampadina = new THREE.PointLight(0xffd090, 2.2, 10, 1.4); lampadina.position.set(0.2, 2.35, -0.2); sc.add(lampadina);
   const bulbo = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 4), new THREE.MeshBasicMaterial({ color: 0xffe0a0 })); bulbo.position.set(0.2, 2.45, -0.2); sc.add(bulbo);
   const filo = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.5, 4), new THREE.MeshBasicMaterial({ color: 0x111111 })); filo.position.set(0.2, 2.75, -0.2); sc.add(filo);
   const luceRossa = new THREE.PointLight(0xff1a10, 0, 9, 1.5); luceRossa.position.set(0.5, 2.0, 1.4); sc.add(luceRossa);
@@ -323,6 +330,8 @@ PZ.creaTombino = function (o) {
   // il protagonista: lo stesso della cameretta, con gli stessi movimenti (src/giocatore.js)
   const stanzaFinta = { limite: LIM, colliders: colliders };
   const giocatore = PZ.creaGiocatore(sc, stanzaFinta);
+  // (visibilità) una luce calda sopra il ragazzo che lo segue: non sparisce nel buio
+  const luceRagazzo = new THREE.PointLight(0xffc890, 1.1, 4.2, 1.4); sc.add(luceRagazzo);
   // (fase 80b) IL DEMONE DEL GAME OVER: quando il tempo finisce ti salta addosso qui sotto (stesso modello e stesso
   // jumpscare della strada), con la porta, le tubature e l'orologio dipinto alle sue spalle
   const occhiS = PZ.creaOcchi(sc, 40);
@@ -414,7 +423,7 @@ PZ.creaTombino = function (o) {
     S.seq = S.ordine.map(function (s) { return S.simboli.indexOf(s); });   // le valvole, in ordine
     VALV.forEach(function (v, i) {
       const g = v.cv.getContext('2d'); g.fillStyle = '#1c1a14'; g.fillRect(0, 0, 32, 32); g.fillStyle = '#2a261c'; g.fillRect(2, 2, 28, 28);
-      simbolo(g, S.simboli[i], 16, 16, 9, '#e8dcb8');
+      simbolo(g, S.simboli[i], 16, 16, 11, '#f4ead0');
       v.tex.needsUpdate = true;
     });
     disegnaOrologio(cvOro.getContext('2d'), S.ordine, S.inizio); texOro.needsUpdate = true;
@@ -496,9 +505,9 @@ PZ.creaTombino = function (o) {
   }
   // ---------- Interazione: la cosa più vicina (valvola, orologio dipinto, scala) ----------
   const OGG = [
-    { p: VALV[0].presa, nome: function () { return 'GIRA'; }, fn: function () { giraValvola(0); } },
-    { p: VALV[1].presa, nome: function () { return 'GIRA'; }, fn: function () { giraValvola(1); } },
-    { p: VALV[2].presa, nome: function () { return 'GIRA'; }, fn: function () { giraValvola(2); } },
+    { p: VALV[0].presa, nome: function () { return 'GIRA · ' + NOMI[S.simboli[0]]; }, fn: function () { giraValvola(0); } },
+    { p: VALV[1].presa, nome: function () { return 'GIRA · ' + NOMI[S.simboli[1]]; }, fn: function () { giraValvola(1); } },
+    { p: VALV[2].presa, nome: function () { return 'GIRA · ' + NOMI[S.simboli[2]]; }, fn: function () { giraValvola(2); } },
     { p: PRESA_MURALE, nome: function () { return 'GUARDA'; }, fn: function () { apriLente(); } },
     { p: PRESA_SCALA, nome: function () { return S.vinto ? 'RISALI' : 'RISALI SENZA PREMIO'; }, fn: function () { risali(); } }
   ];
@@ -575,7 +584,7 @@ PZ.creaTombino = function (o) {
     if (gioca && !S.vinto && S.tempo <= 5 && !AT.on) appareAlleSpalle();      // (fase 80c)
     if (S.vinto && AT.on && !S.uscita) { togliAttesa(); S.scossa = Math.max(S.scossa, 0.3); if (A()) A().colpo(0.5, 0); }
     aggiornaTempo(false);
-    PZ.opacita(ui.aiuto, S.fase === 'gioca' && S.t < 8 ? 0.85 : 0);
+    PZ.opacita(ui.aiuto, S.fase === 'gioca' && S.t < 5.5 ? 0.85 : 0);
     const kT = S.vinto ? Math.max(0, S.tensione - dt * 0.5) : liscia(1 - S.tempo / T.tempo);
     S.tensione = kT;
     if (!S.vinto) ui.box.classList.toggle('urgente', S.tempo <= 10 && S.fase === 'gioca');
@@ -583,6 +592,7 @@ PZ.creaTombino = function (o) {
     let ix = S.input.x, iz = S.input.z; const K = S.tasti;
     if (K.KeyA || K.ArrowLeft) ix -= 1; if (K.KeyD || K.ArrowRight) ix += 1; if (K.KeyW || K.ArrowUp) iz -= 1; if (K.KeyS || K.ArrowDown) iz += 1;
     giocatore.aggiorna(dt, ix, iz, !gioca || S.lente);
+    luceRagazzo.position.set(giocatore.pos.x, 2.1, giocatore.pos.z + 0.6);
     // il pulsante: compare solo vicino a qualcosa
     const v = gioca ? vicino() : null;
     const nome = v ? v.nome() : '';
@@ -618,10 +628,10 @@ PZ.creaTombino = function (o) {
     let lb = 1.0;
     if (S.flick < 0) { if (rnd() < 0.05 + 0.5 * kT) { S.flickDur = 0.04 + rnd() * (0.08 + 0.25 * kT); S.flick = S.flickDur + rnd() * (1.6 - 1.4 * kT); } else S.flick = 0.15; }
     if (S.flickDur > 0) { S.flickDur -= dt; lb = rnd() < 0.5 ? 0.08 : 0.35; }
-    lampadina.intensity = (1.6 - 0.35 * kT) * lb; bulbo.material.color.setHex(lb < 0.5 ? 0x3a2a14 : 0xffe0a0);
+    lampadina.intensity = (2.2 - 0.4 * kT) * lb; bulbo.material.color.setHex(lb < 0.5 ? 0x3a2a14 : 0xffe0a0);
     luceRossa.intensity = 2.2 * kT * kT * (0.8 + 0.2 * Math.sin(S.t * 3.3));
-    sc.fog.far = 13 - 3.5 * kT; sc.fog.near = 5 - 1.5 * kT;
-    PZ.opacita(ui.velo, Math.min(0.9, 0.5 * kT * kT + (S.uscita && S.uscita.preso ? 0.5 : 0)));
+    sc.fog.far = 13 - 2 * kT; sc.fog.near = 5 - 1 * kT;
+    PZ.opacita(ui.velo, Math.min(0.9, 0.4 * kT * kT + (S.uscita && S.uscita.preso ? 0.5 : 0)));
     if (A()) A().ronzio(S.fase === 'gioca' ? 0.1 + 0.9 * kT : 0);
     // i suoni del demone: sempre più vicini e più fitti (da lontano a sinistra o a destra, poi da dietro la scala)
     if (gioca && !S.vinto) {
