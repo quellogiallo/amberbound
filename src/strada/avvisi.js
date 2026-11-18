@@ -12,6 +12,7 @@
 // La corsa chiede: PZ.avvisi.visto(nome), PZ.avvisi.mostra(nome) e, a ogni fotogramma, PZ.avvisi.aperto() (se è
 // aperto la corsa è ferma: niente ostacoli, demone, collisioni, tempo). RIPROVA, RIAVVIA e RIGIOCA non li rimostrano.
 PZ.avvisi = (function () {
+  const TB = (PZ.CONFIG.strada && PZ.CONFIG.strada.tombino) || { premio: 20, perfetto: 30, tempo: 45, penalita: 4 };   // (fase 84) i numeri del tombino
   const TESTI = {
     manata: { titolo: 'LA MANATA', righe: [
       'Il demone ti sbarra la strada: il suo <b>corpo</b> chiude una corsia, la sua <b>mano</b> quella accanto.',
@@ -28,6 +29,18 @@ PZ.avvisi = (function () {
       'Ogni <b>50 frammenti</b> la pietra ti dà un potere, a scelta:',
       '<b>CUORE D\'AMBRA</b>: una vita in più (fino a 3). Se il demone ti prende, la pietra lo respinge.',
       '<b>FURIA D\'AMBRA</b>: 8 secondi invincibile. Sfondi auto, transenne e mani, il demone resta indietro e i metri contano doppio.'] },
+    // (fase 84) IL TOMBINO: in strada, la prima volta che arriva nella tua corsia; sotto, appena scendi (lì il tempo è
+    // fermo finché non lo chiudi, e resta aperto più a lungo: dura = millisecondi prima che si chiuda da solo)
+    tombino: { titolo: 'IL TOMBINO', righe: [
+      'Da sotto esce una <b>luce gialla</b> e si sente un orologio. Nella sua corsia compare <b>SCENDI</b> (PC: E o freccia giù).',
+      'Sotto c\'è un <b>enigma</b>: risolvilo e prendi <b>' + TB.premio + ' frammenti</b>, <b>' + TB.perfetto + '</b> se non sbagli mai.',
+      'È un rischio: hai poco tempo, e se scade <b>il demone ti trova</b>. Non sei obbligato: puoi passarci sopra.'] },
+    sotterraneo: { titolo: 'IL SOTTERRANEO', dura: 30000, righe: [
+      'Trascina il dito per muoverti (PC: W A S D). Vicino alle cose compare il pulsante per <b>GIRARE</b>, <b>GUARDARE</b> o <b>RISALIRE</b>.',
+      'Apri la porta girando le <b>3 valvole nell\'ordine giusto</b>. Ogni valvola ha un simbolo: <b>LUNA</b>, <b>OCCHIO</b>, <b>PIETRA</b>.',
+      'L\'ordine te lo dice l\'<b>orologio dipinto sul muro</b>: parti dal simbolo indicato dalla <b>lancetta</b> e segui la <b>freccia</b>.',
+      'Hai <b>' + TB.tempo + ' secondi</b> (il tempo parte dopo il conto alla rovescia). Valvola sbagliata: vapore, <b>-' + TB.penalita + ' secondi</b> e si ricomincia.',
+      'Porta aperta: torna alla <b>scala</b> per risalire con l\'ambra. Puoi risalire anche prima, ma <b>senza premio</b>.'] },
     maria: { titolo: 'O AVE MARIA', righe: [
       'Prendila passandoci attraverso: la bici <b>vola per qualche secondo</b> sopra auto, transenne e demone.',
       'È sempre in punti rischiosi: <b>sopra una transenna va presa saltando</b>.'] }
@@ -89,7 +102,7 @@ PZ.avvisi = (function () {
   return {
     mostra: mostra, chiudi: chiudi,
     // (fase 52b) a ogni fotogramma: dopo 10 secondi l'avviso si chiude da solo (conta come letto)
-    aggiorna: function () { if (aperto && performance.now() - tAperto > 10000) chiudi(true); },
+    aggiorna: function () { if (aperto && performance.now() - tAperto > ((TESTI[aperto] && TESTI[aperto].dura) || 10000)) chiudi(true); },
     aperto: function () { return !!aperto; }, quale: function () { return aperto; },
     visto: function (nome) { return !!visti[nome]; },
     // segna senza mostrare niente (es. 'guida' = ha già fatto la prima corsa con gli ostacoli di prova)

@@ -584,7 +584,8 @@ PZ.creaTombino = function (o) {
     if (S.msgT > 0) { S.msgT -= dt; if (S.msgT <= 0) msg(''); }
     // entrata: nero, poi la camera si apre
     if (S.fase === 'scende') {
-      if (S.t > 0.45) { S.fase = 'gioca'; ui.nero.style.transition = 'opacity .7s'; ui.nero.style.opacity = '0'; camPos.set(-0.5, 5.6, 6.6); camFuoco.set(-0.75, 0.4, 1.4); }
+      if (S.t > 0.45) { S.fase = 'gioca'; ui.nero.style.transition = 'opacity .7s'; ui.nero.style.opacity = '0'; camPos.set(-0.5, 5.6, 6.6); camFuoco.set(-0.75, 0.4, 1.4);
+        if (PZ.avvisi && PZ.avvisi.mostra('sotterraneo')) { S.input.x = S.input.z = 0; S.joyId = null; ui.joy.style.display = 'none'; } }   // (fase 84) la prima volta: come si gioca qui sotto
     }
     // (fase 83) SECONDI DI SCARTO: all'inizio il tempo è fermo e le istruzioni restano a schermo con il conto alla
     // rovescia; ci si può guardare intorno (e GUARDA l'orologio). Girare una valvola fa partire subito il tempo.

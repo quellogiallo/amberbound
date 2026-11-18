@@ -598,7 +598,7 @@ PZ.creaCorsa = function (opz) {
     }
     if (S.fase === 'finale') { passoFinale(dt); return; }
     if (S.fase === 'morte') { passoMorte(dt); return; }
-    if (S.fase === 'tombino') { tombino.passo(dt); return; }      // (fase 80) sotto terra: la strada è ferma
+    if (S.fase === 'tombino') { if (!PZ.avvisi.aperto()) tombino.passo(dt); return; }      // (fase 80) sotto terra: la strada è ferma (fase 84: e con l'avviso aperto tutto è fermo)
     if (S.fase !== 'corsa') return;
     // OROLOGIO DALINIANO: il tempo del mondo (dtm) scorre più piano (15%); quello vero (dt) resta per i comandi del
     // ragazzo (cambio corsia, salto), la sua pedalata, la durata del potere, la telecamera e il demone che resta indietro
@@ -763,6 +763,8 @@ PZ.creaCorsa = function (opz) {
     if (!A.visto('manata') && manata.stato.ev && manata.stato.avvisata && !manata.stato.ev.sotto) { A.mostra('manata'); return; }
     if (!A.visto('colpa') && eventi.invertiti()) { A.mostra('colpa'); return; }
     if (!A.visto('maria') && salvia.stato.inStrada && salvia.stato.presa < 0 && salvia.gruppo.position.z > -55) { A.mostra('maria'); return; }
+    // (fase 84) il tombino arriva nella tua corsia (c'è SCENDI) per la prima volta
+    if (!A.visto('tombino') && S.scendi) { A.mostra('tombino'); return; }
     if (!A.visto('ragazza')) {
       const st = traffico.statiche;
       for (let i = 0; i < st.length; i++) { const o = st[i]; if ((o.ragazza || o.pool === ragazze) && !o.colpita && o.z > -48 && o.z < -6) { A.mostra('ragazza'); return; } }
