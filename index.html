@@ -483,12 +483,15 @@
     var t = e.target && e.target.tagName;
     if (t === 'SCRIPT' || t === 'LINK' || t === 'IMG') { arrivati++; meta = Math.max(meta, Math.min(95, Math.round(arrivati / tot * 95))); }
   }, true);
-  window.addEventListener('load', function () { meta = 100; finito = true; });
+  // (fase 82) la schermata sparisce solo quando lo sfondo del menu ha disegnato i primi fotogrammi (window.PZmenuPronto),
+  // così l'inizio della camminata non scatta; al massimo 5 secondi dopo il caricamento dei file
+  var tFinito = 0;
+  window.addEventListener('load', function () { meta = 100; finito = true; tFinito = performance.now(); });
   // il numero sale morbido verso la meta (non salta), poi a 100% la schermata sfuma
   function passo() {
     mostra += Math.max(0.4, (meta - mostra) * 0.18); if (mostra > meta) mostra = meta;
     N.textContent = Math.floor(mostra) + '%';
-    if (finito && mostra >= 100) { setTimeout(function () { box.classList.add('via'); setTimeout(function () { box.style.display = 'none'; }, 700); }, 250); return; }
+    if (finito && mostra >= 100 && (window.PZmenuPronto || performance.now() - tFinito > 5000)) { setTimeout(function () { box.classList.add('via'); setTimeout(function () { box.style.display = 'none'; }, 700); }, 250); return; }
     requestAnimationFrame(passo);
   }
   requestAnimationFrame(passo);
@@ -498,60 +501,92 @@
   // dondolando; poi ricomincia. Le facce sono colorate dalla luce che arriva dall'alto a sinistra.
   // (fase 75) la stessa pietra per tutti i caricamenti: window.PZpietra(canvas, attiva) la fa rotolare in quel canvas
   // finché attiva() dice sì
-  // una bipiramide pentagonale irregolare: sembra una pietra scheggiata, non un cristallo perfetto
-  var V = [[0, 1.15, 0.1], [0.05, -1.05, -0.05]], F = [];
-  [1, 0.85, 1.05, 0.9, 0.95].forEach(function (r, i) { var a = i / 5 * Math.PI * 2 + 0.3; V.push([Math.cos(a) * r, (i % 2 ? 0.12 : -0.08), Math.sin(a) * r]); });
-  for (var i = 0; i < 5; i++) { var j = (i + 1) % 5; F.push([0, 2 + j, 2 + i]); F.push([1, 2 + i, 2 + j]); }
-  var LUCE = [-0.45, 0.75, 0.5], ll = Math.hypot(LUCE[0], LUCE[1], LUCE[2]); LUCE = LUCE.map(function (v) { return v / ll; });
-  function ruota(p, ax, ay, az) {
-    var x = p[0], y = p[1], z = p[2], c, s, t;
-    c = Math.cos(ax); s = Math.sin(ax); t = y * c - z * s; z = y * s + z * c; y = t;
-    c = Math.cos(ay); s = Math.sin(ay); t = x * c + z * s; z = -x * s + z * c; x = t;
-    c = Math.cos(az); s = Math.sin(az); t = x * c - y * s; y = x * s + y * c; x = t;
-    return [x, y, z];
+  // (fase 82) il disegno della pietra sta in una funzione a sé (motorePietra), così lo può usare anche un processo
+  // separato del browser (Web Worker con OffscreenCanvas): lì la pietra gira fluida anche quando il gioco sta
+  // lavorando (costruire la città, preparare i materiali). Sui browser che non lo permettono si disegna qui come prima.
+  function motorePietra() {
+    // una bipiramide pentagonale irregolare: sembra una pietra scheggiata, non un cristallo perfetto
+    var V = [[0, 1.15, 0.1], [0.05, -1.05, -0.05]], F = [];
+    [1, 0.85, 1.05, 0.9, 0.95].forEach(function (r, i) { var a = i / 5 * Math.PI * 2 + 0.3; V.push([Math.cos(a) * r, (i % 2 ? 0.12 : -0.08), Math.sin(a) * r]); });
+    for (var i = 0; i < 5; i++) { var j = (i + 1) % 5; F.push([0, 2 + j, 2 + i]); F.push([1, 2 + i, 2 + j]); }
+    var LUCE = [-0.45, 0.75, 0.5], ll = Math.hypot(LUCE[0], LUCE[1], LUCE[2]); LUCE = LUCE.map(function (v) { return v / ll; });
+    function ruota(p, ax, ay, az) {
+      var x = p[0], y = p[1], z = p[2], c, s, t;
+      c = Math.cos(ax); s = Math.sin(ax); t = y * c - z * s; z = y * s + z * c; y = t;
+      c = Math.cos(ay); s = Math.sin(ay); t = x * c + z * s; z = -x * s + z * c; x = t;
+      c = Math.cos(az); s = Math.sin(az); t = x * c - y * s; y = x * s + y * c; x = t;
+      return [x, y, z];
+    }
+    var DUR = 2.6;
+    function moto(t) {        // posizione (x, y dal suolo) e rotazione nel ciclo: caduta, due rimbalzi, rotolata, quiete
+      var y, x, rot, k;
+      if (t < 0.45) { k = t / 0.45; y = (1 - k * k) * 120; }                         // cade
+      else if (t < 0.85) { k = (t - 0.45) / 0.4; y = 4 * k * (1 - k) * 34; }          // primo rimbalzo
+      else if (t < 1.1) { k = (t - 0.85) / 0.25; y = 4 * k * (1 - k) * 10; }          // secondo, più piccolo
+      else y = 0;
+      var tr = Math.min(t, 1.9);                                                      // rotola e rallenta fino a fermarsi
+      x = -46 + 92 * (1 - Math.pow(1 - tr / 1.9, 2));
+      rot = x / 38;                                                                     // gira quanto ha rotolato
+      var dondola = t > 1.9 ? Math.sin((t - 1.9) * 14) * 0.12 * Math.exp(-(t - 1.9) * 5) : 0;
+      return { x: x, y: y, rz: -rot + dondola, rx: 0.5 + t * 1.3 * (t < 1.9 ? 1 : 0) + (t >= 1.9 ? 1.9 * 1.3 : 0), sq: y === 0 && t < 1.15 && t > 0.43 ? 0.9 : 1 };
+    }
+    // disegna la pietra nel suo momento ts (secondi dall'inizio) nel contesto g largo W e alto H
+    return function (g, W, H, ts) {
+      var R = 38, SUOLO = H - 24, t = ts % DUR, m = moto(t), sc = R;
+      g.clearRect(0, 0, W, H);
+      // l'ombra a terra: più piccola e chiara quando la pietra è in aria
+      var al = Math.max(0.15, 1 - m.y / 130);
+      g.fillStyle = 'rgba(255, 170, 20,' + (0.18 * al) + ')';
+      g.beginPath(); g.ellipse(W / 2 + m.x, SUOLO + 4, R * 1.1 * al, 5 * al, 0, 0, Math.PI * 2); g.fill();
+      var P = V.map(function (p) { var q = ruota(p, m.rx, 0.4, m.rz); return [q[0] * sc, q[1] * sc * m.sq, q[2] * sc]; });
+      var facce = F.map(function (f) {
+        var a = P[f[0]], b = P[f[1]], c = P[f[2]];
+        var u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], v = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
+        var n = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]], nl = Math.hypot(n[0], n[1], n[2]) || 1;
+        return { f: f, n: [n[0] / nl, n[1] / nl, n[2] / nl], z: (a[2] + b[2] + c[2]) / 3 };
+      }).filter(function (o) { return o.n[2] > 0; }).sort(function (a, b) { return a.z - b.z; });
+      var cx = W / 2 + m.x, cy = SUOLO - m.y - R * 0.95;
+      facce.forEach(function (o) {
+        var l = Math.max(0, o.n[0] * LUCE[0] + o.n[1] * LUCE[1] + o.n[2] * LUCE[2]), k = 0.35 + 0.75 * l;
+        g.fillStyle = 'rgb(' + Math.min(255, Math.round(255 * k)) + ',' + Math.round(175 * k) + ',' + Math.round(20 * k) + ')';
+        g.strokeStyle = 'rgba(255, 240, 170, .35)'; g.lineWidth = 1;
+        g.beginPath();
+        o.f.forEach(function (i, n) { var p = P[i]; if (n) g.lineTo(cx + p[0], cy - p[1]); else g.moveTo(cx + p[0], cy - p[1]); });
+        g.closePath(); g.fill(); g.stroke();
+      });
+    };
   }
-  var DUR = 2.6;
-  function moto(t) {        // posizione (x, y dal suolo) e rotazione nel ciclo: caduta, due rimbalzi, rotolata, quiete
-    var y, x, rot, k;
-    if (t < 0.45) { k = t / 0.45; y = (1 - k * k) * 120; }                         // cade
-    else if (t < 0.85) { k = (t - 0.45) / 0.4; y = 4 * k * (1 - k) * 34; }          // primo rimbalzo
-    else if (t < 1.1) { k = (t - 0.85) / 0.25; y = 4 * k * (1 - k) * 10; }          // secondo, più piccolo
-    else y = 0;
-    var tr = Math.min(t, 1.9);                                                      // rotola e rallenta fino a fermarsi
-    x = -46 + 92 * (1 - Math.pow(1 - tr / 1.9, 2));
-    rot = x / 38;                                                                     // gira quanto ha rotolato
-    var dondola = t > 1.9 ? Math.sin((t - 1.9) * 14) * 0.12 * Math.exp(-(t - 1.9) * 5) : 0;
-    return { x: x, y: y, rz: -rot + dondola, rx: 0.5 + t * 1.3 * (t < 1.9 ? 1 : 0) + (t >= 1.9 ? 1.9 * 1.3 : 0), sq: y === 0 && t < 1.15 && t > 0.43 ? 0.9 : 1 };
-  }
+  // il processo separato: riceve i canvas e li anima finché sono accesi
+  var lavoratore = null, prossimoId = 1;
+  try {
+    if (window.Worker && window.OffscreenCanvas && HTMLCanvasElement.prototype.transferControlToOffscreen && window.Blob && window.URL) {
+      var codice = 'var disegna = (' + motorePietra.toString() + ')(), tele = {};\n' +
+        'onmessage = function (e) { var d = e.data, t;\n' +
+        '  if (d.tipo === "nuovo") tele[d.id] = { c: d.canvas, g: d.canvas.getContext("2d"), on: false, t0: 0 };\n' +
+        '  else if (d.tipo === "via" && (t = tele[d.id])) { if (d.on && !t.on) { t.on = true; t.t0 = performance.now(); } else if (!d.on) { t.on = false; t.g.clearRect(0, 0, t.c.width, t.c.height); } } };\n' +
+        'function ciclo() { var ora = performance.now(); for (var k in tele) { var t = tele[k]; if (t.on) disegna(t.g, t.c.width, t.c.height, (ora - t.t0) / 1000); }\n' +
+        '  if (self.requestAnimationFrame) requestAnimationFrame(ciclo); else setTimeout(ciclo, 16); }\n' +
+        'ciclo();';
+      lavoratore = new Worker(URL.createObjectURL(new Blob([codice], { type: 'text/javascript' })));
+      lavoratore.onerror = function () { lavoratore = null; };
+    }
+  } catch (e) { lavoratore = null; }
+  var disegnaQui = motorePietra();
+  // (fase 75) la stessa pietra per tutti i caricamenti: window.PZpietra(canvas, attiva) la fa rotolare in quel canvas
+  // finché attiva() dice sì
   window.PZpietra = function (cv, attiva) {
-   var g = cv.getContext('2d'), W = cv.width, H = cv.height, R = 38, SUOLO = H - 24, t0 = performance.now();
-   function disegna(ora) {
-    if (!attiva()) return;
-    var t = ((ora - t0) / 1000) % DUR, m = moto(t), sc = R;
-    g.clearRect(0, 0, W, H);
-    // l'ombra a terra: più piccola e chiara quando la pietra è in aria
-    var al = Math.max(0.15, 1 - m.y / 130);
-    g.fillStyle = 'rgba(255, 170, 20,' + (0.18 * al) + ')';
-    g.beginPath(); g.ellipse(W / 2 + m.x, SUOLO + 4, R * 1.1 * al, 5 * al, 0, 0, Math.PI * 2); g.fill();
-    var P = V.map(function (p) { var q = ruota(p, m.rx, 0.4, m.rz); return [q[0] * sc, q[1] * sc * m.sq, q[2] * sc]; });
-    var facce = F.map(function (f) {
-      var a = P[f[0]], b = P[f[1]], c = P[f[2]];
-      var u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], v = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
-      var n = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]], nl = Math.hypot(n[0], n[1], n[2]) || 1;
-      return { f: f, n: [n[0] / nl, n[1] / nl, n[2] / nl], z: (a[2] + b[2] + c[2]) / 3 };
-    }).filter(function (o) { return o.n[2] > 0; }).sort(function (a, b) { return a.z - b.z; });
-    var cx = W / 2 + m.x, cy = SUOLO - m.y - R * 0.95;
-    facce.forEach(function (o) {
-      var l = Math.max(0, o.n[0] * LUCE[0] + o.n[1] * LUCE[1] + o.n[2] * LUCE[2]), k = 0.35 + 0.75 * l;
-      g.fillStyle = 'rgb(' + Math.min(255, Math.round(255 * k)) + ',' + Math.round(175 * k) + ',' + Math.round(20 * k) + ')';
-      g.strokeStyle = 'rgba(255, 240, 170, .35)'; g.lineWidth = 1;
-      g.beginPath();
-      o.f.forEach(function (i, n) { var p = P[i]; if (n) g.lineTo(cx + p[0], cy - p[1]); else g.moveTo(cx + p[0], cy - p[1]); });
-      g.closePath(); g.fill(); g.stroke();
-    });
+    if (lavoratore && (cv.__pietra || !cv.__qui)) {
+      try {
+        if (!cv.__pietra) { var off = cv.transferControlToOffscreen(); cv.__pietra = prossimoId++; lavoratore.postMessage({ tipo: 'nuovo', id: cv.__pietra, canvas: off }, [off]); }
+        lavoratore.postMessage({ tipo: 'via', id: cv.__pietra, on: true });
+        (function guarda() { if (!attiva()) { if (lavoratore) lavoratore.postMessage({ tipo: 'via', id: cv.__pietra, on: false }); return; } requestAnimationFrame(guarda); })();
+        return;
+      } catch (e) { if (cv.__pietra) return; }
+    }
+    cv.__qui = true;                                         // qui, come prima (browser senza OffscreenCanvas)
+    var g = cv.getContext('2d'), t0 = performance.now();
+    function disegna(ora) { if (!attiva()) return; disegnaQui(g, cv.width, cv.height, (ora - t0) / 1000); requestAnimationFrame(disegna); }
     requestAnimationFrame(disegna);
-  }
-   requestAnimationFrame(disegna);
   };
   window.PZpietra(document.getElementById('ambraPietra'), function () { return box.style.display !== 'none'; });
 })();

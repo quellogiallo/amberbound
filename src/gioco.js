@@ -37,6 +37,10 @@
     // (fase 81) lo sfondo del menu: loro due che camminano mano nella mano sulla scogliera al tramonto (src/menu.js)
     let sfondoMenu = null;
     try { if (PZ.creaSfondoMenu) { sfondoMenu = PZ.creaSfondoMenu(renderer); $('avvio').classList.add('scena'); stage.classList.add('menuScena'); } } catch (e) { console.warn(e); sfondoMenu = null; }
+    // (fase 82) i materiali dello sfondo si preparano subito, dietro la schermata di caricamento (prima succedeva al primo
+    // fotogramma, proprio quando la camminata cominciava: scatti); la schermata sparisce dopo i primi fotogrammi veri
+    let fotogrammiMenu = 0;
+    if (sfondoMenu) { try { renderer.compile(sfondoMenu.scena, sfondoMenu.camera); sfondoMenu.passo(0); } catch (e) { console.warn(e); } } else window.PZmenuPronto = true;
     const menuNero = $('menuNero');
 
     // ---------- Stato ----------
@@ -295,7 +299,9 @@
         function () { preparaCorsa(); }
       ];
       let i = 0;
-      el.style.display = 'flex'; void el.offsetWidth; el.classList.add('vis');
+      // (fase 82) copre subito lo schermo (niente dissolvenza in entrata: prima, in quegli 0,8 s, si vedeva già la
+      // cameretta); la dissolvenza resta solo in uscita
+      el.style.transition = 'none'; el.style.display = 'flex'; el.classList.add('vis'); void el.offsetWidth; el.style.transition = '';
       barra.style.transform = 'scaleX(0.08)';
       function prossimo() {
         if (i < passi.length) {
@@ -484,7 +490,12 @@
       const dt = Math.min(0.05, (ora - ultimo) / 1000); ultimo = ora; tMondo += dt;
       // (fase 81) finché c'è il menu si disegna la scogliera; quando si entra nel gioco la scena si libera
       if (sfondoMenu) {
-        if (!stato.iniziato) { const n = sfondoMenu.passo(dt); if (menuNero) menuNero.style.opacity = n.toFixed(2); return; }
+        if (!stato.iniziato) {
+          // (fase 82) finché c'è la schermata di caricamento la camminata non avanza (comincia quando la si vede)
+          const n = sfondoMenu.passo(window.PZmenuPronto ? dt : 0); if (menuNero) menuNero.style.opacity = n.toFixed(2);
+          if (++fotogrammiMenu === 4) window.PZmenuPronto = true;
+          return;
+        }
         sfondoMenu.libera(); sfondoMenu = null; $('avvio').classList.remove('scena'); stage.classList.remove('menuScena');
       }
       if (stato.bloccato > 0) stato.bloccato -= dt;
