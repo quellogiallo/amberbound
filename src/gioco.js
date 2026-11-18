@@ -39,7 +39,7 @@
     try { if (PZ.creaSfondoMenu) { sfondoMenu = PZ.creaSfondoMenu(renderer); $('avvio').classList.add('scena'); stage.classList.add('menuScena'); } } catch (e) { console.warn(e); sfondoMenu = null; }
     // (fase 82) i materiali dello sfondo si preparano subito, dietro la schermata di caricamento (prima succedeva al primo
     // fotogramma, proprio quando la camminata cominciava: scatti); la schermata sparisce dopo i primi fotogrammi veri
-    let fotogrammiMenu = 0;
+    let fotogrammiMenu = 0, dtPrecMenu = 0; const tMenu0 = performance.now();
     if (sfondoMenu) { try { renderer.compile(sfondoMenu.scena, sfondoMenu.camera); sfondoMenu.prepara(); } catch (e) { console.warn(e); } } else window.PZmenuPronto = true;
     // (fase 82b) la schermata aspetta anche la classifica online (i suoi file pesanti si preparano adesso, non durante la
     // camminata); se la rete è lenta, al massimo 6 secondi
@@ -53,7 +53,7 @@
         if (window.PZmenuVisto) return;
         if (e) { e.preventDefault(); e.stopPropagation(); if (e.stopImmediatePropagation) e.stopImmediatePropagation(); }
         window.PZmenuVisto = true;
-        PZ.audio.avvia(); if (PZ.audio.menu) PZ.audio.menu.avvia();
+        PZ.audio.avvia(true); if (PZ.audio.menu) PZ.audio.menu.avvia();   // (fase 91) solo la musica del menu
         tocca.classList.remove('vis');
       };
       tocca.addEventListener('pointerdown', entra);
@@ -518,8 +518,18 @@
       if (sfondoMenu) {
         if (!stato.iniziato) {
           // (fase 82) finché c'è la schermata di caricamento la camminata non avanza (comincia quando la si vede)
-          const n = sfondoMenu.passo(window.PZmenuPronto && window.PZmenuVisto ? dt : 0); if (menuNero) menuNero.style.opacity = n.toFixed(2);
-          if (onlineFatto && musicaMenuPronta && ++fotogrammiMenu === 8) window.PZmenuPronto = true;   // qualche fotogramma vero, poi via
+          // (fase 91) PROVA DIETRO IL CARICAMENTO: la camminata gira davvero (stessi calcoli, stesso disegno) finché i
+          // fotogrammi non sono regolari da almeno un secondo; poi la schermata sparisce e la camminata riparte dall'inizio
+          if (!window.PZmenuPronto) {
+            sfondoMenu.passo(dt);
+            const ok = onlineFatto && musicaMenuPronta;
+            if (ok && dt < 0.045 && Math.abs(dt - dtPrecMenu) < 0.008) fotogrammiMenu++; else fotogrammiMenu = 0;   // regolari, anche a 30 fps
+            dtPrecMenu = dt;
+            if (fotogrammiMenu >= 50 || performance.now() - tMenu0 > 11000) { sfondoMenu.ricomincia(); window.PZmenuPronto = true; }
+            if (menuNero) menuNero.style.opacity = '1';
+            return;
+          }
+          const n = sfondoMenu.passo(window.PZmenuVisto ? dt : 0); if (menuNero) menuNero.style.opacity = n.toFixed(2);
           return;
         }
         sfondoMenu.libera(); sfondoMenu = null; $('avvio').classList.remove('scena'); stage.classList.remove('menuScena');

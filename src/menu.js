@@ -152,13 +152,15 @@ PZ.creaSfondoMenu = function (renderer) {
     passo(0);
     salvati.forEach(function (v) { v[0].frustumCulled = v[1]; });
   }
+  // (fase 91) dopo la prova dietro il caricamento: di nuovo all'inizio del sentiero, nel nero
+  function ricomincia() { M.s = S_INIZIO; M.fase = 0; M.t = 0; M.nero = 1; M.dtL = 0; }
   function libera() {
     scena.traverse(function (o) {
       if (o.geometry) o.geometry.dispose();
       if (o.material) [].concat(o.material).forEach(function (m) { if (m.map) m.map.dispose(); m.dispose(); });
     });
   }
-  const out = { passo: passo, prepara: prepara, libera: libera, scena: scena, camera: camera, stato: M, L: L, lei: lei, ragazzo: ragazzo };
+  const out = { passo: passo, prepara: prepara, ricomincia: ricomincia, libera: libera, scena: scena, camera: camera, stato: M, L: L, lei: lei, ragazzo: ragazzo };
   window.__menu = out;   // utile per le prove automatiche
   return out;
 };

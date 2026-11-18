@@ -498,7 +498,7 @@
   function passo() {
     mostra += Math.max(0.4, (meta - mostra) * 0.18); if (mostra > meta) mostra = meta;
     N.textContent = Math.floor(mostra) + '%';
-    if (finito && mostra >= 100 && (window.PZmenuPronto || performance.now() - tFinito > 8000)) { setTimeout(function () { box.classList.add('via'); setTimeout(function () { box.style.display = 'none'; }, 700); }, 250); return; }
+    if (finito && mostra >= 100 && (window.PZmenuPronto || performance.now() - tFinito > 13000)) { setTimeout(function () { box.classList.add('via'); setTimeout(function () { box.style.display = 'none'; }, 700); }, 250); return; }
     requestAnimationFrame(passo);
   }
   requestAnimationFrame(passo);

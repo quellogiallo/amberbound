@@ -1,8 +1,10 @@
 // Suoni semplici generati dal browser (nessun file necessario). Parte solo dopo il primo tocco, come vogliono i telefoni.
 PZ.audio = (function () {
-  let ctx = null, master = null, ovatta = null, limite = null, limiteDopo = null;
-  function avvia() {
-    if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
+  let ctx = null, master = null, ovatta = null, limite = null, limiteDopo = null, fileCaricati = false;
+  // (fase 91) avvia(true) = solo l'audio acceso, senza scaricare i file pesanti (al tocco su "TOCCA PER ENTRARE": la loro
+  // decodifica rallentava la camminata del menu). Il primo avvia() normale (STORIA/ARCADE) li scarica.
+  function avvia(leggero) {
+    if (ctx) { if (ctx.state === 'suspended') ctx.resume(); if (leggero !== true && !fileCaricati) caricaFile(); return; }
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
     try {
@@ -21,6 +23,10 @@ PZ.audio = (function () {
       limite.connect(dopo); dopo.connect(ctx.destination); limiteDopo = dopo;
       master.connect(ovatta); ovatta.connect(limite);
     } catch (e) { ctx = null; }
+    if (leggero !== true) caricaFile();
+  }
+  function caricaFile() {
+    if (fileCaricati || !ctx) return; fileCaricati = true;
     caricaStinger();
     aveMaria.carica();              // (fase 31) il pezzo della O Ave Maria
     pezziFinale.carica();           // (fase 36) Pezzidicarne per il finale
