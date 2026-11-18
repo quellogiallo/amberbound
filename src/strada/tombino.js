@@ -70,10 +70,19 @@ PZ.creaTombino = function (o) {
   // la luce che esce dal tombino illumina la bici quando ci passa: sempre in scena (spenta), così non si ricompila niente
   const luceStrada = new THREE.PointLight(0xffa83a, 0, 7, 2); luceStrada.position.set(0, 0.5, 0); scena.add(luceStrada);
 
+  // (fase 96) DIAGNOSI: aprendo il gioco con ?diag nell'indirizzo il tombino arriva presto (dopo 150 m) e nel sotterraneo
+  // compare un riquadro con cosa sta disegnando la scheda video e cosa c'è sopra l'immagine (per i blocchi su iPhone)
+  const DIAG = /[?&#]diag/.test(location.search + location.hash);
+  const DG = { persi: 0, ripristini: 0, render: 0, err: '', calls: 0, tri: 0, el: null, t: 0 };
+  if (DIAG) {
+    renderer.domElement.addEventListener('webglcontextlost', function () { DG.persi++; });
+    renderer.domElement.addEventListener('webglcontextrestored', function () { DG.ripristini++; });
+  }
   const st = { inStrada: null, piani: [], generati: 0, usato: false, tic: 0, t: 0 };
   function reset() {
     st.inStrada = null; st.piani = []; st.generati = 0; st.usato = false; st.t = 0; st.tic = 0;
-    if (rnd() < T.probabilita) st.piani.push(T.metri[0] + rnd() * (T.metri[1] - T.metri[0]));
+    if (DIAG) st.piani.push(150);
+    else if (rnd() < T.probabilita) st.piani.push(T.metri[0] + rnd() * (T.metri[1] - T.metri[0]));
     strada.visible = false; luceStrada.intensity = 0;
     S.simboli = [];                                  // nuova partita: nuova soluzione (decisa alla prima discesa)
     fineJumpscare();
@@ -622,6 +631,7 @@ PZ.creaTombino = function (o) {
     if (S.vinto && AT.on && !S.uscita) { togliAttesa(); S.scossa = Math.max(S.scossa, 0.3); if (A()) A().colpo(0.5, 0); }
     aggiornaTempo(false);
     PZ.opacita(ui.aiuto, S.fase === 'gioca' && S.t < (T.scarto || 0) + 3 ? 0.85 : 0);
+    if (DIAG) diagnosi(dt);
     const kT = S.vinto ? Math.max(0, S.tensione - dt * 0.5) : liscia(1 - S.tempo / T.tempo);
     S.tensione = kT;
     if (!S.vinto) ui.box.classList.toggle('urgente', S.tempo <= 10 && S.fase === 'gioca');
@@ -749,13 +759,30 @@ PZ.creaTombino = function (o) {
     });
     console.warn('[tombino] materiali semplificati');
   }
+  function diagnosi(dt) {
+    DG.t -= dt; if (DG.t > 0) return; DG.t = 0.5;
+    if (!DG.el) { DG.el = document.createElement('div'); DG.el.style.cssText = 'position:absolute;left:.3em;right:.3em;bottom:11.5em;z-index:6;font:9px/1.25 monospace;color:#7f7;background:rgba(0,0,0,.78);white-space:pre-wrap;pointer-events:none;padding:.3em'; ui.box.appendChild(DG.el); }
+    const gl = renderer.getContext(), cv = renderer.domElement, r = cv.getBoundingClientRect(), cs = getComputedStyle(cv);
+    const pr = renderer.info.programs || [];
+    const sopra = (document.elementsFromPoint ? document.elementsFromPoint(r.left + r.width / 2, r.top + r.height * 0.55) : []).slice(0, 9).map(function (e) {
+      const c = getComputedStyle(e); return (e.id || e.tagName.toLowerCase()) + (e.className && typeof e.className === 'string' ? '.' + e.className.split(' ').join('.') : '') + '[' + c.display + ',' + c.visibility + ',' + (+c.opacity).toFixed(2) + (c.backgroundColor !== 'rgba(0, 0, 0, 0)' ? ',' + c.backgroundColor : '') + ']';
+    });
+    let err = 0; try { err = gl.getError(); } catch (e) {}
+    DG.el.textContent = 'DIAG fase=' + S.fase + ' t=' + S.t.toFixed(1) + ' persi=' + DG.persi + '/' + DG.ripristini + ' lost=' + (gl.isContextLost && gl.isContextLost()) +
+      '\nrender=' + DG.render + ' calls=' + DG.calls + ' tri=' + DG.tri + ' prog=' + pr.length + ' ko=' + pr.filter(function (p) { return p.diagnostics && p.diagnostics.runnable === false; }).length + ' glErr=' + err + ' semplice=' + semplice +
+      (DG.err ? '\nERRORE: ' + DG.err : '') +
+      '\ncanvas ' + cv.width + 'x' + cv.height + ' css ' + Math.round(r.width) + 'x' + Math.round(r.height) + ' ' + cs.display + '/' + cs.visibility + '/' + cs.opacity +
+      '\nsopra: ' + sopra.join(' > ') +
+      '\ngeom=' + renderer.info.memory.geometries + ' tex=' + renderer.info.memory.textures + ' dpr=' + (window.devicePixelRatio || 1) + ' THREE r' + THREE.REVISION;
+  }
   function disegna() {
     const gl = renderer.getContext();
     if (gl.isContextLost && gl.isContextLost()) { if (S.attivo && !S.uscita) S.uscita = { t: 0, esito: { premio: 0 } }; return; }   // la scheda video si è fermata: si risale
     const w = renderer.domElement.width, h = renderer.domElement.height;
     if (Math.abs(cam.aspect - w / h) > 1e-3) { cam.aspect = w / h; cam.updateProjectionMatrix(); }
     renderer.setRenderTarget(null); const ac = renderer.autoClear; renderer.autoClear = true;
-    renderer.render(sc, cam);
+    if (DIAG) { try { renderer.render(sc, cam); DG.render++; DG.calls = renderer.info.render.calls; DG.tri = renderer.info.render.triangles; } catch (e) { DG.err = String(e && e.message || e).slice(0, 120); } }
+    else renderer.render(sc, cam);
     renderer.autoClear = ac;
     if (!semplice && controlli < 3) { controlli++; if (falliti()) { semplifica(); renderer.render(sc, cam); } }
   }
