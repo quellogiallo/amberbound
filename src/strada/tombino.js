@@ -71,6 +71,7 @@ PZ.creaTombino = function (o) {
     if (rnd() < T.probabilita) st.piani.push(T.metri[0] + rnd() * (T.metri[1] - T.metri[0]));
     strada.visible = false; luceStrada.intensity = 0;
     S.simboli = [];                                  // nuova partita: nuova soluzione (decisa alla prima discesa)
+    fineJumpscare();
     if (S.attivo) chiudiSotto();
   }
   function disponibile() { return !st.usato && !st.inStrada && st.piani.length && st.generati < T.max && !(PZ.arcade && PZ.arcade.attiva && !T.arcade); }
@@ -322,6 +323,41 @@ PZ.creaTombino = function (o) {
   // il protagonista: lo stesso della cameretta, con gli stessi movimenti (src/giocatore.js)
   const stanzaFinta = { limite: LIM, colliders: colliders };
   const giocatore = PZ.creaGiocatore(sc, stanzaFinta);
+  // (fase 80b) IL DEMONE DEL GAME OVER: quando il tempo finisce ti salta addosso qui sotto (stesso modello e stesso
+  // jumpscare della strada), con la porta, le tubature e l'orologio dipinto alle sue spalle
+  const occhiS = PZ.creaOcchi(sc, 40);
+  const demoneS = PZ.creaDemone(sc, occhiS, { manone: true });
+  const J = { t: 0, testa: new V3(), bers: new V3(), p: new V3() }, DZ = -1.0;
+  function iniziaJumpscare() {
+    J.t = 0;
+    giocatore.pos.set(0, 0, 3.0); if (giocatore.ragazzo && giocatore.ragazzo.gruppo) giocatore.ragazzo.gruppo.visible = false;
+    demoneS.mostra(); demoneS.posiziona(0, 0, DZ, 0);
+    luceRossa.position.set(0, 2.2, DZ + 1.6); matOcchi.opacity = 0;
+    sc.fog.near = 3; sc.fog.far = 11; ui.velo.style.opacity = '0';
+  }
+  // t = secondi dal salto: il demone si avventa contro la telecamera (da lontano a mezzo metro), poi resta a fissarti
+  function jumpscare(dt) {
+    J.t += dt; const t = J.t;
+    J.bers.set(0, 1.5, DZ + 3);
+    demoneS.anima(dt, 'afferra', 11, J.bers, 1);
+    occhiS.aggiorna(dt, J.bers);
+    const G = demoneS.G; G.testa.updateMatrixWorld(true); G.testa.getWorldPosition(J.testa);
+    const u = Math.min(1, t / 0.16), avv = 1 - Math.pow(1 - u, 3);
+    const d = 3.4 + (1.75 - 3.4) * avv - 0.05 * Math.sin(t * 6) * Math.min(1, t / 0.4);
+    const sc2 = t < 0.16 ? 0.02 : 0.11 * Math.exp(-(t - 0.16) * 3.2) + 0.012;
+    J.p.copy(J.testa); J.p.z += d; J.p.y += 0.05;
+    cam.position.set(J.p.x + (rnd() - 0.5) * sc2, J.p.y + (rnd() - 0.5) * sc2, J.p.z + (rnd() - 0.5) * sc2);
+    cam.lookAt(J.testa.x + (rnd() - 0.5) * sc2 * 0.6, J.testa.y - 0.12 + (rnd() - 0.5) * sc2 * 0.6, J.testa.z);
+    cam.rotateZ((rnd() - 0.5) * sc2 * 1.2);
+    if (cam.fov !== 70) { cam.fov = 70; cam.updateProjectionMatrix(); }
+    // la luce rossa pulsa, la lampadina impazzisce
+    luceRossa.intensity = 2.6 + 0.8 * Math.sin(t * 9); lampadina.intensity = rnd() < 0.35 ? 0.15 : 1.1; bulbo.material.color.setHex(lampadina.intensity < 0.5 ? 0x3a2a14 : 0xffe0a0);
+  }
+  function fineJumpscare() {
+    demoneS.nascondi(); if (giocatore.ragazzo && giocatore.ragazzo.gruppo) giocatore.ragazzo.gruppo.visible = true;
+    if (cam.fov !== 52) { cam.fov = 52; cam.updateProjectionMatrix(); }
+    luceRossa.position.set(0.5, 2.0, 1.4); J.t = 0;
+  }
 
   // ---------- Interfaccia (dentro #sotto, in index.html) ----------
   const ui = { box: $('sotto'), tempo: $('sottoTempo'), msg: $('sottoMsg'), agisci: $('sottoAgisci'), nero: $('sottoNero'), velo: $('sottoVelo'),
@@ -570,7 +606,12 @@ PZ.creaTombino = function (o) {
     if (S.uscita) {
       S.uscita.t += dt;
       if (S.uscita.preso) { luceRossa.intensity = 3; lampadina.intensity = rnd() < 0.5 ? 0 : 0.3; matOcchi.opacity = 1; occhi[0].position.set(giocatore.pos.x - 0.09, 1.55, giocatore.pos.z + 1.1); occhi[1].position.set(giocatore.pos.x + 0.09, 1.55, giocatore.pos.z + 1.1); }
-      if (S.uscita.t > (S.uscita.preso ? 0.55 : 0.05) && ui.nero.style.opacity !== '1') { ui.nero.style.transition = 'opacity ' + (S.uscita.preso ? '.25s' : '.45s'); ui.nero.style.opacity = '1'; }
+      if (S.uscita.preso && S.uscita.t > 0.35) {             // (fase 80b) il demone salta fuori qui sotto
+        const f = S.fine; chiudiSotto(); iniziaJumpscare();
+        if (f) f({ premio: 0, preso: true, sotto: true });
+        return;
+      }
+      if (!S.uscita.preso && S.uscita.t > 0.05 && ui.nero.style.opacity !== '1') { ui.nero.style.transition = 'opacity ' + (S.uscita.preso ? '.25s' : '.45s'); ui.nero.style.opacity = '1'; }
       if (S.uscita.t > (S.uscita.preso ? 0.9 : 0.6)) {
         const esito = S.uscita.esito, f = S.fine;
         chiudiSotto(); ui.nero.style.transition = 'opacity .5s';
@@ -596,9 +637,9 @@ PZ.creaTombino = function (o) {
   }
   // prepara i materiali della camera (dietro lo schermo nero del caricamento), così la prima discesa non scatta
   function prepara() {
-    try { nuovaSoluzione(); S.simboli = []; renderer.compile(sc, cam); renderer.render(sc, cam); } catch (e) { console.warn(e); }
+    try { nuovaSoluzione(); S.simboli = []; demoneS.mostra(); demoneS.posiziona(0, 0, DZ, 0); renderer.compile(sc, cam); renderer.render(sc, cam); demoneS.nascondi(); } catch (e) { console.warn(e); }
   }
-  return { reset: reset, suRiga: suRiga, aggiorna: aggiorna, davanti: davanti, metri: metri, entra: entra, passo: passo, disegna: disegna, prepara: prepara,
+  return { reset: reset, suRiga: suRiga, aggiorna: aggiorna, davanti: davanti, metri: metri, entra: entra, passo: passo, disegna: disegna, prepara: prepara, jumpscare: jumpscare,
     attivo: function () { return S.attivo; },
     stato: S, strada: st, gruppo: strada, scena: sc, camera: cam, giocatore: giocatore, VALV: VALV, interagisci: interagisci, vicino: vicino, giraValvola: giraValvola, risali: risali,
     disponibile: disponibile };

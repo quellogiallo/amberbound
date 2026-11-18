@@ -394,6 +394,14 @@ PZ.creaCorsa = function (opz) {
     aggiornaHud(true);
   }
   function passoMorte(dt) {
+    // (fase 80b) preso sotto il tombino: il jumpscare si vede nella camera sotterranea
+    if (S.morteSotto) {
+      tombino.jumpscare(dt);
+      if (S.tFase >= 0.16 && !S.jumpLampo) { S.jumpLampo = true; lampo('jump'); }
+      if (S.tFase > 0.95 && !ui.morte.classList.contains('vis')) ui.morte.classList.add('vis');
+      if (PZ.audio.vento) PZ.audio.vento(0);
+      return;
+    }
     // tutto fermo (auto, ostacoli, frammenti, strada); solo il demone che lo afferra, la telecamera che trema e il buio
     testa.set(S.x, 1.6, -0.2);
     if (S.tFase > 0.02) testa.copy(camera.position);       // (fase 14) nel jumpscare fissa TE (la telecamera)
@@ -783,7 +791,7 @@ PZ.creaCorsa = function (opz) {
     S.invul = PZ.CONFIG.strada.tombino.invulUscita || 2; S.recupero = 0; S.scossa = 0.3;
     paranoia.stato.attiva = true;
     if (COL.inPausa && COL.inPausa()) COL.riprendi(0.6);
-    if (esito && esito.preso) { S.invul = 0; cattura(); return; }     // il tempo è finito: il demone ti ha trovato
+    if (esito && esito.preso) { S.invul = 0; S.morteSotto = !!esito.sotto; cattura(); return; }     // il tempo è finito: il demone ti ha trovato (jumpscare sotto terra)
     if (esito && esito.premio > 0) {
       for (let i = 0; i < esito.premio; i++) PZ.raccolta.conta('tombino-' + i);   // una volta per partita (st.usato)
       lampo('ambra'); aggiornaAmbra(true); if (PZ.audio.pietra) PZ.audio.pietra();
@@ -861,7 +869,7 @@ PZ.creaCorsa = function (opz) {
     PZ.avvisi.chiudi(false);                             // un avviso lasciato a metà non conta come letto
     paranoia.reset();                                     // paranoia da zero: niente figure, suoni, deformazioni
     presenza.reset();                                     // (fase 66) niente manone, niente rosso
-    tombino.reset(); S.scendi = false; ui.scendi.classList.remove('vis'); ui.corsa.classList.remove('sotto');   // (fase 80)
+    tombino.reset(); S.scendi = false; S.morteSotto = false; ui.scendi.classList.remove('vis'); ui.corsa.classList.remove('sotto');   // (fase 80)
     const prova = (CFG && PZ.CONFIG.test && PZ.CONFIG.test.scorciatoiaStrada) ? /[?&#]ambra=(\d+)/.exec(location.search + location.hash) : null;
     if (prova) PZ.raccolta.imposta(Math.min(PZ.raccolta.obiettivo - 1, +prova[1]));
     S.puFine = -1e9;
@@ -904,7 +912,7 @@ PZ.creaCorsa = function (opz) {
     disegna();
   }
   function disegna() {
-    if (S.fase === 'tombino' && tombino.attivo()) { tombino.disegna(); return; }    // (fase 80) la camera sotterranea
+    if ((S.fase === 'tombino' && tombino.attivo()) || (S.fase === 'morte' && S.morteSotto)) { tombino.disegna(); return; }    // (fase 80) la camera sotterranea
     ombre.aggiorna();                                   // (fase 72) le ombre seguono ragazzo, bici e auto
     const spec = S.fase === 'corsa';
     // le posizioni di tutti gli oggetti si calcolano una volta sola per fotogramma (prima lo faceva ogni disegno)
