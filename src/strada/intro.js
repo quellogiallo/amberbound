@@ -92,6 +92,7 @@ PZ.creaIntro = function (ctx) {
   // (fase 14) appena compare il demone la telecamera stringe su di lui (zoom): la scena dura un secondo in più
   // (fase 105) zoom più lungo: si vede tutta l'uscita dal portale. (fase 106) e poi lo scatto verso di te (CORSA_D secondi)
   const USCITA = 1.2, CORSA_D = 1.0, VCORSA = 15;
+  const VERSO = new V3(6.3 - DEM0.x, 0, 2.4 - DEM0.z).normalize(), DIR_VERSO = Math.atan2(VERSO.x, VERSO.z);   // (fase 107) verso il ragazzo
   const ZOOM = USCITA + 0.05 + CORSA_D; T.zoomFine = T.demone + ZOOM; T.gira = T.demone + 0.3 + ZOOM;
   const c2 = A.camminata({ da: { x: 6.5, z: 2.6 }, a: { x: 6.4, z: 2.38 }, dirDa: -PI / 2, dirA: dirDemone, passo: 0.5, durataPasso: 0.36, larghezza: 0.1, primo: 'sx', piediDa: piedi(c1, c1.durata) });
   T.paura = T.gira + c2.durata;
@@ -457,10 +458,11 @@ PZ.creaIntro = function (ctx) {
       const R0 = T.demone + USCITA + 0.05, R1 = R0 + CORSA_D, tau = Math.max(0, Math.min(CORSA_D, t - R0));
       const dCorsa = tau < 0.15 ? VCORSA * tau * tau / 0.3 : VCORSA * (tau - 0.075);
       if (t >= R0) suona('scatto', 'ringhio');
-      const zCammina = DEM0.z - dCorsa - 1.55 * Math.max(0, Math.min(t, T.sella) - R1);
+      // (fase 107) corre (e poi avanza) dritto verso il ragazzo, sul marciapiede davanti al portone
+      const fatta = dCorsa + 1.55 * Math.max(0, Math.min(t, T.sella) - R1);
       const kc = A.morbida(T.sella, T.fine, t);
-      const zd = A.mix(zCammina, DIST0, kc), xd = A.mix(DEM0.x, 0, kc);
-      dem.posiziona(xd, -ALTO_D * (1 - fuori), zd, PI);
+      const zd = A.mix(DEM0.z + VERSO.z * fatta, DIST0, kc), xd = A.mix(DEM0.x + VERSO.x * fatta, 0, kc);
+      dem.posiziona(xd, -ALTO_D * (1 - fuori), zd, A.mix(DIR_VERSO, PI, kc));
       tmp.copy(P.pos); tmp.y += 0.7;
       if (uE < 1) dem.anima(dt, 'fermo', 0, tmp, 1);
       else if (t >= R0 && t < R1) dem.anima(dt, 'corre', VCORSA, tmp, 0.6);
