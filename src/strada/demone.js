@@ -144,8 +144,6 @@ PZ.corpoCreatura = function (prop) {
     C.geo('corpo', cil(0.0, 0.07 * T, 4), 0, -0.02 * T, 0.05 * T, Math.PI, 0, 0, tono(), 1, 0.16 * T, 1);   // mento
     C.scatola('corpo', 0.2 * T, 0.05 * T, 0.05 * T, 0, 0.21 * T, 0.14 * T, tono());                         // arcata sopra l'occhio
   }));
-  // la testa è un ovale (semiassi qui sotto) centrato in TC: serve per appoggiarci sopra gli occhi
-  const TA = [0.15 * T, 0.26 * T, 0.17 * T], TC = [0, 0.18 * T, 0.02];
   // braccia
   [0, 1].forEach(function (i) {
     const s = i === 0 ? 1 : -1;
@@ -177,14 +175,11 @@ PZ.corpoCreatura = function (prop) {
   });
   // occhi: [giunto, posizione, normale, raggio]. Il primo è l'occhio enorme della fronte.
   const occhi = [
-    [G.testa, [0, TC[1], TC[2] + TA[2] + 0.004], [0, 0, 1], TA[0]],     // (fase 102b) l'occhio gigante: largo quanto la testa
+    [G.testa, [0, 0.2 * T, 0.19 * T], [0, 0.12, 1], 0.105 * T],
+    [G.testa, [0.126 * T, 0.07 * T, 0.11 * T], [0.85, 0, 0.55], 0.032 * T], [G.testa, [-0.126 * T, 0.07 * T, 0.11 * T], [-0.85, 0, 0.55], 0.032 * T],
+    [G.testa, [0.1 * T, 0.36 * T, 0.105 * T], [0.5, 0.5, 0.7], 0.028 * T], [G.testa, [-0.09 * T, 0.34 * T, 0.115 * T], [-0.5, 0.4, 0.75], 0.025 * T],
+    [G.testa, [0.03 * T, -0.03 * T, 0.14 * T], [0.1, -0.3, 1], 0.022 * T],
   ];
-  // gli occhietti che prima erano sulla faccia ora stanno sulla nuca (quando è di spalle ti guarda lo stesso)
-  [[0.45, 0.35], [-0.5, 0.15], [0.1, -0.2], [-0.15, 0.6], [0.6, -0.3]].forEach(function (a, i) {
-    const n = new THREE.Vector3(Math.sin(a[0]) * Math.cos(a[1]), Math.sin(a[1]), -Math.cos(a[0]) * Math.cos(a[1]));
-    const nn = new THREE.Vector3(n.x / TA[0], n.y / TA[1], n.z / TA[2]).normalize();   // la normale dell'ovale in quel punto
-    occhi.push([G.testa, [TC[0] + n.x * TA[0] + nn.x * 0.004, TC[1] + n.y * TA[1] + nn.y * 0.004, TC[2] + n.z * TA[2] + nn.z * 0.004], [nn.x, nn.y, nn.z], [0.032, 0.028, 0.03, 0.026, 0.024][i] * T]);
-  });
   // (fase 102) GLI OCCHI DEL CORPO, distribuiti sulla superficie di ogni pezzo (davanti, dietro e ai lati, anche su
   // schiena e gambe): ogni occhio è un disco appoggiato alla pelle, mai sovrapposto a un altro occhio, alle costole o
   // alle vertebre (prima alcuni erano dentro il corpo o uno sopra l'altro e si vedevano male)
@@ -299,7 +294,7 @@ PZ.creaDemone = function (scena, occhi, opz) {
   corpo.occhi.forEach(function (o) { occhi.aggiungi(D, o[0], o[1], o[2], o[3]); });
   // alone dell'occhio grande
   const alone = new THREE.Sprite(new THREE.SpriteMaterial({ map: PZ.bagliore(), blending: THREE.AdditiveBlending, depthWrite: false, fog: false, transparent: true, opacity: 0.85 }));
-  alone.position.set(0, 0.18 * 1.35, 0.3); alone.scale.set(0.8, 0.8, 1);
+  alone.position.set(0, 0.2 * 1.35, 0.3); alone.scale.set(0.8, 0.8, 1);
   G.testa.add(alone);
   D.alone = alone;
   // aura viola alle sue spalle: di notte stacca la sagoma nera dal fondo scuro
