@@ -205,18 +205,36 @@ PZ.creaEventi = function (o) {
     if (nb > 0.01) {
       g1.imageSmoothingEnabled = true; g2.imageSmoothingEnabled = true;
       g1.drawImage(src, 0, 0, p1.width, p1.height); g2.drawImage(p1, 0, 0, p2.width, p2.height);
-      g.imageSmoothingEnabled = true; g.globalAlpha = 0.72 * nb; g.drawImage(p2, 0, 0, W, H);
+      g.imageSmoothingEnabled = true; g.globalAlpha = 0.55 * nb; g.drawImage(p2, 0, 0, W, H);   // (fase 109) appannamento un po' più leggero
       g.globalAlpha = 1;
       const vg = g.createRadialGradient(W / 2, H * 0.55, H * 0.12, W / 2, H * 0.55, H * 0.62);
-      vg.addColorStop(0, 'rgba(165,182,215,0)'); vg.addColorStop(1, 'rgba(165,182,215,' + (0.3 * nb).toFixed(3) + ')');
+      vg.addColorStop(0, 'rgba(165,182,215,0)'); vg.addColorStop(1, 'rgba(165,182,215,' + (0.22 * nb).toFixed(3) + ')');
       g.fillStyle = vg; g.fillRect(0, 0, W, H);
     }
     // 3. colori freddi e spenti
     const c = Math.max(E.L, E.N) * e;
     g.globalAlpha = 1;
     g.globalCompositeOperation = 'saturation'; g.fillStyle = 'rgba(128,128,128,' + (0.6 * c).toFixed(3) + ')'; g.fillRect(0, 0, W, H);
-    g.globalCompositeOperation = 'multiply'; g.fillStyle = 'rgba(140,165,225,' + (0.75 * c).toFixed(3) + ')'; g.fillRect(0, 0, W, H);
+    g.globalCompositeOperation = 'multiply'; g.fillStyle = 'rgba(175,192,235,' + (0.48 * c).toFixed(3) + ')'; g.fillRect(0, 0, W, H);   // (fase 109) meno scuro, sempre freddo
     g.globalCompositeOperation = 'source-over';
+    // (fase 109) LO SGUARDO CHE SI FISSA: attraverso le lacrime gli ostacoli restano un po' più nitidi e chiari del resto
+    // (l'immagine pulita del gioco, dentro un'ellisse morbida attorno a ognuno)
+    const fuochi = o.fuochi ? o.fuochi(W, H) : null;
+    if (fuochi && c > 0.02) {
+      g.imageSmoothingEnabled = false;
+      for (let i = 0; i < fuochi.length; i++) {
+        const f = fuochi[i];
+        [[1.25, 0.26], [0.85, 0.32]].forEach(function (l) {
+          const rx = f[2] * l[0], ry = f[3] * l[0];
+          g.save(); g.beginPath(); g.ellipse(f[0], f[1], rx, ry, 0, 0, Math.PI * 2); g.clip();
+          g.globalAlpha = l[1] * Math.min(1, c * 1.4);
+          const x0 = Math.max(0, f[0] - rx), y0 = Math.max(0, f[1] - ry), w = Math.min(W - x0, 2 * rx), h = Math.min(H - y0, 2 * ry);
+          if (w > 1 && h > 1) g.drawImage(src, x0, y0, w, h, x0, y0, w, h);
+          g.restore();
+        });
+      }
+      g.globalAlpha = 1;
+    }
     // 4. le gocce: la scia bagnata, poi la goccia come una lente (immagine capovolta e rimpicciolita), il bordo e il riflesso
     g.imageSmoothingEnabled = false;
     for (let i = 0; i < gocce.length; i++) {

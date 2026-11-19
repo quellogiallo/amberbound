@@ -167,7 +167,23 @@ PZ.creaCorsa = function (opz) {
     if (nuovo) PZ.riavviaClasse(ui.ambra, 'preso');
   }
   function lampo(classe) { ui.lampo.className = 'ui ' + classe; PZ.dopoFotogramma(function () { if (ui.lampo.className === 'ui ' + classe) ui.lampo.classList.add('via'); }); }
-  eventi = PZ.creaEventi({ scena: scena, stage: stage, renderer: renderer, ui: ui, mostraConto: mostraConto, lampo: lampo });
+  // (fase 109) dove sono gli ostacoli sullo schermo (per i sensi di colpa): [x, y, raggioX, raggioY] in pixel della tela
+  const vF = new THREE.Vector3(), vF2 = new THREE.Vector3(), fuochiL = [];
+  function fuochi(W, H) {
+    fuochiL.length = 0;
+    const metti = function (x, y, z, larga, alta) {
+      if (z < -70 || z > 1.5 || fuochiL.length >= 12) return;
+      vF.set(x, y, z).project(camera); if (vF.z > 1 || Math.abs(vF.x) > 1.3 || Math.abs(vF.y) > 1.3) return;
+      vF2.set(x + larga / 2, y + alta / 2, z).project(camera);
+      const px = (vF.x + 1) / 2 * W, py = (1 - vF.y) / 2 * H;
+      const rx = Math.max(10, Math.abs(vF2.x - vF.x) / 2 * W * 1.5), ry = Math.max(10, Math.abs(vF2.y - vF.y) / 2 * H * 1.6);
+      fuochiL.push([px, py, rx, ry]);
+    };
+    traffico.attive.forEach(function (a) { if (!a.urtata) metti(a.x, 0.75, a.z, a.W, 1.5); });
+    traffico.statiche.forEach(function (o) { if (!o.colpita) metti(o.x, 0.8, o.z, o.demone ? o.larghezza : o.sagoma ? o.sagoma.larghezza : 2, o.sagoma || o.demone ? 2.2 : 1.2); });
+    return fuochiL;
+  }
+  eventi = PZ.creaEventi({ scena: scena, stage: stage, renderer: renderer, ui: ui, mostraConto: mostraConto, lampo: lampo, fuochi: fuochi });
   // la paranoia: più il demone è vicino, più il mondo si deforma e genera allucinazioni (src/strada/paranoia.js)
   const paranoia = PZ.creaParanoia({ scena: scena, citta: citta, ragazze: ragazze, stage: stage, atmosfera: atmosfera, lampo: lampo, velo: $('paranoiaVelo') });
   // (fase 66) il demone alle spalle: le manone sullo schermo, la città che vira al rosso, ringhio e respiro (src/strada/presenza.js)
