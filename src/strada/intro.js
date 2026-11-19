@@ -19,7 +19,7 @@ PZ.creaIntro = function (ctx) {
   const Y = 0.15, INPIEDI = 0.965, CAV = 0.077, R = ciclista.raggioRuota, RAPPORTO = 2.3;
   const V0 = PZ.CONFIG.strada.difficolta.velocitaIniziale, DIST0 = PZ.CONFIG.strada.demone.distanzaIniziale;
   const BX = 5.65, PED0 = 1.25 * PI, CAVALLETTO = -0.13;
-  const DEM0 = new V3(0.4, 0, 46);                 // dove compare il demone: in fondo alla strada, nella foschia
+  const DEM0 = new V3(-1.4, 0, 58);                 // dove compare il demone: in fondo alla strada, nella foschia (fase 108: più lontano, 58 m: la strada dietro finisce a 60)
   const dirDemone = Math.atan2(DEM0.x - 6.25, DEM0.z - 2.45);
   // dove arriva correndo (bacino) e dove posa il piede sinistro, accanto alla sella: da lì sale
   const ARRIVO = { x: 5.27, z: 0.2 }, TP = new V3(5.19, Y + CAV, 0.22);
@@ -91,7 +91,7 @@ PZ.creaIntro = function (ctx) {
   T.fuori = T.esce + c1.durata; T.chiude = T.fuori - 0.2; T.chiusa = T.chiude + 0.75; T.demone = T.chiusa + 0.3;
   // (fase 14) appena compare il demone la telecamera stringe su di lui (zoom): la scena dura un secondo in più
   // (fase 105) zoom più lungo: si vede tutta l'uscita dal portale. (fase 106) e poi lo scatto verso di te (CORSA_D secondi)
-  const USCITA = 1.2, CORSA_D = 1.0, VCORSA = 15;
+  const USCITA = 1.2, CORSA_D = 1.0, VCORSA = 15, VDOPO = 7.5;   // (fase 108) dopo lo scatto continua a correre (VDOPO m/s)
   const VERSO = new V3(6.3 - DEM0.x, 0, 2.4 - DEM0.z).normalize(), DIR_VERSO = Math.atan2(VERSO.x, VERSO.z);   // (fase 107) verso il ragazzo
   const ZOOM = USCITA + 0.05 + CORSA_D; T.zoomFine = T.demone + ZOOM; T.gira = T.demone + 0.3 + ZOOM;
   const c2 = A.camminata({ da: { x: 6.5, z: 2.6 }, a: { x: 6.4, z: 2.38 }, dirDa: -PI / 2, dirA: dirDemone, passo: 0.5, durataPasso: 0.36, larghezza: 0.1, primo: 'sx', piediDa: piedi(c1, c1.durata) });
@@ -142,12 +142,12 @@ PZ.creaIntro = function (ctx) {
   const v = function (x, y, z) { return new V3(x, y, z); };
   const stacco = function (tr, tA, vA, vB) { return tr.chiave(tA - 0.012, vA, true).chiave(tA, vB, true); };
   const camP = new A.Traccia(v(1.2, 2.4, 8.8), 0).chiave(T.esce, v(1.3, 2.35, 8.4)).chiave(T.fuori, v(1.7, 2.1, 7.2));
-  stacco(camP, T.demone - 0.1, v(1.75, 2.08, 7.0), v(6.85, 1.95, -3.0));
-  stacco(camP, T.paura - 0.05, v(6.8, 1.9, -2.3), v(6.05, 1.72, 4.2));
+  stacco(camP, T.demone - 0.1, v(1.75, 2.08, 7.0), v(6.6, 2.75, -3.0));   // (fase 108) un po' più alta: il demone ora è più lontano
+  stacco(camP, T.paura - 0.05, v(6.55, 2.7, -2.3), v(6.05, 1.72, 4.2));
   stacco(camP, T.versoBici - 0.05, v(6.1, 1.7, 4.0), v(2.45, 2.05, -3.9)).chiave(T.presa, v(2.65, 1.85, -2.25))
     .chiave(T.via, v(2.6, 1.9, -1.5)).fluida();
   const camG = new A.Traccia(v(6.4, 1.5, 1.6), 0).chiave(T.esce, v(6.4, 1.5, 1.6)).chiave(T.fuori, v(6.3, 1.5, 1.6));
-  stacco(camG, T.demone - 0.1, v(6.3, 1.5, 1.7), v(2.9, 1.75, 42));
+  stacco(camG, T.demone - 0.1, v(6.3, 1.5, 1.7), v(0.6, 1.75, 54));
   stacco(camG, T.paura - 0.05, v(2.7, 1.8, 42), v(6.25, 1.6, 2.05));
   stacco(camG, T.versoBici - 0.05, v(6.28, 1.58, 1.8), v(5.8, 1.05, 0.9)).chiave(T.presa, v(5.45, 1.0, 0.0))
     .chiave(T.via, v(5.0, 1.0, -0.5)).fluida();
@@ -459,14 +459,14 @@ PZ.creaIntro = function (ctx) {
       const dCorsa = tau < 0.15 ? VCORSA * tau * tau / 0.3 : VCORSA * (tau - 0.075);
       if (t >= R0) suona('scatto', 'ringhio');
       // (fase 107) corre (e poi avanza) dritto verso il ragazzo, sul marciapiede davanti al portone
-      const fatta = dCorsa + 1.55 * Math.max(0, Math.min(t, T.sella) - R1);
+      const fatta = dCorsa + VDOPO * Math.max(0, Math.min(t, T.sella) - R1);
       const kc = A.morbida(T.sella, T.fine, t);
       const zd = A.mix(DEM0.z + VERSO.z * fatta, DIST0, kc), xd = A.mix(DEM0.x + VERSO.x * fatta, 0, kc);
       dem.posiziona(xd, -ALTO_D * (1 - fuori), zd, A.mix(DIR_VERSO, PI, kc));
       tmp.copy(P.pos); tmp.y += 0.7;
       if (uE < 1) dem.anima(dt, 'fermo', 0, tmp, 1);
       else if (t >= R0 && t < R1) dem.anima(dt, 'corre', VCORSA, tmp, 0.6);
-      else dem.anima(dt, kc > 0.02 ? 'corre' : 'cammina', kc > 0.02 ? 12 : 1.55, tmp, 0.4);
+      else dem.anima(dt, 'corre', kc > 0.02 ? 12 : VDOPO, tmp, 0.4);
     }
     passoPortale(t);
     if (t > T.paura) suona('battito', 'battito');
