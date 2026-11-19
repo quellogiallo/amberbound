@@ -82,25 +82,6 @@ PZ.materialeDemoni = (function () {
   let m = null;
   return function () { return m || (m = new THREE.MeshLambertMaterial({ vertexColors: true, fog: false })); };
 })();
-// (fase 102) il materiale del bulbo-testa: bianco sporco con capillari rossi, senza luce né nebbia (come gli occhi)
-PZ.materialeBulbo = (function () {
-  let m = null;
-  return function () {
-    if (m) return m;
-    const c = document.createElement('canvas'); c.width = 64; c.height = 32;
-    const g = c.getContext('2d'), r = PZ.ps1.casuale(515);
-    g.fillStyle = '#d9d0aa'; g.fillRect(0, 0, 64, 32);
-    g.fillStyle = 'rgba(150,120,90,0.35)'; for (let i = 0; i < 40; i++) g.fillRect(Math.floor(r() * 64), Math.floor(r() * 32), 2, 1);
-    g.strokeStyle = 'rgba(150,20,20,0.75)'; g.lineWidth = 1;
-    for (let i = 0; i < 14; i++) {                // capillari: linee spezzate che si ramificano
-      let x = r() * 64, y = r() * 32; g.beginPath(); g.moveTo(x, y);
-      for (let k = 0; k < 5; k++) { x += (r() - 0.5) * 10; y += (r() - 0.5) * 6; g.lineTo(x, y); }
-      g.stroke();
-    }
-    const t = new THREE.CanvasTexture(c); t.magFilter = t.minFilter = THREE.NearestFilter;
-    return (m = new THREE.MeshBasicMaterial({ map: t, fog: false }));
-  };
-})();
 PZ.bagliore = (function () {   // alone giallo per l'occhio grande, visibile anche da lontano
   let t = null;
   return function () {
@@ -158,11 +139,13 @@ PZ.corpoCreatura = function (prop) {
   // collo e testa: testa lunga, mento a punta
   meshes.push(pezzo(G.collo, function (C) { C.geo('corpo', cil(0.045, 0.06, 5), 0, P.collo / 2, 0, 0, 0, 0, tono(), 1, P.collo, 1); }));
   const T = P.testa;
-  // (fase 102) LA TESTA È UN OCCHIO: un bulbo rotondo, pallido e venato, che non prende luce (si vede anche nel buio);
-  // sul davanti l'iride gigante, grande quanto tutta la testa
-  const RT = 0.2 * T;
-  const bulbo = new THREE.Mesh(new THREE.SphereGeometry(RT, 12, 9), PZ.materialeBulbo());
-  bulbo.position.set(0, RT, 0.02); bulbo.rotation.y = P.seme * 1.7; G.testa.add(bulbo);
+  meshes.push(pezzo(G.testa, function (C) {
+    C.sfera('corpo', 1, 0, 0.18 * T, 0.02, tono(), 0.15 * T, 0.26 * T, 0.17 * T, 1);
+    C.geo('corpo', cil(0.0, 0.07 * T, 4), 0, -0.02 * T, 0.05 * T, Math.PI, 0, 0, tono(), 1, 0.16 * T, 1);   // mento
+    C.scatola('corpo', 0.2 * T, 0.05 * T, 0.05 * T, 0, 0.21 * T, 0.14 * T, tono());                         // arcata sopra l'occhio
+  }));
+  // la testa è un ovale (semiassi qui sotto) centrato in TC: serve per appoggiarci sopra gli occhi
+  const TA = [0.15 * T, 0.26 * T, 0.17 * T], TC = [0, 0.18 * T, 0.02];
   // braccia
   [0, 1].forEach(function (i) {
     const s = i === 0 ? 1 : -1;
@@ -194,12 +177,13 @@ PZ.corpoCreatura = function (prop) {
   });
   // occhi: [giunto, posizione, normale, raggio]. Il primo è l'occhio enorme della fronte.
   const occhi = [
-    [G.testa, [0, RT, 0.02 + RT + 0.004], [0, 0, 1], RT * 1.0],          // (fase 102) grande quanto la testa
+    [G.testa, [0, TC[1], TC[2] + TA[2] + 0.004], [0, 0, 1], TA[0]],     // (fase 102b) l'occhio gigante: largo quanto la testa
   ];
   // gli occhietti che prima erano sulla faccia ora stanno sulla nuca (quando è di spalle ti guarda lo stesso)
   [[0.45, 0.35], [-0.5, 0.15], [0.1, -0.2], [-0.15, 0.6], [0.6, -0.3]].forEach(function (a, i) {
     const n = new THREE.Vector3(Math.sin(a[0]) * Math.cos(a[1]), Math.sin(a[1]), -Math.cos(a[0]) * Math.cos(a[1]));
-    occhi.push([G.testa, [n.x * (RT + 0.004), RT + n.y * (RT + 0.004), 0.02 + n.z * (RT + 0.004)], [n.x, n.y, n.z], [0.032, 0.028, 0.03, 0.026, 0.024][i] * T]);
+    const nn = new THREE.Vector3(n.x / TA[0], n.y / TA[1], n.z / TA[2]).normalize();   // la normale dell'ovale in quel punto
+    occhi.push([G.testa, [TC[0] + n.x * TA[0] + nn.x * 0.004, TC[1] + n.y * TA[1] + nn.y * 0.004, TC[2] + n.z * TA[2] + nn.z * 0.004], [nn.x, nn.y, nn.z], [0.032, 0.028, 0.03, 0.026, 0.024][i] * T]);
   });
   // (fase 102) GLI OCCHI DEL CORPO, distribuiti sulla superficie di ogni pezzo (davanti, dietro e ai lati, anche su
   // schiena e gambe): ogni occhio è un disco appoggiato alla pelle, mai sovrapposto a un altro occhio, alle costole o
@@ -315,7 +299,7 @@ PZ.creaDemone = function (scena, occhi, opz) {
   corpo.occhi.forEach(function (o) { occhi.aggiungi(D, o[0], o[1], o[2], o[3]); });
   // alone dell'occhio grande
   const alone = new THREE.Sprite(new THREE.SpriteMaterial({ map: PZ.bagliore(), blending: THREE.AdditiveBlending, depthWrite: false, fog: false, transparent: true, opacity: 0.85 }));
-  alone.position.set(0, 0.2 * 1.35, 0.3); alone.scale.set(0.8, 0.8, 1);
+  alone.position.set(0, 0.18 * 1.35, 0.3); alone.scale.set(0.8, 0.8, 1);
   G.testa.add(alone);
   D.alone = alone;
   // aura viola alle sue spalle: di notte stacca la sagoma nera dal fondo scuro
