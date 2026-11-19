@@ -39,7 +39,9 @@ PZ.scritte = (function () {
     const dpr = Math.min(2.5, window.devicePixelRatio || 1);
     const m = document.createElement('canvas').getContext('2d');
     let P = px;
-    const misura = function (s, p) { m.font = p + 'px Drunk, monospace'; let w = 0; for (let i = 0; i < s.length; i++) w += m.measureText(s[i]).width + sp * p; return w - sp * p; };
+    // (fase 104) il font non ha il punto esclamativo: lo disegna a mano (una barra che si stringe in basso e il punto)
+    const largo = function (ch, p) { return ch === '!' ? 0.32 * p : m.measureText(ch).width; };
+    const misura = function (s, p) { m.font = p + 'px Drunk, monospace'; let w = 0; for (let i = 0; i < s.length; i++) w += largo(s[i], p) + sp * p; return w - sp * p; };
     // la parola più lunga deve stare nella larghezza; poi le parole vanno a capo
     const parole = testo.split(' ');
     const lunga = Math.max.apply(null, parole.map(function (w) { return misura(w, P); }));
@@ -56,7 +58,15 @@ PZ.scritte = (function () {
       g.fillStyle = colore;
       righe.forEach(function (r, k) {
         let x = (W - misura(r, P)) / 2 + dx; const y = bordo + alt * k + P * 0.86 + dy;
-        for (let i = 0; i < r.length; i++) { g.fillText(r[i], x, y); m.font = P + 'px Drunk, monospace'; x += m.measureText(r[i]).width + sp * P; }
+        for (let i = 0; i < r.length; i++) {
+          m.font = P + 'px Drunk, monospace';
+          if (r[i] === '!') {
+            const cx = x + 0.16 * P;
+            g.beginPath(); g.moveTo(cx - 0.1 * P, y - 0.74 * P); g.lineTo(cx + 0.1 * P, y - 0.74 * P); g.lineTo(cx + 0.05 * P, y - 0.26 * P); g.lineTo(cx - 0.05 * P, y - 0.26 * P); g.closePath(); g.fill();
+            g.fillRect(cx - 0.065 * P, y - 0.16 * P, 0.13 * P, 0.13 * P);
+          } else g.fillText(r[i], x, y);
+          x += largo(r[i], P) + sp * P;
+        }
       });
     };
     // ombra morbida, contorno nero (otto spostamenti) e ombra netta, poi il giallo sopra

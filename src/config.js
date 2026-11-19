@@ -168,6 +168,9 @@ PZ.CONFIG = {
     // "perfetto" se non hai sbagliato nessuna valvola. Una sola volta per partita. arcade: false = solo nella storia.
     // (fase 99) i suoni della bici: denti = tic per giro di ruota; volume pedalando / a ruota libera (in aria, in volo,
     // rallentando); anticipoCampanello = quanto vicina (circa in secondi) dev'essere l'auto schivata perché suoni
+    // (fase 104) SWAG: salto sopra un'auto se salti quando mancano tra finestra[0] e finestra[1] secondi all'urto (0,12 s
+    // di margine: molto difficile). altezza del salto (m), boost = secondi di sprint, forza = quanto più veloce (+18%)
+    swag: { finestra: [0.1, 0.22], altezza: 2.4, boost: 1.5, forza: 0.18 },
     suoniBici: { denti: 2, volume: 0.035, volumeLibera: 0.09, anticipoCampanello: 0.42 },
     tombino: { probabilita: 1, metri: [700, 1200], ancora: 0, dopo: [350, 600], max: 1, finestra: 1.7,   // (fase 93-95) sicuro, una volta a partita, tra 700 e 1200 m (prima 0.6, 380-1100 m, ancora 0.5, max 2)
       tempo: 30, penalita: 3, premio: 20, perfetto: 30, arcade: false, invulUscita: 2.2,   // (fase 85) prima 45 s e -4 s

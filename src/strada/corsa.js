@@ -81,7 +81,7 @@ PZ.creaCorsa = function (opz) {
     attiva: false, fase: 'ferma', tFase: 0, t: 0, tTot: 0, tau: 0, F: 1, p: 0, metri: 0, vel: 0, corsia: 0,
     x: 0, xc: 0, vx: 0, xDa: 0, vDa: 0, xA: 0, tc: DUR, spinta: 0, tSpinta: 1,
     urti: { auto: 0, transenna: 0, sagoma: 0, manata: 0 }, errori: 0, invul: 0, recupero: 1, scossa: 0, sbandata: 0, ultimoBordo: -9, inclina: 0, ruote: 0, pedivella: 0, camX: 0,
-    salto: { fase: 'no', t: 0, h: 0, pend: 0, alz: 0, alz0: 0, hp: 0, pendp: 0, coda: false }, salti: 0, sguardo: null, prossimoSguardo: 25,
+    salto: { fase: 'no', t: 0, h: 0, pend: 0, alz: 0, alz0: 0, hp: 0, pendp: 0, coda: false, super: false }, swagBoost: 0, salti: 0, sguardo: null, prossimoSguardo: 25,
     battito: 0, avvisoSalto: false, pronto: false
   };
   const intro = PZ.creaIntro({ scena: scena, citta: citta, ciclista: ciclista, demone: demone, camera: camera, S: S, cameraGioco: cameraGioco });
@@ -92,7 +92,7 @@ PZ.creaCorsa = function (opz) {
   let metriMostrati = -1, demMostrato = -1, contoMostrato = '', tConto = 0;
   // le scritte grandi usano il font DRUNK, che non ha accenti né ! ? ' /: qui le lettere accentate diventano semplici
   // e gli altri segni spariscono (un apostrofo diventa uno spazio)
-  function perFont(t) { return t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/['\u2019]/g, ' ').replace(/[^A-Za-z0-9 ,.\-]/g, ''); }
+  function perFont(t) { return t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/['\u2019]/g, ' ').replace(/[^A-Za-z0-9 ,.!\-]/g, ''); }
   // il font è largo: se la parola più lunga non sta nella larghezza dello schermo, la scritta si rimpicciolisce
   const misura = document.createElement('canvas').getContext('2d');
   // (il risultato si ricorda per ogni scritta: misurare costringe il browser a ricalcolare la pagina, una volta basta)
@@ -134,7 +134,7 @@ PZ.creaCorsa = function (opz) {
   }
   // prepara prima della corsa le immagini delle scritte che compariranno (dietro lo schermo nero del passaggio)
   function preparaScritte() {
-    ['SCAPPA', 'SALTA', 'INVESTITO', 'SENSI DI COLPA', 'O AVE MARIA'].concat(CFG.orologio.attivo !== false ? ['IL TEMPO SI SCIOGLIE'] : []).forEach(function (t) { mostraConto(t, 0); });
+    ['SCAPPA', 'SALTA', 'INVESTITO', 'SENSI DI COLPA', 'O AVE MARIA', 'SWAG!'].concat(CFG.orologio.attivo !== false ? ['IL TEMPO SI SCIOGLIE'] : []).forEach(function (t) { mostraConto(t, 0); });
     mostraConto('', 0);
     // (fase 11) anche le scritte del finale: "CENTO SU CENTO" sul cartello e "AMBRA" sulla schermata di fine. Erano
     // testo nel font DRUNK (migliaia di puntini per lettera, con contorno e ombre): il browser le disegnava proprio nel
@@ -217,7 +217,16 @@ PZ.creaCorsa = function (opz) {
   // Bici e ragazzo si alzano insieme (il ragazzo resta con mani e piedi su manubrio e pedali).
   // Un tocco = un salto. Se tocchi negli ultimi istanti in aria, il salto riparte appena le ruote toccano terra.
   const PREP = 0.07, ARIA = CFG.salto.durata, H = CFG.salto.altezza, CODA = 0.15;
+  // (fase 104) SWAG: il salto sopra un'auto. Parte subito (niente preparazione), sale in fretta molto più in alto e la
+  // bici fa un giro completo all'indietro (un backflip) prima di atterrare
+  const CSW = CFG.swag || { finestra: [0.1, 0.22], altezza: 2.4, boost: 1.5, forza: 0.18 };
+  const VC_AUTO = V0 + D.velocitaAuto;
   function formaSalto(t, out) {          // t = secondi dall'inizio del salto, preparazione compresa
+    if (out.super) {
+      const u = Math.min(1, t / ARIA), sv = Math.pow(Math.sin(Math.PI * u), 0.55), g = u * u * (3 - 2 * u);
+      out.h = CSW.altezza * sv; out.pend = 2 * Math.PI * Math.min(1, g * 1.08) + 0.12 * Math.sin(Math.PI * u);
+      return out;
+    }
     if (t < PREP) { out.h = 0; out.pend = 0.06 * t / PREP; return out; }
     const u = Math.min(1, (t - PREP) / ARIA), w = 2 * u - 1, w2 = w * w;
     out.h = H * (1 - 0.5 * w2 - 0.5 * w2 * w2);                                  // sale in fretta, resta in alto, scende morbida
@@ -230,8 +239,28 @@ PZ.creaCorsa = function (opz) {
     const s = S.salto;
     if (s.fase === 'aria' && s.t > PREP + ARIA - CODA) { s.coda = true; return true; }   // partirà appena atterra
     if (s.fase !== 'no' && s.fase !== 'atterra') return false;
+    const auto = !salvia.protetto() && autoDaSaltare();
     parti();
+    if (auto) swag(auto);
     return true;
+  }
+  // l'auto della tua corsia che sta per colpirti, se manca tra finestra[0] e finestra[1] secondi all'urto (molto stretto)
+  function autoDaSaltare() {
+    const att = traffico.attive, vel = VC_AUTO * Math.max(0.05, S.F);
+    for (let i = 0; i < att.length; i++) {
+      const a = att[i]; if (a.urtata || a.saltata) continue;
+      if (Math.abs(a.x - S.x) > a.W / 2 + 0.27 + 0.05) continue;
+      const tImp = (-a.z - (a.L / 2 + 0.86)) / vel;
+      if (tImp >= CSW.finestra[0] && tImp <= CSW.finestra[1]) return a;
+    }
+    return null;
+  }
+  function swag(a) {
+    const s = S.salto;
+    a.saltata = true; s.super = true; s.fase = 'aria'; s.t = 0;
+    S.swagBoost = CSW.boost; S.swag = (S.swag || 0) + 1;
+    mostraConto('SWAG!', 1.3); lampo('ambra');
+    if (PZ.audio.swag) PZ.audio.swag();
   }
   function parti() {
     const s = S.salto;
@@ -247,10 +276,11 @@ PZ.creaCorsa = function (opz) {
     s.t += dt;
     if (s.fase === 'prep' || s.fase === 'aria') {
       formaSalto(s.t, s);
-      if (s.t < PREP) s.alz = s.alz0 + (1 - s.alz0) * (s.t / PREP);
+      if (s.super) s.alz = 1;
+      else if (s.t < PREP) s.alz = s.alz0 + (1 - s.alz0) * (s.t / PREP);
       else { s.fase = 'aria'; s.alz = 1 - 0.7 * Math.min(1, (s.t - PREP) / ARIA); }
-      if (s.t >= PREP + ARIA) {
-        s.fase = 'atterra'; s.t = 0; s.h = 0; s.pend = 0; tPolvere = 0; if (PZ.audio.atterraggio) PZ.audio.atterraggio();
+      if (s.t >= (s.super ? ARIA : PREP + ARIA)) {
+        s.fase = 'atterra'; s.t = 0; s.h = 0; s.pend = 0; s.super = false; tPolvere = 0; if (PZ.audio.atterraggio) PZ.audio.atterraggio();
         if (s.coda) parti();
       }
     } else if (s.fase === 'atterra') {
@@ -669,7 +699,9 @@ PZ.creaCorsa = function (opz) {
     if (S.recupero < 1) S.recupero = Math.min(1, S.recupero + dt / 1.5);   // (fase 56) tempo vero: è la velocità del ragazzo
     const r = S.recupero * S.recupero * (3 - 2 * S.recupero);
     // (fase 31) O Ave Maria, attacco del basso: la bici accelera ancora (strada.salvia.boostBasso: +40%)
-    const bst = 1 + (PZ.CONFIG.strada.salvia.boostBasso || 0.4) * salvia.boost();
+    if (S.swagBoost > 0) S.swagBoost = Math.max(0, S.swagBoost - dt);
+    const kSw = S.swagBoost > 0 ? Math.min(1, S.swagBoost / 0.4, (CSW.boost - S.swagBoost) / 0.15) : 0;   // (fase 104) il boost dello SWAG
+    const bst = (1 + (PZ.CONFIG.strada.salvia.boostBasso || 0.4) * salvia.boost()) * (1 + CSW.forza * kSw);
     // (fase 56) col tempo che si scioglie il RAGAZZO non si ferma col mondo: avanza a metà della sua velocità (gli
     // ostacoli, che si muovono col tempo del mondo, restano congelati: li raggiunge e li supera)
     const kOr = lento < 1 ? Math.max(0, Math.min(1, (lento - CFG.orologio.lento) / (1 - CFG.orologio.lento))) : 1;
@@ -974,7 +1006,7 @@ PZ.creaCorsa = function (opz) {
     traffico.reset(0); transenne.reset(); apparizioni.reset(); branco.reset(); ragazze.reset();
     Object.assign(S, { fase: 'corsa', tFase: 0, t: 0, tau: 0, F: 1, p: 0, metri: 0, vel: V0, corsia: 0, x: x || 0, xc: x || 0, vx: 0, xDa: 0, vDa: 0, xA: 0, tc: DUR,
       spinta: 0, tSpinta: 1, urti: { auto: 0, transenna: 0, sagoma: 0, manata: 0 }, errori: 0, invul: 0, recupero: 1, scossa: 0, sbandata: 0, ultimoBordo: -9, inclina: 0, camX: (x || 0) * CAM.segui,
-      salto: { fase: 'no', t: 0, h: 0, pend: 0, alz: 0, alz0: 0, hp: 0, pendp: 0, coda: false }, salti: 0, sguardo: null, prossimoSguardo: 14 + rnd() * 6,
+      salto: { fase: 'no', t: 0, h: 0, pend: 0, alz: 0, alz0: 0, hp: 0, pendp: 0, coda: false, super: false }, swagBoost: 0, salti: 0, sguardo: null, prossimoSguardo: 14 + rnd() * 6,
       battito: 0, avvisoSalto: false, pronto: false, serie: 0, ultimoPreso: -9, nLiscio: 0, hVolo: 0, rampa: 0 });
     // prima corsa di questo giocatore: le prime file sono di prova (un'auto davanti, poi transenne da saltare, poi
     // un'auto e una transenna insieme: o salti o cambi corsia)

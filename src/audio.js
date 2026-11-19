@@ -377,7 +377,14 @@ PZ.audio = (function () {
       g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v, t + 0.03); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.34);
       src.connect(f); f.connect(g); g.connect(master); src.start(t, Math.random() * 0.5); src.stop(t + 0.4);
     }
-    return { tic: tic, campanello: campanello, sfrega: sfrega };
+    // (fase 104) SWAG: un whoosh che sale e il clacson dell'auto che scivola sotto di te (cala di tono, effetto Doppler)
+    function swag() {
+      if (!ctx || ctx.state !== 'running') return;
+      soffio(300, 3200, 0.55, 0.14);
+      nota(466, 0.55, 'square', 0.045, 0.02, 0.7); nota(392, 0.55, 'square', 0.04, 0.02, 0.7);
+      nota(880, 0.25, 'triangle', 0.05, 0.3, 1.5);
+    }
+    return { tic: tic, campanello: campanello, sfrega: sfrega, swag: swag };
   })();
   const demoni = {
     portaApre: function () { nota(150, 0.7, 'sawtooth', 0.04, 0, 0.6); nota(152, 0.7, 'square', 0.025, 0.05, 0.55); soffio(300, 900, 0.6, 0.03); },
@@ -1333,7 +1340,7 @@ PZ.audio = (function () {
     scappa: demoni.scappa, ambra: demoni.ambra, salto: demoni.salto, atterraggio: demoni.atterraggio, transenna: demoni.transenna, sagomaUrto: demoni.sagomaUrto, cattura: demoni.cattura,
     passoStanza: strada.passoStanza, passoStrada: strada.passoStrada, passoTerra: strada.passoTerra, scarto: strada.scarto, urto: strada.urto, distruzione: strada.distruzione, clacson: strada.clacson, clacsonVicino: strada.clacsonVicino, bip: strada.bip, vento: strada.vento,
     avvia: avvia, stingerDemone: stingerDemone, fermaStinger: fermaStinger,
-    raggio: bici.tic, campanello: bici.campanello, sfrega: bici.sfrega,   // (fase 99) la ruota libera e il campanello
+    raggio: bici.tic, campanello: bici.campanello, sfrega: bici.sfrega, swag: bici.swag,   // (fase 99) la ruota libera e il campanello
     sotto: sotto,   // (fase 80) il tombino
     menu: menuMus,  // (fase 89) la musica del menu
     tocco: function () { nota(660, 0.08, 'square', 0.05); },

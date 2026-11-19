@@ -375,7 +375,7 @@ PZ.creaTraffico = function (scena, citta, opz) {
         if (x !== 'A') return;
         const libere = auto.filter(function (a) { return !a.attiva; }); if (!libere.length) return;
         const a = libere[Math.floor(rnd() * libere.length)];
-        a.attiva = true; a.minaccia = false; a.urtata = false; a.sbanda = 0; a.ribalto = null; a.corsia = l; a.tau = r.tau; a.sfalsa = -rnd() * 2.4;
+        a.attiva = true; a.minaccia = false; a.saltata = false; a.urtata = false; a.sbanda = 0; a.ribalto = null; a.corsia = l; a.tau = r.tau; a.sfalsa = -rnd() * 2.4;
         a.xBase = (l - 1) * LC + (rnd() - 0.5) * 0.14; a.x = a.xBase;
         a.z = -VC * (r.tau - tau) + a.sfalsa;
         a.gruppo.position.set(a.x, 0, a.z); a.gruppo.rotation.set(0, 0, 0); a.gruppo.visible = true;
@@ -520,7 +520,7 @@ PZ.creaTraffico = function (scena, citta, opz) {
   function controlla(xBici, mezzaL, mezzaP, quota) {
     for (let i = 0; i < attive.length; i++) {
       const a = attive[i];
-      if (a.urtata || Math.abs(a.z) > a.L / 2 + mezzaP + 0.5) continue;
+      if (a.urtata || a.saltata || Math.abs(a.z) > a.L / 2 + mezzaP + 0.5) continue;   // (fase 104) saltata con lo SWAG
       if (Math.abs(a.x - xBici) < a.W / 2 - 0.08 + mezzaL && Math.abs(a.z) < a.L / 2 - 0.15 + mezzaP) return { tipo: 'auto', ogg: a };
     }
     for (let i = 0; i < statiche.length; i++) {
@@ -548,7 +548,7 @@ PZ.creaTraffico = function (scena, citta, opz) {
     let n = 0;
     for (let i = 0; i < attive.length; i++) {
       const a = attive[i];
-      if (a.urtata) { a.minaccia = false; continue; }
+      if (a.urtata || a.saltata) { a.minaccia = false; continue; }
       const dietro = a.z - (a.L / 2 + mezzaP), davanti = -a.z - (a.L / 2 + mezzaP);
       if (!a.minaccia && davanti > -0.3 && davanti < anticipo * VC && Math.abs(a.x - xBici) < a.W / 2 + mezzaL + 0.05) a.minaccia = true;
       if (a.minaccia && dietro > 0) { a.minaccia = false; n++; }
@@ -558,7 +558,7 @@ PZ.creaTraffico = function (scena, citta, opz) {
   // (fase 103) c'è un ostacolo (auto o fermo) davanti, nella traiettoria di xBici, a meno di "anticipo" dal colpirla?
   function davantiVicino(xBici, mezzaL, mezzaP, anticipo) {
     for (let i = 0; i < attive.length; i++) {
-      const a = attive[i]; if (a.urtata) continue;
+      const a = attive[i]; if (a.urtata || a.saltata) continue;
       const dav = -a.z - (a.L / 2 + mezzaP);
       if (dav > -0.3 && dav < anticipo * VC && Math.abs(a.x - xBici) < a.W / 2 + mezzaL + 0.05) return true;
     }
