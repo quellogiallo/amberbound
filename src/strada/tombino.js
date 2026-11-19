@@ -7,7 +7,7 @@
 // SOTTO. Una piccola camera sotterranea (si cammina come nella cameretta): tubature, muri sporchi, una lampadina che
 // sfarfalla, una porta di ferro chiusa da cui filtra la stessa luce gialla. Tre valvole (con un simbolo dipinto sopra:
 // LUNA, OCCHIO, PIETRA), quattro tubature (una per valvola e la principale) e quattro spie sopra la porta. Sul muro,
-// accanto alla porta, un orologio dipinto: i tre simboli sono sulle ore e la lancetta indica il primo; si leggono nel
+// accanto alla porta, un orologio dipinto: i tre simboli sono sulle ore, la lancetta delle ore indica il primo e quella dei minuti il secondo; si leggono nel
 // verso della freccia (orario). La sequenza giusta apre la porta. Cambia a ogni partita, ma in una partita è sempre
 // la stessa. Una valvola sbagliata: vapore, la sequenza si azzera e il tempo scende di "penalita" secondi.
 // Hai "tempo" secondi: col passare del tempo la luce rossa cresce, la lampadina impazzisce, il demone gratta e batte
@@ -314,18 +314,15 @@ PZ.creaTombino = function (o) {
     g.strokeStyle = scuro; g.lineWidth = 2; g.beginPath(); g.arc(c, c, 47, 0, 7); g.stroke();
     g.fillStyle = col;
     for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; g.fillRect(Math.round(c + Math.sin(a) * 50) - 2, Math.round(c - Math.cos(a) * 50) - 2, 4, 4); }
-    // tre posizioni: ore 12, 4 e 8. Il primo simbolo della sequenza sta su quella indicata dalla lancetta
-    const POS = [0, 4, 8], dove = [];
-    for (let k = 0; k < 3; k++) dove.push(POS[(inizio + k) % 3]);
-    simboliOrdine.forEach(function (s, k) { const a = dove[k] / 12 * Math.PI * 2; simbolo(g, s, c + Math.sin(a) * 34, c - Math.cos(a) * 34, 10, '#efe2c0'); });
-    const a0 = dove[0] / 12 * Math.PI * 2;      // la lancetta (rossa, come la macchia sulla pietra)
-    g.strokeStyle = '#b3101a'; g.lineWidth = 4; g.lineCap = 'round'; g.beginPath(); g.moveTo(c, c); g.lineTo(c + Math.sin(a0) * 21, c - Math.cos(a0) * 21); g.stroke();
+    // (fase 100) LE LANCETTE: i tre simboli stanno su tre ore a caso (distanti almeno 3 ore). La lancetta delle ore
+    // (corta e grossa, "la più pigra") guarda il primo, quella dei minuti (lunga e sottile) il secondo; il terzo è
+    // quello che nessuna guarda. Stesso colore per tutte e due: si distinguono solo dalla forma
+    simboliOrdine.forEach(function (s, k) { const a = inizio[k] / 12 * Math.PI * 2; simbolo(g, s, c + Math.sin(a) * 36, c - Math.cos(a) * 36, 9, '#efe2c0'); });
+    g.strokeStyle = '#b3101a'; g.lineCap = 'round';
+    const aO = inizio[0] / 12 * Math.PI * 2, aM = inizio[1] / 12 * Math.PI * 2;
+    g.lineWidth = 2.5; g.beginPath(); g.moveTo(c - Math.sin(aM) * 6, c + Math.cos(aM) * 6); g.lineTo(c + Math.sin(aM) * 25, c - Math.cos(aM) * 25); g.stroke();   // minuti
+    g.lineWidth = 6; g.beginPath(); g.moveTo(c, c); g.lineTo(c + Math.sin(aO) * 15, c - Math.cos(aO) * 15); g.stroke();          // ore
     g.fillStyle = '#b3101a'; g.beginPath(); g.arc(c, c, 5, 0, 7); g.fill();
-    // la freccia del verso: un arco sul bordo, subito dopo la lancetta, con la punta in senso orario
-    const b0 = a0 - Math.PI / 2 + 0.35, b1 = b0 + 1.0;
-    g.strokeStyle = col; g.lineWidth = 3; g.beginPath(); g.arc(c, c, 61, b0, b1); g.stroke();
-    const px = c + Math.cos(b1) * 61, py = c + Math.sin(b1) * 61, tx = -Math.sin(b1), ty = Math.cos(b1);
-    g.fillStyle = col; g.beginPath(); g.moveTo(px + tx * 7, py + ty * 7); g.lineTo(px - tx * 2 + Math.cos(b1) * 6, py - ty * 2 + Math.sin(b1) * 6); g.lineTo(px - tx * 2 - Math.cos(b1) * 6, py - ty * 2 - Math.sin(b1) * 6); g.closePath(); g.fill();
     // sporco e graffi sopra la vernice
     const r = PZ.ps1.casuale(77); g.globalCompositeOperation = 'destination-out';
     for (let i = 0; i < 90; i++) g.fillRect(Math.floor(r() * N), Math.floor(r() * N), 1 + Math.floor(r() * 3), 1);
@@ -451,7 +448,11 @@ PZ.creaTombino = function (o) {
     const perm = function () { const a = [0, 1, 2]; for (let i = 2; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); const t = a[i]; a[i] = a[j]; a[j] = t; } return a; };
     S.simboli = perm();                 // S.simboli[v] = il simbolo dipinto sopra la valvola v
     S.ordine = perm();                  // l'ordine dei simboli sull'orologio
-    S.inizio = Math.floor(rnd() * 3);   // dove punta la lancetta
+    // (fase 100) le ore dei tre simboli sull'orologio: a caso, distanti almeno 3 ore tra loro
+    let ore;
+    do { ore = [0, 1, 2].map(function () { return Math.floor(rnd() * 12); }); }
+    while ([[0, 1], [0, 2], [1, 2]].some(function (c) { const d = Math.abs(ore[c[0]] - ore[c[1]]) % 12; return Math.min(d, 12 - d) < 3; }));
+    S.inizio = ore;                     // S.inizio[k] = l'ora del k-esimo simbolo (ore, minuti, nessuna)
     S.seq = S.ordine.map(function (s) { return S.simboli.indexOf(s); });   // le valvole, in ordine
     VALV.forEach(function (v, i) {
       const g = v.cv.getContext('2d'); g.fillStyle = '#1c1a14'; g.fillRect(0, 0, 32, 32); g.fillStyle = '#2a261c'; g.fillRect(2, 2, 28, 28);
@@ -547,9 +548,9 @@ PZ.creaTombino = function (o) {
   }
   // ---------- Interazione: la cosa più vicina (valvola, orologio dipinto, scala) ----------
   const OGG = [
-    { p: VALV[0].presa, nome: function () { return 'GIRA · ' + NOMI[S.simboli[0]]; }, fn: function () { giraValvola(0); } },
-    { p: VALV[1].presa, nome: function () { return 'GIRA · ' + NOMI[S.simboli[1]]; }, fn: function () { giraValvola(1); } },
-    { p: VALV[2].presa, nome: function () { return 'GIRA · ' + NOMI[S.simboli[2]]; }, fn: function () { giraValvola(2); } },
+    { p: VALV[0].presa, nome: function () { return 'GIRA'; }, fn: function () { giraValvola(0); } },
+    { p: VALV[1].presa, nome: function () { return 'GIRA'; }, fn: function () { giraValvola(1); } },
+    { p: VALV[2].presa, nome: function () { return 'GIRA'; }, fn: function () { giraValvola(2); } },
     { p: PRESA_MURALE, nome: function () { return 'GUARDA'; }, fn: function () { apriLente(); } },
     { p: PRESA_SCALA, nome: function () { return S.vinto ? 'RISALI' : 'RISALI SENZA PREMIO'; }, fn: function () { risali(); } }
   ];

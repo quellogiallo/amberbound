@@ -37,8 +37,8 @@ PZ.avvisi = (function () {
       'È un rischio: hai poco tempo, e se scade <b>il demone ti trova</b>. Non sei obbligato: puoi passarci sopra.'] },
     sotterraneo: { titolo: 'IL SOTTERRANEO', dura: 30000, righe: [
       'Trascina il dito per muoverti (PC: W A S D). Vicino alle cose compare il pulsante per <b>GIRARE</b>, <b>GUARDARE</b> o <b>RISALIRE</b>.',
-      'Apri il <b>forziere</b> girando le <b>3 valvole nell\'ordine giusto</b>. Ogni valvola ha un simbolo: <b>LUNA</b>, <b>OCCHIO</b>, <b>PIETRA</b>.',
-      'L\'ordine te lo dice l\'<b>orologio dipinto sul muro</b>: parti dal simbolo indicato dalla <b>lancetta</b> e segui la <b>freccia</b>.',
+      'Apri il <b>forziere</b> girando le <b>3 valvole nell\'ordine giusto</b>. Sopra ogni valvola è dipinto un <b>simbolo</b>.',
+      'Chiedi all\'<b>orologio sul muro</b>. <i>Prima ciò che guarda la lancetta più pigra. Poi ciò che guarda la più svelta. Per ultimo, ciò che nessuno guarda.</i>',
       'Hai <b>' + TB.tempo + ' secondi</b> (il tempo parte dopo il conto alla rovescia). Valvola sbagliata: vapore, <b>-' + TB.penalita + ' secondi</b> e si ricomincia.',
       'Il forziere si apre e l\'<b>ambra viene da te</b>. Poi <b>torna alla scala</b>: è l\'unica uscita. Puoi risalire anche prima, ma <b>senza premio</b>.'] },
     maria: { titolo: 'O AVE MARIA', righe: [
