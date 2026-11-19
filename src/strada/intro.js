@@ -27,7 +27,7 @@ PZ.creaIntro = function (ctx) {
   // ---------- (fase 105) IL PORTALE: il demone esce dall'asfalto da un pozzo nero, tra particelle nere che salgono ----------
   // Uscita: prima lentissima e a piccoli scatti (spunta l'occhio grande, poi la testa e le spalle), poi uno strappo
   // velocissimo fuori dal terreno. Tutto dipende solo dal tempo della scena, come il resto dell'intro.
-  const USCITA = 1.2, GR = PZ.CONFIG.strada.demone.grandezza || 1, ALTO_D = 3.45 * GR, RP = 1.15 * GR;
+  const GR = PZ.CONFIG.strada.demone.grandezza || 1, ALTO_D = 3.45 * GR, RP = 1.15 * GR;
   function uscita(u) {                    // u da 0 a 1 -> quanto è fuori (0..1), con un piccolo rimbalzo alla fine
     if (u <= 0) return 0;
     if (u < 0.74) { const f = u / 0.74 * 6, i = Math.floor(f), fr = f - i; return 0.4 * (i + A.morbida(0.55, 1, fr)) / 6; }
@@ -90,7 +90,9 @@ PZ.creaIntro = function (ctx) {
   const c1 = A.camminata({ da: { x: 8.5, z: 2.78 }, a: { x: 6.5, z: 2.6 }, dirDa: -PI / 2, dirA: -PI / 2, passo: 0.58, durataPasso: 0.5, larghezza: 0.1, primo: 'dx' });
   T.fuori = T.esce + c1.durata; T.chiude = T.fuori - 0.2; T.chiusa = T.chiude + 0.75; T.demone = T.chiusa + 0.3;
   // (fase 14) appena compare il demone la telecamera stringe su di lui (zoom): la scena dura un secondo in più
-  const ZOOM = 1.35; T.zoomFine = T.demone + ZOOM; T.gira = T.demone + 0.3 + ZOOM;   // (fase 105) zoom più lungo: si vede tutta l'uscita dal portale
+  // (fase 105) zoom più lungo: si vede tutta l'uscita dal portale. (fase 106) e poi lo scatto verso di te (CORSA_D secondi)
+  const USCITA = 1.2, CORSA_D = 1.0, VCORSA = 15;
+  const ZOOM = USCITA + 0.05 + CORSA_D; T.zoomFine = T.demone + ZOOM; T.gira = T.demone + 0.3 + ZOOM;
   const c2 = A.camminata({ da: { x: 6.5, z: 2.6 }, a: { x: 6.4, z: 2.38 }, dirDa: -PI / 2, dirA: dirDemone, passo: 0.5, durataPasso: 0.36, larghezza: 0.1, primo: 'sx', piediDa: piedi(c1, c1.durata) });
   T.paura = T.gira + c2.durata;
   const c3 = A.camminata({ da: { x: 6.4, z: 2.38 }, a: { x: 6.36, z: 1.95 }, dirDa: dirDemone, dirA: dirDemone, passo: 0.4, durataPasso: 0.3, larghezza: 0.1, primo: 'dx', piediDa: piedi(c2, c2.durata) });
@@ -451,12 +453,17 @@ PZ.creaIntro = function (ctx) {
       dem.gruppo.scale.set(gr, gr, gr); dem.gruppo.visible = true;
       // (fase 105) esce dal portale: sotto l'asfalto quello che non è ancora uscito resta nascosto dalla strada
       const uE = (t - T.demone) / USCITA, fuori = uscita(Math.min(1, uE));
-      const zCammina = DEM0.z - 1.55 * Math.max(0, Math.min(t, T.sella) - T.demone - USCITA);
+      // (fase 106) appena fuori SCATTA verso di te: in 0,15 s è a piena velocità, corre per CORSA_D secondi; poi avanza a passo
+      const R0 = T.demone + USCITA + 0.05, R1 = R0 + CORSA_D, tau = Math.max(0, Math.min(CORSA_D, t - R0));
+      const dCorsa = tau < 0.15 ? VCORSA * tau * tau / 0.3 : VCORSA * (tau - 0.075);
+      if (t >= R0) suona('scatto', 'ringhio');
+      const zCammina = DEM0.z - dCorsa - 1.55 * Math.max(0, Math.min(t, T.sella) - R1);
       const kc = A.morbida(T.sella, T.fine, t);
       const zd = A.mix(zCammina, DIST0, kc), xd = A.mix(DEM0.x, 0, kc);
       dem.posiziona(xd, -ALTO_D * (1 - fuori), zd, PI);
       tmp.copy(P.pos); tmp.y += 0.7;
       if (uE < 1) dem.anima(dt, 'fermo', 0, tmp, 1);
+      else if (t >= R0 && t < R1) dem.anima(dt, 'corre', VCORSA, tmp, 0.6);
       else dem.anima(dt, kc > 0.02 ? 'corre' : 'cammina', kc > 0.02 ? 12 : 1.55, tmp, 0.4);
     }
     passoPortale(t);
@@ -473,7 +480,8 @@ PZ.creaIntro = function (ctx) {
       dem.gruppo.getWorldPosition(tmp3); tmp3.y += 2.05 * grz;
       cg.lerp(tmp3, kz);
       fov = A.mix(fov, 6.5 * grz, kz);
-      const tr = 0.04 * kz; cg.x += tr * Math.sin(t * 23); cg.y += tr * 0.7 * Math.sin(t * 31 + 1);
+      const kCorsa = A.morbida(T.demone + USCITA + 0.05, T.demone + USCITA + 0.25, t);   // (fase 106) mentre corre la camera trema di più
+      const tr = (0.04 + 0.14 * kCorsa) * kz; cg.x += tr * Math.sin(t * 23); cg.y += tr * 0.7 * Math.sin(t * 31 + 1);
     }
     // inquadratura C: lo sguardo segue anche il ragazzo che corre alla bici (fino all'inizio del giro)
     if (t > T.versoBici - 0.05 && t < D0) { tmp.copy(P.pos); tmp.y -= 0.05; cg.lerp(tmp, 0.45 * (1 - A.morbida(D0 - 0.45, D0, t))); }
