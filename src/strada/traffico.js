@@ -555,6 +555,22 @@ PZ.creaTraffico = function (scena, citta, opz) {
     }
     return n;
   }
+  // (fase 103) c'è un ostacolo (auto o fermo) davanti, nella traiettoria di xBici, a meno di "anticipo" dal colpirla?
+  function davantiVicino(xBici, mezzaL, mezzaP, anticipo) {
+    for (let i = 0; i < attive.length; i++) {
+      const a = attive[i]; if (a.urtata) continue;
+      const dav = -a.z - (a.L / 2 + mezzaP);
+      if (dav > -0.3 && dav < anticipo * VC && Math.abs(a.x - xBici) < a.W / 2 + mezzaL + 0.05) return true;
+    }
+    for (let i = 0; i < statiche.length; i++) {
+      const o = statiche[i]; if (o.colpita) continue;
+      const larga = o.tipo === 'T' ? (o.mano ? MANO.larghezza : o.ragazza ? o.ragazza.larghezza : transenne.LARGHEZZA)
+        : o.demone ? o.larghezza : o.sagoma ? o.sagoma.larghezza : 1;
+      const dav = -o.z - ((o.demone ? o.mezzaProf : 0.25) + mezzaP);
+      if (dav > -0.3 && dav < anticipo * V0 && Math.abs(o.x - xBici) < larga / 2 + mezzaL) return true;
+    }
+    return false;
+  }
   // (fase 101) lo stesso per gli ostacoli fermi (transenne, sagome, la mano, le ragazze, il demone): quelli che ti
   // erano davanti nella traiettoria a meno di "anticipo" e che ti passano accanto senza colpirti
   function sfiorateFerme(xBici, mezzaL, mezzaP, anticipo) {
@@ -610,7 +626,7 @@ PZ.creaTraffico = function (scena, citta, opz) {
   reset(0);
   function guida(lista) { st.guida = (lista || []).slice(); }
   function richiediManata(opz) { st.manataRichiesta = true; st.manataOpz = opz || {}; }
-  return { sfiorate: sfiorate, sfiorateFerme: sfiorateFerme, pausaSuoni: pausaSuoni, guida: guida, richiediManata: richiediManata, MANO: MANO, aggiorna: aggiorna, reset: reset, controlla: controlla, urta: urta, attive: attive, auto: auto, statiche: statiche, righe: righe,
+  return { davantiVicino: davantiVicino, sfiorate: sfiorate, sfiorateFerme: sfiorateFerme, pausaSuoni: pausaSuoni, guida: guida, richiediManata: richiediManata, MANO: MANO, aggiorna: aggiorna, reset: reset, controlla: controlla, urta: urta, attive: attive, auto: auto, statiche: statiche, righe: righe,
     stato: st, prossimoArrivo: prossimoArrivo, transennaDavanti: transennaDavanti, V0: V0, VC: VC, ORIZZ_METRI: (ORIZZ + 1) * V0, pianifica: pianifica, valida: valida,
     silenzia: silenzia, ascolta: ascolta, buio: buio, strada: strada };
 };

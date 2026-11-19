@@ -193,6 +193,8 @@ PZ.creaCorsa = function (opz) {
       if (S.tTot - S.ultimoBordo > 0.45) { S.ultimoBordo = S.tTot; sbanda(d, 0.8); if (PZ.audio.sfrega) PZ.audio.sfrega(); }   // (fase 101)
       return false;
     }
+    // (fase 103) LO SBANDAMENTO nel momento della schivata: cambi corsia con un ostacolo vicino davanti nella tua traiettoria
+    if (!salvia.protetto() && S.salto.fase === 'no' && traffico.davantiVicino(S.x, 0.27, 0.86, CFG_SUONI.anticipoCampanello)) sbanda(d);
     S.corsia = nuova;
     S.xDa = S.xc; S.vDa = S.vx; S.xA = nuova * LC; S.tc = 0;
     if (PZ.audio.scarto) PZ.audio.scarto();
@@ -731,10 +733,8 @@ PZ.creaCorsa = function (opz) {
     // (fase 99) l'hai scampata per un pelo: il campanello
     if (!salvia.protetto()) {
       const auto = traffico.sfiorate(S.x, 0.27, 0.86, CFG_SUONI.anticipoCampanello);
-      const ferme = traffico.sfiorateFerme(S.x, 0.27, 0.86, CFG_SUONI.anticipoCampanello);
       if (auto > 0 && PZ.audio.campanello) PZ.audio.campanello();
-      // (fase 101) lo sbandamento della telecamera: solo per una schivata di lato (saltare sopra una transenna non conta)
-      if ((auto > 0 || ferme > 0) && S.salto.fase === 'no' && S.invul <= 0) sbanda(S.vx);
+      // (fase 103) lo sbandamento ora parte nel momento della schivata: vedi cambia()
     }                    // il demone l'ha preso: da qui pensa passoMorte
     if (S.invul > 0) S.invul -= dt;
 
