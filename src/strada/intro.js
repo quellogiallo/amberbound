@@ -24,6 +24,61 @@ PZ.creaIntro = function (ctx) {
   // dove arriva correndo (bacino) e dove posa il piede sinistro, accanto alla sella: da lì sale
   const ARRIVO = { x: 5.27, z: 0.2 }, TP = new V3(5.19, Y + CAV, 0.22);
 
+  // ---------- (fase 105) IL PORTALE: il demone esce dall'asfalto da un pozzo nero, tra particelle nere che salgono ----------
+  // Uscita: prima lentissima e a piccoli scatti (spunta l'occhio grande, poi la testa e le spalle), poi uno strappo
+  // velocissimo fuori dal terreno. Tutto dipende solo dal tempo della scena, come il resto dell'intro.
+  const USCITA = 1.2, GR = PZ.CONFIG.strada.demone.grandezza || 1, ALTO_D = 3.45 * GR, RP = 1.15 * GR;
+  function uscita(u) {                    // u da 0 a 1 -> quanto è fuori (0..1), con un piccolo rimbalzo alla fine
+    if (u <= 0) return 0;
+    if (u < 0.74) { const f = u / 0.74 * 6, i = Math.floor(f), fr = f - i; return 0.4 * (i + A.morbida(0.55, 1, fr)) / 6; }
+    if (u < 0.86) { const w = (u - 0.74) / 0.12; return 0.4 + 0.66 * w * w; }
+    return 1 + 0.06 * (1 - A.morbida(0.86, 1, u));
+  }
+  const portale = new THREE.Group(); portale.position.set(DEM0.x, 0.03, DEM0.z); portale.visible = false; ctx.scena.add(portale);
+  const piano = function (tex, op, scala) {
+    const m = new THREE.Mesh(new THREE.CircleGeometry(1, 28).rotateX(-PI / 2), new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: op, depthWrite: false, fog: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }));
+    m.scale.setScalar(scala); portale.add(m); return m;
+  };
+  const pBordo = piano(PZ.ps1.alone(70, 20, 110, 6), 0.55, 1.45);      // un alone viola appena accennato: stacca il nero dall'asfalto
+  const pOmbra = piano(PZ.ps1.alone(0, 0, 0, 5), 1, 1.35);              // l'ombra sfumata
+  const pPozzo = new THREE.Mesh(new THREE.CircleGeometry(0.82, 24).rotateX(-PI / 2), new THREE.MeshBasicMaterial({ color: 0x000000, fog: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -6 }));
+  portale.add(pPozzo);                                                  // il fondo: nero pieno
+  // la nebbia nera che ribolle sul bordo: di lato (la telecamera è bassa) il pozzo si vede soprattutto da questa
+  const nebbie = []; { const tN = PZ.ps1.alone(0, 0, 0, 4);
+    for (let i = 0; i < 8; i++) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tN, transparent: true, depthWrite: false, fog: false, opacity: 0 })); portale.add(sp); nebbie.push(sp); } }
+  const NP = 90, pGeo = new THREE.BufferGeometry(), pPos = new Float32Array(NP * 3);
+  pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+  const pMat = new THREE.PointsMaterial({ color: 0x000000, map: PZ.ps1.alone(255, 255, 255, 3), size: 0.42 * GR, transparent: true, depthWrite: false, fog: false, alphaTest: 0.05 });
+  const particelle = new THREE.Points(pGeo, pMat); particelle.frustumCulled = false; portale.add(particelle);
+  const PP = []; { const r = PZ.ps1.casuale(1313); for (let i = 0; i < NP; i++) PP.push({ fase: r(), vita: 1.1 + r() * 1.1, a0: r() * PI * 2, giro: (r() < 0.5 ? -1 : 1) * (1.2 + r() * 2.2), vy: 1.2 + r() * 2.6, r0: 0.5 + r() * 0.5, apre: 0.15 + r() * 0.45 }); }
+  function passoPortale(t) {
+    const tt = t - T.demone, fine = USCITA + 0.35;
+    if (tt < -0.15 || tt > fine + 0.8) { portale.visible = false; return; }
+    portale.visible = true;
+    const apre = A.morbida(-0.15, 0.25, tt) * (1 - A.morbida(fine, fine + 0.6, tt));
+    portale.scale.setScalar(Math.max(0.001, RP * apre));
+    portale.rotation.y = tt * 0.6;
+    pBordo.material.opacity = 0.55 * apre;
+    nebbie.forEach(function (sp, i) {
+      const a = i / nebbie.length * PI * 2 + tt * (i % 2 ? 0.5 : -0.4), r = 0.75 + 0.12 * Math.sin(tt * 3 + i);
+      sp.position.set(Math.cos(a) * r, 0.18 + 0.08 * Math.sin(tt * 4 + i * 1.7), Math.sin(a) * r);
+      const sc = 0.9 + 0.25 * Math.sin(tt * 2.3 + i); sp.scale.set(sc, sc * 0.75, 1);
+      sp.material.opacity = 0.85 * apre;
+    });
+    // le particelle: nascono sul bordo e salgono a spirale attorno al demone, finché il portale è aperto
+    const attive = tt > -0.05 && tt < fine + 0.3;
+    pMat.opacity = Math.min(1, apre * 1.4);
+    pMat.size = 0.42 * GR * Math.max(1, 50 / camera.fov);        // i punti non si ingrandiscono con lo zoom: lo compensa
+    for (let i = 0; i < NP; i++) {
+      const q = PP[i]; let l = (tt + q.fase * q.vita) % q.vita; if (l < 0) l += q.vita;
+      const nata = tt - l;                                     // quando è nata questa particella
+      if (!attive || nata < -0.05 || nata > fine) { pPos[i * 3 + 1] = -50; continue; }
+      const a = q.a0 + q.giro * l, rr = q.r0 + q.apre * l;      // in coordinate del portale (scalato di RP)
+      pPos[i * 3] = Math.cos(a) * rr; pPos[i * 3 + 1] = q.vy * l / RP; pPos[i * 3 + 2] = Math.sin(a) * rr;
+    }
+    pGeo.attributes.position.needsUpdate = true;
+  }
+
   // ---------- camminate e corsa (generatori di passi) ----------
   const tmp = new V3(), tmp2 = new V3(), tmp3 = new V3();
   const piedi = function (c, t) { const a = new V3(), b = new V3(); c.piede('sx', t, a); c.piede('dx', t, b); return { sx: a, dx: b }; };
@@ -35,7 +90,7 @@ PZ.creaIntro = function (ctx) {
   const c1 = A.camminata({ da: { x: 8.5, z: 2.78 }, a: { x: 6.5, z: 2.6 }, dirDa: -PI / 2, dirA: -PI / 2, passo: 0.58, durataPasso: 0.5, larghezza: 0.1, primo: 'dx' });
   T.fuori = T.esce + c1.durata; T.chiude = T.fuori - 0.2; T.chiusa = T.chiude + 0.75; T.demone = T.chiusa + 0.3;
   // (fase 14) appena compare il demone la telecamera stringe su di lui (zoom): la scena dura un secondo in più
-  const ZOOM = 1.0; T.zoomFine = T.demone + ZOOM; T.gira = T.demone + 0.3 + ZOOM;
+  const ZOOM = 1.35; T.zoomFine = T.demone + ZOOM; T.gira = T.demone + 0.3 + ZOOM;   // (fase 105) zoom più lungo: si vede tutta l'uscita dal portale
   const c2 = A.camminata({ da: { x: 6.5, z: 2.6 }, a: { x: 6.4, z: 2.38 }, dirDa: -PI / 2, dirA: dirDemone, passo: 0.5, durataPasso: 0.36, larghezza: 0.1, primo: 'sx', piediDa: piedi(c1, c1.durata) });
   T.paura = T.gira + c2.durata;
   const c3 = A.camminata({ da: { x: 6.4, z: 2.38 }, a: { x: 6.36, z: 1.95 }, dirDa: dirDemone, dirA: dirDemone, passo: 0.4, durataPasso: 0.3, larghezza: 0.1, primo: 'dx', piediDa: piedi(c2, c2.durata) });
@@ -392,17 +447,19 @@ PZ.creaIntro = function (ctx) {
     // --- demone: compare in fondo alla strada, avanza piano, poi corre dietro alla bici ---
     if (t >= T.demone) {
       if (!dem.visibile) { dem.mostra(); suona('demone', 'demoneAppare'); if (t < T.zoomFine) suona('stinger', 'stingerDemone'); }
-      const comparsa = A.morbida(T.demone, T.demone + 0.5, t);
       const gr = PZ.CONFIG.strada.demone.grandezza || 1; dem.scala = gr;   // (fase 77) il 30% più grosso
-      dem.gruppo.scale.set(gr, gr * Math.max(0.05, comparsa), gr);
-      dem.gruppo.visible = comparsa > 0.98 || Math.sin(t * 55) > -0.2;
-      const zCammina = DEM0.z - 1.55 * (Math.min(t, T.sella) - T.demone);
+      dem.gruppo.scale.set(gr, gr, gr); dem.gruppo.visible = true;
+      // (fase 105) esce dal portale: sotto l'asfalto quello che non è ancora uscito resta nascosto dalla strada
+      const uE = (t - T.demone) / USCITA, fuori = uscita(Math.min(1, uE));
+      const zCammina = DEM0.z - 1.55 * Math.max(0, Math.min(t, T.sella) - T.demone - USCITA);
       const kc = A.morbida(T.sella, T.fine, t);
       const zd = A.mix(zCammina, DIST0, kc), xd = A.mix(DEM0.x, 0, kc);
-      dem.posiziona(xd, 0, zd, PI);
+      dem.posiziona(xd, -ALTO_D * (1 - fuori), zd, PI);
       tmp.copy(P.pos); tmp.y += 0.7;
-      dem.anima(dt, kc > 0.02 ? 'corre' : 'cammina', kc > 0.02 ? 12 : 1.55, tmp, 0.4);
+      if (uE < 1) dem.anima(dt, 'fermo', 0, tmp, 1);
+      else dem.anima(dt, kc > 0.02 ? 'corre' : 'cammina', kc > 0.02 ? 12 : 1.55, tmp, 0.4);
     }
+    passoPortale(t);
     if (t > T.paura) suona('battito', 'battito');
 
     // --- telecamera: le inquadrature A, B1, B2, C; poi (D) il giro intorno al ragazzo fino alla visuale di gioco ---
@@ -447,6 +504,7 @@ PZ.creaIntro = function (ctx) {
     return fatto;
   }
   // se si passa alla corsa prima della fine (tasto R), non deve restare in strada niente della scena
-  function pulisci() { metticavalletto(false); }
+  function pulisci() {
+    portale.visible = false; metticavalletto(false); }
   return { avvia: avvia, aggiorna: aggiorna, salta: salta, pulisci: pulisci, durata: D, tempi: T, tempo: function () { return t; }, finita: function () { return fatto; } };
 };
