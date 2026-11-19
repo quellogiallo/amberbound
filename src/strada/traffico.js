@@ -375,7 +375,7 @@ PZ.creaTraffico = function (scena, citta, opz) {
         if (x !== 'A') return;
         const libere = auto.filter(function (a) { return !a.attiva; }); if (!libere.length) return;
         const a = libere[Math.floor(rnd() * libere.length)];
-        a.attiva = true; a.urtata = false; a.sbanda = 0; a.ribalto = null; a.corsia = l; a.tau = r.tau; a.sfalsa = -rnd() * 2.4;
+        a.attiva = true; a.minaccia = false; a.urtata = false; a.sbanda = 0; a.ribalto = null; a.corsia = l; a.tau = r.tau; a.sfalsa = -rnd() * 2.4;
         a.xBase = (l - 1) * LC + (rnd() - 0.5) * 0.14; a.x = a.xBase;
         a.z = -VC * (r.tau - tau) + a.sfalsa;
         a.gruppo.position.set(a.x, 0, a.z); a.gruppo.rotation.set(0, 0, 0); a.gruppo.visible = true;
@@ -542,6 +542,19 @@ PZ.creaTraffico = function (scena, citta, opz) {
     }
     return null;
   }
+  // (fase 99) SFIORATE: un'auto che era davanti nella tua traiettoria, a meno di "anticipo" (in tau, circa secondi) dal
+  // colpirti, e che poi ti passa accanto senza urtarti. Restituisce quante ne hai appena schivate così (di solito 0 o 1)
+  function sfiorate(xBici, mezzaL, mezzaP, anticipo) {
+    let n = 0;
+    for (let i = 0; i < attive.length; i++) {
+      const a = attive[i];
+      if (a.urtata) { a.minaccia = false; continue; }
+      const dietro = a.z - (a.L / 2 + mezzaP), davanti = -a.z - (a.L / 2 + mezzaP);
+      if (!a.minaccia && davanti > -0.3 && davanti < anticipo * VC && Math.abs(a.x - xBici) < a.W / 2 + mezzaL + 0.05) a.minaccia = true;
+      if (a.minaccia && dietro > 0) { a.minaccia = false; n++; }
+    }
+    return n;
+  }
   // vel: velocità della bici (serve alla transenna abbattuta, che vola via davanti a lei)
   function urta(h, xBici, vel, ribalta) {
     const o = h.ogg;
@@ -582,7 +595,7 @@ PZ.creaTraffico = function (scena, citta, opz) {
   reset(0);
   function guida(lista) { st.guida = (lista || []).slice(); }
   function richiediManata(opz) { st.manataRichiesta = true; st.manataOpz = opz || {}; }
-  return { pausaSuoni: pausaSuoni, guida: guida, richiediManata: richiediManata, MANO: MANO, aggiorna: aggiorna, reset: reset, controlla: controlla, urta: urta, attive: attive, auto: auto, statiche: statiche, righe: righe,
+  return { sfiorate: sfiorate, pausaSuoni: pausaSuoni, guida: guida, richiediManata: richiediManata, MANO: MANO, aggiorna: aggiorna, reset: reset, controlla: controlla, urta: urta, attive: attive, auto: auto, statiche: statiche, righe: righe,
     stato: st, prossimoArrivo: prossimoArrivo, transennaDavanti: transennaDavanti, V0: V0, VC: VC, ORIZZ_METRI: (ORIZZ + 1) * V0, pianifica: pianifica, valida: valida,
     silenzia: silenzia, ascolta: ascolta, buio: buio, strada: strada };
 };

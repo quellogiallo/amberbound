@@ -286,6 +286,16 @@ PZ.creaCorsa = function (opz) {
   }
   // prova "a vuoto": se il salto partisse adesso, la transenna o passerebbe sotto le ruote? (accende il pulsante SALTA)
   const prova = { h: 0, pend: 0 };
+  // (fase 99) LA RUOTA LIBERA: "denti" tic per ogni giro della ruota. Pedalando è un ticchettio
+  // leggero; quando smette di pedalare (in aria, in volo, quando la bici rallenta) si sente di più
+  const CFG_SUONI = CFG.suoniBici || { denti: 2, volume: 0.035, volumeLibera: 0.09, anticipoCampanello: 0.42 };
+  let fTic = 0, kLibera = 0;
+  function ticchetta(vel, dt, pedala) {
+    kLibera += ((pedala ? 0 : 1) - kLibera) * Math.min(1, dt * 6);
+    fTic += vel * dt / (2 * Math.PI * R) * CFG_SUONI.denti;
+    if (fTic > 3) fTic = 1;                                // dopo un salto di fotogrammi: niente raffica
+    while (fTic >= 1) { fTic -= 1; if (PZ.audio.raggio) PZ.audio.raggio(CFG_SUONI.volume + (CFG_SUONI.volumeLibera - CFG_SUONI.volume) * kLibera); }
+  }
   function saltoRiuscirebbe(o) {
     const v = Math.max(1, S.vel), dtp = 1 / 240;
     for (let t = 0; t <= PREP + ARIA; t += dtp) {
@@ -700,11 +710,14 @@ PZ.creaCorsa = function (opz) {
     // in volo (e un attimo dopo l'atterraggio) niente urti: auto, transenne, sagome e la manata passano sotto
     const h = salvia.protetto() ? null : traffico.controlla(S.x, 0.27, 0.86, quota);
     if (h) { if (S.furia > 0) sfonda(h); else if (S.invul > 0 || S.avvisoProtegge) traffico.urta(h, S.x, S.vel); else urto(h); }
-    if (S.fase !== 'corsa') return;                    // il demone l'ha preso: da qui pensa passoMorte
+    if (S.fase !== 'corsa') return;
+    // (fase 99) l'hai scampata per un pelo: il campanello
+    if (!salvia.protetto() && traffico.sfiorate(S.x, 0.27, 0.86, CFG_SUONI.anticipoCampanello) > 0 && PZ.audio.campanello) PZ.audio.campanello();                    // il demone l'ha preso: da qui pensa passoMorte
     if (S.invul > 0) S.invul -= dt;
 
     // bici e ragazzo
     S.ruote += S.velBici * dt / R;
+    ticchetta(S.velBici, dt, (S.salto.fase === 'no' || S.salto.fase === 'atterra') && !salvia.inVolo() ? 1 : 0);
     if (S.salto.fase === 'no' || S.salto.fase === 'atterra') S.pedivella += S.velBici * dt / R / RAPPORTO;   // in aria smette di pedalare
     const visibile = S.invul <= 0 || Math.floor(S.invul * 10) % 2 === 0;
     ciclista.aggiorna(S.x, S.inclina, S.ruote, S.pedivella, S.tTot, visibile, 1 - r, { y: S.salto.h + S.hVolo, pendenza: S.salto.pend + salvia.pendenza(), alzato: S.salto.alz });
@@ -922,6 +935,7 @@ PZ.creaCorsa = function (opz) {
     S.hVolo = salvia.aggiorna(dt, function () { return true; }, S.x, S.vel); frammenti.solleva(S.hVolo); aggiornaVoloHud();
     S.inclina += (0 - S.inclina) * Math.min(1, dt * 6);
     S.ruote += S.vel * dt / R;
+    ticchetta(S.vel, dt, S.vel > V0 * 0.6 ? 1 : 0);
     if (S.salto.fase === 'no' || S.salto.fase === 'atterra') S.pedivella += S.vel * dt / R / RAPPORTO;
     ciclista.aggiorna(S.x, S.inclina, S.ruote, S.pedivella, S.tTot, true, 0, { y: S.salto.h + S.hVolo, pendenza: S.salto.pend + salvia.pendenza(), alzato: S.salto.alz });
     frammenti.aggiorna(dt, S.tau);

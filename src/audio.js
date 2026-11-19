@@ -334,6 +334,41 @@ PZ.audio = (function () {
     }
   };
   // ---- scena iniziale, salto, demone (suoni di prova generati dal gioco) ----
+  // (fase 99) LA BICI: il tic-tic della ruota libera (un clic metallico brevissimo, sempre uguale ma con un filo di
+  // variazione) e il campanello quando sfiori un'auto (due colpi, parziali non armoniche come una campana vera)
+  const bici = (function () {
+    let clic = null, uscita = null;
+    function prepara() {
+      if (clic || !ctx) return;
+      const n = Math.floor(ctx.sampleRate * 0.012); clic = ctx.createBuffer(1, n, ctx.sampleRate);
+      const d = clic.getChannelData(0);
+      for (let i = 0; i < n; i++) { const k = i / n; d[i] = (Math.random() * 2 - 1) * Math.pow(1 - k, 4) + Math.sin(i * 0.9) * 0.35 * Math.pow(1 - k, 6); }
+      const hp = ctx.createBiquadFilter(); hp.type = 'bandpass'; hp.frequency.value = 3800; hp.Q.value = 1.4;
+      uscita = ctx.createGain(); uscita.gain.value = 1; hp.connect(uscita); uscita.connect(master); uscita.hp = hp;
+    }
+    function tic(vol) {
+      if (!ctx || ctx.state !== 'running') return;
+      prepara();
+      const s = ctx.createBufferSource(), g = ctx.createGain();
+      s.buffer = clic; s.playbackRate.value = 0.92 + Math.random() * 0.16; g.gain.value = vol;
+      s.connect(g); g.connect(uscita.hp); s.start();
+    }
+    function colpo(t, vol) {
+      [[1, 1], [2.76, 0.45], [5.4, 0.18], [1.006, 0.6]].forEach(function (p) {
+        const o = ctx.createOscillator(), g = ctx.createGain(), f = 2050 * p[0];
+        o.type = 'sine'; o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol * p[1], t + 0.004);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + (p[0] > 2 ? 0.35 : 1.1));
+        o.connect(g); g.connect(master); o.start(t); o.stop(t + 1.2);
+      });
+    }
+    function campanello() {
+      if (!ctx || ctx.state !== 'running') return;
+      const t = ctx.currentTime + 0.01, v = (PZ.CONFIG.audio.volumeCampanello || 0.07);
+      colpo(t, v); colpo(t + 0.13, v * 0.85);
+    }
+    return { tic: tic, campanello: campanello };
+  })();
   const demoni = {
     portaApre: function () { nota(150, 0.7, 'sawtooth', 0.04, 0, 0.6); nota(152, 0.7, 'square', 0.025, 0.05, 0.55); soffio(300, 900, 0.6, 0.03); },
     portaChiude: function () { soffio(400, 80, 0.25, 0.35); nota(70, 0.25, 'sine', 0.3, 0, 0.6); },
@@ -1288,6 +1323,7 @@ PZ.audio = (function () {
     scappa: demoni.scappa, ambra: demoni.ambra, salto: demoni.salto, atterraggio: demoni.atterraggio, transenna: demoni.transenna, sagomaUrto: demoni.sagomaUrto, cattura: demoni.cattura,
     passoStanza: strada.passoStanza, passoStrada: strada.passoStrada, passoTerra: strada.passoTerra, scarto: strada.scarto, urto: strada.urto, distruzione: strada.distruzione, clacson: strada.clacson, clacsonVicino: strada.clacsonVicino, bip: strada.bip, vento: strada.vento,
     avvia: avvia, stingerDemone: stingerDemone, fermaStinger: fermaStinger,
+    raggio: bici.tic, campanello: bici.campanello,   // (fase 99) la ruota libera e il campanello
     sotto: sotto,   // (fase 80) il tombino
     menu: menuMus,  // (fase 89) la musica del menu
     tocco: function () { nota(660, 0.08, 'square', 0.05); },

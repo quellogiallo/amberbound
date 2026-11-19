@@ -29,7 +29,7 @@ PZ.CONFIG = {
     sotterraneo: 'audio/sotterraneo-loop.mp3', volumeSotterraneo: 0.8,
     // (fase 89) la colonna sonora del MENU: "AMBRA soundtrack atto 1" dall'impatto del basso (7,95 s del file originale)
     // fino al terzo tic d'orologio dopo la fine; poi ricomincia dal basso (menuLoop = lunghezza esatta del giro, secondi)
-    menu: 'audio/menu-loop.mp3', volumeMenu: 0.85, menuLoop: 94.9949, volumeCarillon: 0.9,   // (fase 70) il file è più forte di 6 dB e il volume al 90%: prima (30%) sul telefono quasi non si sentiva
+    menu: 'audio/menu-loop.mp3',  volumeCampanello: 0.07, volumeMenu: 0.85, menuLoop: 94.9949, volumeCarillon: 0.9,   // (fase 70) il file è più forte di 6 dB e il volume al 90%: prima (30%) sul telefono quasi non si sentiva
     volume: 0.8,
     // (fase 14) il colpo d'orchestra con l'archetto che stride: quando compare il demone nella scena iniziale e nel
     // jumpscare quando ti prende. Per cambiarlo metti un altro file nella cartella "audio" e scrivi qui il nome.
@@ -166,6 +166,9 @@ PZ.CONFIG = {
     // Sotto: "tempo" secondi per risolvere il puzzle delle valvole, poi il demone ti trova (game over). Ogni valvola
     // sbagliata toglie "penalita" secondi e azzera la sequenza. Premio (all'uscita dalla scala): "premio" frammenti,
     // "perfetto" se non hai sbagliato nessuna valvola. Una sola volta per partita. arcade: false = solo nella storia.
+    // (fase 99) i suoni della bici: denti = tic per giro di ruota; volume pedalando / a ruota libera (in aria, in volo,
+    // rallentando); anticipoCampanello = quanto vicina (circa in secondi) dev'essere l'auto schivata perché suoni
+    suoniBici: { denti: 2, volume: 0.035, volumeLibera: 0.09, anticipoCampanello: 0.42 },
     tombino: { probabilita: 1, metri: [700, 1200], ancora: 0, dopo: [350, 600], max: 1, finestra: 1.7,   // (fase 93-95) sicuro, una volta a partita, tra 700 e 1200 m (prima 0.6, 380-1100 m, ancora 0.5, max 2)
       tempo: 30, penalita: 3, premio: 20, perfetto: 30, arcade: false, invulUscita: 2.2,   // (fase 85) prima 45 s e -4 s
       scarto: 8 },   // (fase 83) secondi di scarto all'inizio: il tempo è fermo, istruzioni a schermo (girare una valvola lo fa partire)
