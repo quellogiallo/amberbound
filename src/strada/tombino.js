@@ -363,7 +363,7 @@ PZ.creaTombino = function (o) {
   const luceRagazzo = new THREE.PointLight(0xffc890, 1.1, 4.2, 1.4); sc.add(luceRagazzo);
   // (fase 80b) IL DEMONE DEL GAME OVER: quando il tempo finisce ti salta addosso qui sotto (stesso modello e stesso
   // jumpscare della strada), con la porta, le tubature e l'orologio dipinto alle sue spalle
-  const occhiS = PZ.creaOcchi(sc, 40);
+  const occhiS = PZ.creaOcchi(sc, 64);   // (fase 102) il demone ora ha circa 52 occhi
   const demoneS = PZ.creaDemone(sc, occhiS, { manone: true });
   const J = { t: 0, testa: new V3(), bers: new V3(), p: new V3() }, DZ = -1.0;
   function iniziaJumpscare() {

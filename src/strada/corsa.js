@@ -18,7 +18,7 @@ PZ.creaCorsa = function (opz) {
   // (fase 72) ombre proiettate di protagonista e auto (src/ombre.js)
   const ombre = PZ.creaOmbre(scena, PZ.CONFIG.ombre.strada);
   const citta = PZ.creaCitta(scena, ombre);
-  const occhi = PZ.creaOcchi(scena, 140);
+  const occhi = PZ.creaOcchi(scena, 440);   // (fase 102) circa 52 occhi a creatura: il demone e 7 sagome
   const demone = PZ.creaDemone(scena, occhi, { manone: true });   // (fase 10) con le due manone artigliate
   const GRANDE = PZ.CONFIG.strada.demone.grandezza || 1; demone.scala = GRANDE;   // (fase 77) anche gli occhi
   const fuga = PZ.creaFuga({ scena: scena });   // (fase 78) la scena a 100/100: lo spiraglio sulla scogliera e il demone che urla

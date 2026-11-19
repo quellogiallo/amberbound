@@ -82,6 +82,25 @@ PZ.materialeDemoni = (function () {
   let m = null;
   return function () { return m || (m = new THREE.MeshLambertMaterial({ vertexColors: true, fog: false })); };
 })();
+// (fase 102) il materiale del bulbo-testa: bianco sporco con capillari rossi, senza luce né nebbia (come gli occhi)
+PZ.materialeBulbo = (function () {
+  let m = null;
+  return function () {
+    if (m) return m;
+    const c = document.createElement('canvas'); c.width = 64; c.height = 32;
+    const g = c.getContext('2d'), r = PZ.ps1.casuale(515);
+    g.fillStyle = '#d9d0aa'; g.fillRect(0, 0, 64, 32);
+    g.fillStyle = 'rgba(150,120,90,0.35)'; for (let i = 0; i < 40; i++) g.fillRect(Math.floor(r() * 64), Math.floor(r() * 32), 2, 1);
+    g.strokeStyle = 'rgba(150,20,20,0.75)'; g.lineWidth = 1;
+    for (let i = 0; i < 14; i++) {                // capillari: linee spezzate che si ramificano
+      let x = r() * 64, y = r() * 32; g.beginPath(); g.moveTo(x, y);
+      for (let k = 0; k < 5; k++) { x += (r() - 0.5) * 10; y += (r() - 0.5) * 6; g.lineTo(x, y); }
+      g.stroke();
+    }
+    const t = new THREE.CanvasTexture(c); t.magFilter = t.minFilter = THREE.NearestFilter;
+    return (m = new THREE.MeshBasicMaterial({ map: t, fog: false }));
+  };
+})();
 PZ.bagliore = (function () {   // alone giallo per l'occhio grande, visibile anche da lontano
   let t = null;
   return function () {
@@ -139,11 +158,11 @@ PZ.corpoCreatura = function (prop) {
   // collo e testa: testa lunga, mento a punta
   meshes.push(pezzo(G.collo, function (C) { C.geo('corpo', cil(0.045, 0.06, 5), 0, P.collo / 2, 0, 0, 0, 0, tono(), 1, P.collo, 1); }));
   const T = P.testa;
-  meshes.push(pezzo(G.testa, function (C) {
-    C.sfera('corpo', 1, 0, 0.18 * T, 0.02, tono(), 0.15 * T, 0.26 * T, 0.17 * T, 1);
-    C.geo('corpo', cil(0.0, 0.07 * T, 4), 0, -0.02 * T, 0.05 * T, Math.PI, 0, 0, tono(), 1, 0.16 * T, 1);   // mento
-    C.scatola('corpo', 0.2 * T, 0.05 * T, 0.05 * T, 0, 0.21 * T, 0.14 * T, tono());                         // arcata sopra l'occhio
-  }));
+  // (fase 102) LA TESTA È UN OCCHIO: un bulbo rotondo, pallido e venato, che non prende luce (si vede anche nel buio);
+  // sul davanti l'iride gigante, grande quanto tutta la testa
+  const RT = 0.2 * T;
+  const bulbo = new THREE.Mesh(new THREE.SphereGeometry(RT, 12, 9), PZ.materialeBulbo());
+  bulbo.position.set(0, RT, 0.02); bulbo.rotation.y = P.seme * 1.7; G.testa.add(bulbo);
   // braccia
   [0, 1].forEach(function (i) {
     const s = i === 0 ? 1 : -1;
@@ -175,21 +194,52 @@ PZ.corpoCreatura = function (prop) {
   });
   // occhi: [giunto, posizione, normale, raggio]. Il primo è l'occhio enorme della fronte.
   const occhi = [
-    [G.testa, [0, 0.2 * T, 0.19 * T], [0, 0.12, 1], 0.105 * T],
-    [G.testa, [0.126 * T, 0.07 * T, 0.11 * T], [0.85, 0, 0.55], 0.032 * T], [G.testa, [-0.126 * T, 0.07 * T, 0.11 * T], [-0.85, 0, 0.55], 0.032 * T],
-    [G.testa, [0.1 * T, 0.36 * T, 0.105 * T], [0.5, 0.5, 0.7], 0.028 * T], [G.testa, [-0.09 * T, 0.34 * T, 0.115 * T], [-0.5, 0.4, 0.75], 0.025 * T],
-    [G.testa, [0.03 * T, -0.03 * T, 0.14 * T], [0.1, -0.3, 1], 0.022 * T],
-    [G.busto, [0, P.busto * 0.78, 0.15 * k], [0, 0.1, 1], 0.06], [G.busto, [0.12 * k, P.busto * 0.64, 0.135 * k], [0.4, 0, 1], 0.048],
-    [G.busto, [-0.11 * k, P.busto * 0.6, 0.13 * k], [-0.4, 0, 1], 0.042], [G.busto, [0.05, P.busto * 0.4, 0.115 * k], [0.1, 0, 1], 0.045],
-    [G.busto, [-0.07, P.busto * 0.24, 0.1 * k], [-0.2, 0, 1], 0.038], [G.busto, [0.08, P.busto * 0.1, 0.09 * k], [0.3, -0.2, 1], 0.032],
-    [G.busto, [0.05, P.busto * 0.7, -0.155 * k], [0.1, 0, -1], 0.045],
-    [G.spalla[0], [0.05 * k, -0.33, 0.035], [0.7, 0, 0.7], 0.038], [G.spalla[1], [-0.05 * k, -0.4, 0.035], [-0.7, 0, 0.7], 0.035],
-    [G.gomito[0], [0.035 * k, -0.25, 0.03], [0.7, 0, 0.7], 0.032], [G.gomito[1], [-0.035 * k, -0.2, 0.03], [-0.7, 0, 0.7], 0.03],
-    [G.gomito[0], [0.025 * k, -0.6, 0.025], [0.6, 0, 0.8], 0.026], [G.gomito[1], [-0.025 * k, -0.58, 0.025], [-0.6, 0, 0.8], 0.026],
-    [G.polso[0], [0, -0.12, 0.02], [0, 0, 1], 0.026], [G.polso[1], [0, -0.12, 0.02], [0, 0, 1], 0.024],
-    [G.anca[0], [0.03 * k, -0.32, 0.075 * k], [0.3, 0, 1], 0.042], [G.anca[1], [-0.03 * k, -0.42, 0.07 * k], [-0.3, 0, 1], 0.038],
-    [G.ginocchio[0], [0, -0.32, 0.05 * k], [0, 0, 1], 0.034], [G.ginocchio[1], [0, -0.4, 0.048 * k], [0, 0, 1], 0.03]
+    [G.testa, [0, RT, 0.02 + RT + 0.004], [0, 0, 1], RT * 1.0],          // (fase 102) grande quanto la testa
   ];
+  // gli occhietti che prima erano sulla faccia ora stanno sulla nuca (quando è di spalle ti guarda lo stesso)
+  [[0.45, 0.35], [-0.5, 0.15], [0.1, -0.2], [-0.15, 0.6], [0.6, -0.3]].forEach(function (a, i) {
+    const n = new THREE.Vector3(Math.sin(a[0]) * Math.cos(a[1]), Math.sin(a[1]), -Math.cos(a[0]) * Math.cos(a[1]));
+    occhi.push([G.testa, [n.x * (RT + 0.004), RT + n.y * (RT + 0.004), 0.02 + n.z * (RT + 0.004)], [n.x, n.y, n.z], [0.032, 0.028, 0.03, 0.026, 0.024][i] * T]);
+  });
+  // (fase 102) GLI OCCHI DEL CORPO, distribuiti sulla superficie di ogni pezzo (davanti, dietro e ai lati, anche su
+  // schiena e gambe): ogni occhio è un disco appoggiato alla pelle, mai sovrapposto a un altro occhio, alle costole o
+  // alle vertebre (prima alcuni erano dentro il corpo o uno sopra l'altro e si vedevano male)
+  const rOcchi = PZ.ps1.casuale(P.seme * 31 + 7);
+  // un pezzo: cilindro ellittico lungo l'asse y del giunto, da y0 (raggio r0) a y1 (raggio r1); sz = schiacciamento in z
+  function seminaOcchi(giunto, y0, y1, r0, r1, sz, quanti, rMin, rMax, ostacoli, fuori) {
+    const messi = ostacoli ? ostacoli.slice() : [];
+    let n = 0;
+    for (let tent = 0; tent < quanti * 60 && n < quanti; tent++) {
+      const t = 0.1 + rOcchi() * 0.8, y = y0 + (y1 - y0) * t, rr = r0 + (r1 - r0) * t, rx = rr, rz = rr * sz;
+      // metà davanti e metà dietro, con qualcuno sui fianchi
+      const lato = n % 2 === 0 ? 0 : Math.PI, f = lato + (rOcchi() - 0.5) * 2.3;
+      const nx = Math.sin(f) / rx, nz = Math.cos(f) / rz, nl = Math.hypot(nx, nz);
+      const r = Math.min(rMin + (rMax - rMin) * rOcchi(), Math.min(rx, rz) * 0.95);
+      const sopra = (fuori ? fuori(y, nz / nl) : 0) + 0.006;   // appena fuori dalla pelle (più dove ci sono le costole)
+      const pos = [Math.sin(f) * rx + nx / nl * sopra, y, Math.cos(f) * rz + nz / nl * sopra];
+      let ok = true;
+      for (let j = 0; j < messi.length && ok; j++) {
+        const m = messi[j], dx = m[0] - pos[0], dy = m[1] - pos[1], dz = m[2] - pos[2];
+        if (Math.sqrt(dx * dx + dy * dy + dz * dz) < (m[3] + r) * 1.18 + 0.008) ok = false;
+      }
+      if (!ok) continue;
+      messi.push([pos[0], pos[1], pos[2], r]);
+      occhi.push([giunto, pos, [nx / nl, 0, nz / nl], r]);
+      n++;
+    }
+  }
+  // busto: cilindro da y 0 (vita) a P.busto (spalle), schiacciato a 0.62. Le vertebre (dietro) sono ostacoli; davanti,
+  // all'altezza delle costole, l'occhio sta un po' più in fuori per non esserne tagliato
+  const vertebre = []; for (let i = 0; i < 5; i++) vertebre.push([0, P.busto * (0.15 + i * 0.17), -0.12 * k, 0.04]);
+  seminaOcchi(G.busto, 0, P.busto * 0.96, P.vita / 2 * k, P.spalle / 2 * k, 0.62, 18, 0.03, 0.052, vertebre,
+    function (y, nz) { return nz > 0.3 && y > P.busto * 0.38 && y < P.busto * 0.86 ? 0.022 : 0; });
+  seminaOcchi(G.bacino, -0.1, 0.1, 0.12 * k, 0.15 * k, 0.75, 2, 0.026, 0.036);
+  [0, 1].forEach(function (i) {
+    seminaOcchi(G.spalla[i], -P.braccio, 0, 0.045 * k, 0.065 * k, 1, 3, 0.022, 0.034);
+    seminaOcchi(G.gomito[i], -P.avambraccio, 0, 0.03 * k, 0.045 * k, 1, 2, 0.02, 0.028);
+    seminaOcchi(G.anca[i], -P.coscia, 0, 0.055 * k, 0.08 * k, 1, 5, 0.026, 0.04);
+    seminaOcchi(G.ginocchio[i], -P.gamba, -0.08, 0.035 * k, 0.055 * k, 1, 4, 0.022, 0.032);
+  });
   return { G: G, occhi: occhi, meshes: meshes, prop: P };
 };
 
