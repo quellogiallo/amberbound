@@ -29,6 +29,11 @@ PZ.avvisi = (function () {
       'Ogni <b>50 frammenti</b> la pietra ti dà un potere, a scelta:',
       '<b>CUORE D\'AMBRA</b>: una vita in più (fino a 3). Se il demone ti prende, la pietra lo respinge.',
       '<b>FURIA D\'AMBRA</b>: 8 secondi invincibile. Sfondi auto, transenne e mani, il demone resta indietro e i metri contano doppio.'] },
+    // (fase 111) lo SWAG: il salto sopra un'auto
+    swag: { titolo: 'SALTO SWAG', righe: [
+      'Un\'auto ti viene addosso nella tua corsia? Con il <b>tempismo perfetto</b> puoi <b>SALTARLA</b>.',
+      'Tocca <b>SALTA</b> all\'<b>ultimissimo istante</b>, quando è quasi sopra di te: la bici fa un giro in aria e ci passa sopra.',
+      'Riuscirci vale uno <b>sprint</b>. Sbagliare il momento vuol dire farsi investire: è un rischio.'] },
     // (fase 84) IL TOMBINO: in strada, la prima volta che arriva nella tua corsia; sotto, appena scendi (lì il tempo è
     // fermo finché non lo chiudi, e resta aperto più a lungo: dura = millisecondi prima che si chiuda da solo)
     tombino: { titolo: 'IL TOMBINO', righe: [

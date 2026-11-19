@@ -854,6 +854,15 @@ PZ.creaCorsa = function (opz) {
     if (!A.visto('maria') && salvia.stato.inStrada && salvia.stato.presa < 0 && salvia.gruppo.position.z > -55) { A.mostra('maria'); return; }
     // (fase 84) il tombino arriva nella tua corsia (c'è SCENDI) per la prima volta
     if (!A.visto('tombino') && S.scendi) { A.mostra('tombino'); return; }
+    // (fase 111) lo SWAG: tra 250 e 500 m (zona tranquilla), la prima volta che un'auto arriva nella tua corsia
+    if (!A.visto('swag') && S.metri > 250 && S.metri < 500 && S.salto.fase === 'no') {
+      const att = traffico.attive, vel = VC_AUTO * Math.max(0.05, S.F);
+      for (let i = 0; i < att.length; i++) {
+        const a = att[i]; if (a.urtata || Math.abs(a.x - S.x) > a.W / 2 + 0.32) continue;
+        const tImp = (-a.z - (a.L / 2 + 0.86)) / vel;
+        if (tImp > 1.0 && tImp < 2.2) { A.mostra('swag'); return; }
+      }
+    }
     if (!A.visto('ragazza')) {
       const st = traffico.statiche;
       for (let i = 0; i < st.length; i++) { const o = st[i]; if ((o.ragazza || o.pool === ragazze) && !o.colpita && o.z > -48 && o.z < -6) { A.mostra('ragazza'); return; } }
