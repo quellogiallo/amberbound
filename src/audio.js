@@ -367,7 +367,17 @@ PZ.audio = (function () {
       const t = ctx.currentTime + 0.01, v = (PZ.CONFIG.audio.volumeCampanello || 0.07);
       colpo(t, v); colpo(t + 0.13, v * 0.85);
     }
-    return { tic: tic, campanello: campanello };
+    // (fase 101) la ruota che struscia sul cordolo (quando provi a uscire dalla strada): rumore filtrato, basso di volume
+    function sfrega() {
+      if (!ctx || ctx.state !== 'running') return;
+      const t = ctx.currentTime + 0.01, src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+      src.buffer = rumore(); f.type = 'bandpass'; f.Q.value = 2.2;
+      f.frequency.setValueAtTime(1500, t); f.frequency.exponentialRampToValueAtTime(520, t + 0.32);
+      const v = PZ.CONFIG.audio.volumeSfrega || 0.05;
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v, t + 0.03); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.34);
+      src.connect(f); f.connect(g); g.connect(master); src.start(t, Math.random() * 0.5); src.stop(t + 0.4);
+    }
+    return { tic: tic, campanello: campanello, sfrega: sfrega };
   })();
   const demoni = {
     portaApre: function () { nota(150, 0.7, 'sawtooth', 0.04, 0, 0.6); nota(152, 0.7, 'square', 0.025, 0.05, 0.55); soffio(300, 900, 0.6, 0.03); },
@@ -1323,7 +1333,7 @@ PZ.audio = (function () {
     scappa: demoni.scappa, ambra: demoni.ambra, salto: demoni.salto, atterraggio: demoni.atterraggio, transenna: demoni.transenna, sagomaUrto: demoni.sagomaUrto, cattura: demoni.cattura,
     passoStanza: strada.passoStanza, passoStrada: strada.passoStrada, passoTerra: strada.passoTerra, scarto: strada.scarto, urto: strada.urto, distruzione: strada.distruzione, clacson: strada.clacson, clacsonVicino: strada.clacsonVicino, bip: strada.bip, vento: strada.vento,
     avvia: avvia, stingerDemone: stingerDemone, fermaStinger: fermaStinger,
-    raggio: bici.tic, campanello: bici.campanello,   // (fase 99) la ruota libera e il campanello
+    raggio: bici.tic, campanello: bici.campanello, sfrega: bici.sfrega,   // (fase 99) la ruota libera e il campanello
     sotto: sotto,   // (fase 80) il tombino
     menu: menuMus,  // (fase 89) la musica del menu
     tocco: function () { nota(660, 0.08, 'square', 0.05); },

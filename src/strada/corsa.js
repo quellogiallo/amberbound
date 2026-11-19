@@ -80,7 +80,7 @@ PZ.creaCorsa = function (opz) {
   const S = {
     attiva: false, fase: 'ferma', tFase: 0, t: 0, tTot: 0, tau: 0, F: 1, p: 0, metri: 0, vel: 0, corsia: 0,
     x: 0, xc: 0, vx: 0, xDa: 0, vDa: 0, xA: 0, tc: DUR, spinta: 0, tSpinta: 1,
-    urti: { auto: 0, transenna: 0, sagoma: 0, manata: 0 }, errori: 0, invul: 0, recupero: 1, scossa: 0, sbandata: 0, inclina: 0, ruote: 0, pedivella: 0, camX: 0,
+    urti: { auto: 0, transenna: 0, sagoma: 0, manata: 0 }, errori: 0, invul: 0, recupero: 1, scossa: 0, sbandata: 0, ultimoBordo: -9, inclina: 0, ruote: 0, pedivella: 0, camX: 0,
     salto: { fase: 'no', t: 0, h: 0, pend: 0, alz: 0, alz0: 0, hp: 0, pendp: 0, coda: false }, salti: 0, sguardo: null, prossimoSguardo: 25,
     battito: 0, avvisoSalto: false, pronto: false
   };
@@ -188,7 +188,11 @@ PZ.creaCorsa = function (opz) {
     if (!S.attiva || S.fase !== 'corsa' || PZ.avvisi.aperto() || ARC.sceltaAperta()) return false;
     if (eventi.invertiti()) d = -d;           // SENSI DI COLPA: destra e sinistra si scambiano (tutti i comandi passano di qui)
     const nuova = Math.max(-1, Math.min(1, S.corsia + d));
-    if (nuova === S.corsia) { S.spinta = d; S.tSpinta = 0; return false; }   // già sul bordo: piccola spinta e ritorno
+    if (nuova === S.corsia) {                   // già sul bordo: piccola spinta e ritorno
+      S.spinta = d; S.tSpinta = 0;
+      if (S.tTot - S.ultimoBordo > 0.45) { S.ultimoBordo = S.tTot; sbanda(d, 0.8); if (PZ.audio.sfrega) PZ.audio.sfrega(); }   // (fase 101)
+      return false;
+    }
     S.corsia = nuova;
     S.xDa = S.xc; S.vDa = S.vx; S.xA = nuova * LC; S.tc = 0;
     if (PZ.audio.scarto) PZ.audio.scarto();
@@ -290,6 +294,18 @@ PZ.creaCorsa = function (opz) {
   // leggero; quando smette di pedalare (in aria, in volo, quando la bici rallenta) si sente di più
   const CFG_SUONI = CFG.suoniBici || { denti: 2, volume: 0.035, volumeLibera: 0.09, anticipoCampanello: 0.42 };
   let fTic = 0, kLibera = 0;
+  // (fase 101) LO SBANDAMENTO: la telecamera si piega per un attimo verso il lato dove vai e l'inquadratura respira
+  const SB = { t: 9, roll: 0, fov: 0 };
+  function sbanda(lato, forza) {
+    const f = forza || 1, l = lato > 0 ? 1 : lato < 0 ? -1 : (Math.random() < 0.5 ? -1 : 1);
+    SB.t = 0; SB.roll = -l * 0.055 * f; SB.fov = 4 * f;
+  }
+  function sbandamento(dt) {
+    if (SB.t >= 0.9) return { roll: 0, fov: 0 };
+    SB.t += dt;
+    const k = SB.t < 0.14 ? SB.t / 0.14 : Math.max(0, 1 - (SB.t - 0.14) / 0.76), m = k * k * (3 - 2 * k);
+    return { roll: SB.roll * m, fov: SB.fov * m };
+  }
   function ticchetta(vel, dt, pedala) {
     kLibera += ((pedala ? 0 : 1) - kLibera) * Math.min(1, dt * 6);
     fTic += vel * dt / (2 * Math.PI * R) * CFG_SUONI.denti;
@@ -568,10 +584,11 @@ PZ.creaCorsa = function (opz) {
     const pc = paranoia.stato.cam;                        // la paranoia: piccole oscillazioni e prospettiva che si storce
     camera.position.set(cg.pos.x + sx + pc.x, cg.pos.y + sy + pc.y, cg.pos.z);
     camera.lookAt(cg.guarda);
-    if (pc.roll) camera.rotateZ(pc.roll);
+    const sbC = sbandamento(dt);
+    if (pc.roll + sbC.roll) camera.rotateZ(pc.roll + sbC.roll);
     // più va veloce più l'inquadratura si allarga (senso di velocità); guardando indietro stringe un po' sul demone
     const fovBase = CFG.campoVisivo + 10 * Math.max(0, Math.min(1, ((S.velBici || S.vel) - V0) / (27.8 - V0)));
-    const fov = (S.sguardo ? A_mix(fovBase, 44, zoomSguardo) : fovBase) + pc.fov - 7 * orologio.colpo();   // l'orologio: lo spazio si stringe un attimo
+    const fov = (S.sguardo ? A_mix(fovBase, 44, zoomSguardo) : fovBase) + pc.fov + sbC.fov - 7 * orologio.colpo();   // l'orologio: lo spazio si stringe un attimo
     if (Math.abs(camera.fov - fov) > 0.01) { camera.fov = fov; camera.updateProjectionMatrix(); }
   }
   function A_mix(a, b, k) { return a + (b - a) * k; }
@@ -712,7 +729,13 @@ PZ.creaCorsa = function (opz) {
     if (h) { if (S.furia > 0) sfonda(h); else if (S.invul > 0 || S.avvisoProtegge) traffico.urta(h, S.x, S.vel); else urto(h); }
     if (S.fase !== 'corsa') return;
     // (fase 99) l'hai scampata per un pelo: il campanello
-    if (!salvia.protetto() && traffico.sfiorate(S.x, 0.27, 0.86, CFG_SUONI.anticipoCampanello) > 0 && PZ.audio.campanello) PZ.audio.campanello();                    // il demone l'ha preso: da qui pensa passoMorte
+    if (!salvia.protetto()) {
+      const auto = traffico.sfiorate(S.x, 0.27, 0.86, CFG_SUONI.anticipoCampanello);
+      const ferme = traffico.sfiorateFerme(S.x, 0.27, 0.86, CFG_SUONI.anticipoCampanello);
+      if (auto > 0 && PZ.audio.campanello) PZ.audio.campanello();
+      // (fase 101) lo sbandamento della telecamera: solo per una schivata di lato (saltare sopra una transenna non conta)
+      if ((auto > 0 || ferme > 0) && S.salto.fase === 'no' && S.invul <= 0) sbanda(S.vx);
+    }                    // il demone l'ha preso: da qui pensa passoMorte
     if (S.invul > 0) S.invul -= dt;
 
     // bici e ragazzo
@@ -950,7 +973,7 @@ PZ.creaCorsa = function (opz) {
   function preparaCorsa(dist, x, tieniMusica) {
     traffico.reset(0); transenne.reset(); apparizioni.reset(); branco.reset(); ragazze.reset();
     Object.assign(S, { fase: 'corsa', tFase: 0, t: 0, tau: 0, F: 1, p: 0, metri: 0, vel: V0, corsia: 0, x: x || 0, xc: x || 0, vx: 0, xDa: 0, vDa: 0, xA: 0, tc: DUR,
-      spinta: 0, tSpinta: 1, urti: { auto: 0, transenna: 0, sagoma: 0, manata: 0 }, errori: 0, invul: 0, recupero: 1, scossa: 0, sbandata: 0, inclina: 0, camX: (x || 0) * CAM.segui,
+      spinta: 0, tSpinta: 1, urti: { auto: 0, transenna: 0, sagoma: 0, manata: 0 }, errori: 0, invul: 0, recupero: 1, scossa: 0, sbandata: 0, ultimoBordo: -9, inclina: 0, camX: (x || 0) * CAM.segui,
       salto: { fase: 'no', t: 0, h: 0, pend: 0, alz: 0, alz0: 0, hp: 0, pendp: 0, coda: false }, salti: 0, sguardo: null, prossimoSguardo: 14 + rnd() * 6,
       battito: 0, avvisoSalto: false, pronto: false, serie: 0, ultimoPreso: -9, nLiscio: 0, hVolo: 0, rampa: 0 });
     // prima corsa di questo giocatore: le prime file sono di prova (un'auto davanti, poi transenne da saltare, poi

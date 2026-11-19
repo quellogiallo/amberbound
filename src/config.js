@@ -29,7 +29,7 @@ PZ.CONFIG = {
     sotterraneo: 'audio/sotterraneo-loop.mp3', volumeSotterraneo: 0.8,
     // (fase 89) la colonna sonora del MENU: "AMBRA soundtrack atto 1" dall'impatto del basso (7,95 s del file originale)
     // fino al terzo tic d'orologio dopo la fine; poi ricomincia dal basso (menuLoop = lunghezza esatta del giro, secondi)
-    menu: 'audio/menu-loop.mp3',  volumeCampanello: 0.07, volumeMenu: 0.85, menuLoop: 94.9949, volumeCarillon: 0.9,   // (fase 70) il file è più forte di 6 dB e il volume al 90%: prima (30%) sul telefono quasi non si sentiva
+    menu: 'audio/menu-loop.mp3',  volumeCampanello: 0.07, volumeSfrega: 0.05, volumeMenu: 0.85, menuLoop: 94.9949, volumeCarillon: 0.9,   // (fase 70) il file è più forte di 6 dB e il volume al 90%: prima (30%) sul telefono quasi non si sentiva
     volume: 0.8,
     // (fase 14) il colpo d'orchestra con l'archetto che stride: quando compare il demone nella scena iniziale e nel
     // jumpscare quando ti prende. Per cambiarlo metti un altro file nella cartella "audio" e scrivi qui il nome.

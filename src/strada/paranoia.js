@@ -164,7 +164,8 @@ PZ.creaParanoia = function (o) {
     }
     const libera = P.t - P.ultimaMaggiore > 2.5;
     if (libera && !fitto && !P.piega && succede('piega', v, dt)) { P.conto.piega++; P.ultimaMaggiore = P.t; P.piega = { t: 0, forza: 0.35 + 0.9 * v, onda: v > 0.55 ? 0.25 : 0 }; }
-    if (libera && !fitto && !P.camEv && succede('camera', v, dt)) { P.conto.camera++; P.ultimaMaggiore = P.t; P.camEv = { t: 0, roll: (rnd() < 0.5 ? -1 : 1) * (0.03 + 0.05 * v), fov: (rnd() < 0.5 ? -1 : 1) * (3 + 6 * v) }; }
+    // (fase 101) lo sbandamento casuale della telecamera è tolto: ora arriva solo con una schivata all'ultimo o sul bordo
+    if (false && libera && !fitto && !P.camEv && succede('camera', v, dt)) { P.conto.camera++; P.ultimaMaggiore = P.t; P.camEv = { t: 0, roll: (rnd() < 0.5 ? -1 : 1) * (0.03 + 0.05 * v), fov: (rnd() < 0.5 ? -1 : 1) * (3 + 6 * v) }; }
     if (libera && !fitto && succede('cromatico', v, dt)) { P.conto.cromatico++; P.ultimaMaggiore = P.t; PZ.riavviaClasse(stage, 'cromatico'); P.cromatico = 0.32; }
     // la ragazza
     if (!P.app && info.metri >= CFG.ragazzaDa && P.t - P.ultimaRagazza > 4) {

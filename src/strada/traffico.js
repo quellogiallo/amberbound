@@ -555,6 +555,21 @@ PZ.creaTraffico = function (scena, citta, opz) {
     }
     return n;
   }
+  // (fase 101) lo stesso per gli ostacoli fermi (transenne, sagome, la mano, le ragazze, il demone): quelli che ti
+  // erano davanti nella traiettoria a meno di "anticipo" e che ti passano accanto senza colpirti
+  function sfiorateFerme(xBici, mezzaL, mezzaP, anticipo) {
+    let n = 0;
+    for (let i = 0; i < statiche.length; i++) {
+      const o = statiche[i];
+      if (o.colpita) { o.minaccia = false; continue; }
+      const larga = o.tipo === 'T' ? (o.mano ? MANO.larghezza : o.ragazza ? o.ragazza.larghezza : transenne.LARGHEZZA)
+        : o.demone ? o.larghezza : o.sagoma ? o.sagoma.larghezza : 1;
+      const prof = o.demone ? o.mezzaProf : 0.25, davanti = -o.z - (prof + mezzaP), dietro = o.z - (prof + mezzaP);
+      if (!o.minaccia && davanti > -0.3 && davanti < anticipo * V0 && Math.abs(o.x - xBici) < larga / 2 + mezzaL) o.minaccia = true;
+      if (o.minaccia && dietro > 0) { o.minaccia = false; n++; }
+    }
+    return n;
+  }
   // vel: velocità della bici (serve alla transenna abbattuta, che vola via davanti a lei)
   function urta(h, xBici, vel, ribalta) {
     const o = h.ogg;
@@ -595,7 +610,7 @@ PZ.creaTraffico = function (scena, citta, opz) {
   reset(0);
   function guida(lista) { st.guida = (lista || []).slice(); }
   function richiediManata(opz) { st.manataRichiesta = true; st.manataOpz = opz || {}; }
-  return { sfiorate: sfiorate, pausaSuoni: pausaSuoni, guida: guida, richiediManata: richiediManata, MANO: MANO, aggiorna: aggiorna, reset: reset, controlla: controlla, urta: urta, attive: attive, auto: auto, statiche: statiche, righe: righe,
+  return { sfiorate: sfiorate, sfiorateFerme: sfiorateFerme, pausaSuoni: pausaSuoni, guida: guida, richiediManata: richiediManata, MANO: MANO, aggiorna: aggiorna, reset: reset, controlla: controlla, urta: urta, attive: attive, auto: auto, statiche: statiche, righe: righe,
     stato: st, prossimoArrivo: prossimoArrivo, transennaDavanti: transennaDavanti, V0: V0, VC: VC, ORIZZ_METRI: (ORIZZ + 1) * V0, pianifica: pianifica, valida: valida,
     silenzia: silenzia, ascolta: ascolta, buio: buio, strada: strada };
 };
