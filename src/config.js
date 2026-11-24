@@ -23,7 +23,7 @@ PZ.CONFIG = {
     cameretta: { file: 'audio/cameretta-loop.mp3', volume: 0.49 },   // (fase 44) -18%
     // (fase 36) il finale sulla scogliera: Pezzidicarne da 2:44 (rallentato come un nastro se la scena dura di più)
     finale: 'audio/pezzidicarne-finale.mp3', volumeFinale: 0.6,
-    scatolaMusicale: 'audio/carillon.mp3',
+    scatolaMusicale: 'audio/carillon.mp3', volumeCarillon: 0.8,   // (fase 112) -20%
     // (fase 86) la colonna sonora del sotterraneo: "Tuttostrano" dall'inizio, rallentata al 60% come un nastro, cupa, con
     // l'eco di un tunnel di cemento (preparata nel file, 60 s in loop senza stacchi)
     sotterraneo: 'audio/sotterraneo-loop.mp3', volumeSotterraneo: 0.8,
