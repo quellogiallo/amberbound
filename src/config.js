@@ -173,7 +173,7 @@ PZ.CONFIG = {
     swag: { finestra: [0.1, 0.22], altezza: 2.4, boost: 1.5, forza: 0.18 },
     suoniBici: { denti: 2, volume: 0.035, volumeLibera: 0.09, anticipoCampanello: 0.42 },
     tombino: { probabilita: 1, metri: [700, 1200], ancora: 0, dopo: [350, 600], max: 1, finestra: 1.7,   // (fase 93-95) sicuro, una volta a partita, tra 700 e 1200 m (prima 0.6, 380-1100 m, ancora 0.5, max 2)
-      tempo: 20, penalita: 3, premio: 20, perfetto: 30, arcade: false, invulUscita: 2.2,   // (fase 85) prima 45 s e -4 s
+      tempo: 20, penalita: 3, premio: 10, perfetto: 20, arcade: false, invulUscita: 2.2,   // (fase 85) prima 45 s e -4 s; (fase 113) premio prima 20/30
       scarto: 8 },   // (fase 83) secondi di scarto all'inizio: il tempo è fermo, istruzioni a schermo (girare una valvola lo fa partire)
 
     // PARANOIA (src/strada/paranoia.js): l'intensità segue la vicinanza del demone. da = metri prima dei quali non succede
