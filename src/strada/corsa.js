@@ -715,7 +715,8 @@ PZ.creaCorsa = function (opz) {
   }
   function A_mix(a, b, k) { return a + (b - a) * k; }
   function forseSguardo() {
-    if (S.sguardo || S.t < S.prossimoSguardo || S.salto.fase !== 'no' || salvia.inVolo() || inseguimento.stato.presa > 0 || eventi.attivo()) return;
+    // (fase 116) solo nei primi 500 m: più avanti, quando la strada si fa difficile, toglierebbe la vista al giocatore
+    if (S.metri >= 500 || S.sguardo || S.t < S.prossimoSguardo || S.salto.fase !== 'no' || salvia.inVolo() || inseguimento.stato.presa > 0 || eventi.attivo()) return;
     const libero = (traffico.prossimoArrivo(S.tau) - S.tau) / S.F;
     if (libero < 3.6) return;                               // guarda indietro solo se davanti non arriva niente
     S.sguardo = { t: 0, durata: 2.3 };
