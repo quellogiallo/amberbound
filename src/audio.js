@@ -1021,7 +1021,7 @@ PZ.audio = (function () {
     // posizione a ogni cambio, così battiti e luci a tempo seguono la musica rallentata
     let rate = 1;
     function velocita(r) {
-      r = Math.max(0.25, Math.min(1, r)); if (Math.abs(r - rate) < 0.002 && r !== 1) return; if (r === rate) return;
+      r = Math.max(0.25, Math.min(1.25, r)); if (Math.abs(r - rate) < 0.002 && r !== 1) return; if (r === rate) return;   // (fase 114) fino a +25% (la furia)
       if (attiva && ctx && inPausa < 0 && !(el && !buf)) { const p = posizione(); offPartenza = p; tPartenza = ctx.currentTime; }
       rate = r;
       if (src) { try { src.playbackRate.setValueAtTime(r, ctx.currentTime); } catch (e) {} }

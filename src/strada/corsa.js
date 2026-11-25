@@ -394,11 +394,10 @@ PZ.creaCorsa = function (opz) {
   // con RIPROVA. Nessun sistema di gioco viene più aggiornato (ostacoli, frammenti, eventi, demone che uccide).
   // ---------- Orologio daliniano ----------
   const lentoUi = { velo: $('lento'), barra: $('tempoHud') };
+  // (fase 114) l'orologio non scioglie più il tempo: dà la FURIA D'AMBRA (come nell'Arcade)
   function prendiOrologio() {
-    orologio.attiva();
-    lampo('orologio'); mostraConto('IL TEMPO SI SCIOGLIE', 1.4);
-    if (PZ.audio.orologio) PZ.audio.orologio();
-    S.tic = 0.75;                                        // il primo tic dopo il ticchettio al contrario
+    avviaFuria();
+    if (PZ.audio.pietra) PZ.audio.pietra();
   }
   // il velo color seppia ai bordi, la barra che si svuota, il ticchettio che rallenta
   function aggiornaLento(dt) {
@@ -527,7 +526,7 @@ PZ.creaCorsa = function (opz) {
     uiA.cuori.innerHTML = h;
   }
   function resetArcade() {
-    S.cuori = 0; S.furia = 0; S.punti = 0;
+    fineFuria(false); S.cuori = 0; S.punti = 0;
     ui.corsa.classList.toggle('arcade', !!ARC.attiva);
     if (!ARC.attiva) return;
     ARC.chiudiScelta(); mostraCuori(false);
@@ -537,14 +536,54 @@ PZ.creaCorsa = function (opz) {
   }
   function passoArcade(dt) {
     S.punti += S.vel * dt * (S.furia > 0 ? 2 : 1);
-    if (S.furia > 0) {
-      S.furia = Math.max(0, S.furia - dt);
-      inseguimento.allontana(dt, 1, CFG_ARC.demoneFuga || 4, CFG_ARC.demoneMax || 14);
-      const k = Math.min(1, S.furia / 0.6);
-      PZ.opacita(uiA.velo, k * (0.75 + 0.25 * Math.sin(S.tTot * 9)));
-      uiA.furia.firstElementChild.style.transform = 'scaleX(' + (S.furia / (CFG_ARC.furia || 8)).toFixed(3) + ')';
-      if (S.furia === 0) { uiA.furia.style.opacity = '0'; PZ.opacita(uiA.velo, 0); S.invul = Math.max(S.invul, 1.2); }
+  }
+  // (fase 114) LA FURIA D'AMBRA, in Arcade (scelta della pietra) e in Storia (l'orologio): invincibile, sfondi tutto,
+  // il demone resta indietro, il velo dorato, la barra. E il ragazzo con la bici diventa GIALLO FLUO e luminoso
+  // (come la stella di Mario): pulsa veloce e, quando sta per finire, lampeggia tornando a tratti normale
+  const FURIA_D = CFG_ARC.furia || 8;
+  function avviaFuria() {
+    S.furia = FURIA_D; uiA.furia.style.opacity = '1';
+    mostraConto('FURIA', 1.2); lampo('ambra'); S.scossa = Math.max(S.scossa, 0.4);
+  }
+  function passoFuria(dt) {
+    if (!(S.furia > 0)) return;
+    if (S.fase !== 'corsa') { fineFuria(false); return; }      // finale, morte, tombino: finisce subito
+    S.furia = Math.max(0, S.furia - dt);
+    inseguimento.allontana(dt, 1, CFG_ARC.demoneFuga || 4, CFG_ARC.demoneMax || 14);
+    const k = Math.min(1, S.furia / 0.6);
+    PZ.opacita(uiA.velo, k * (0.75 + 0.25 * Math.sin(S.tTot * 9)));
+    uiA.furia.firstElementChild.style.transform = 'scaleX(' + (S.furia / FURIA_D).toFixed(3) + ')';
+    // il giallo: pulsa; negli ultimi 2 secondi lampeggia sempre più veloce col colore normale
+    const ultimi = S.furia < 2, f = ultimi ? 6 + (2 - S.furia) * 7 : 0;
+    giallo(!ultimi || Math.sin(S.tTot * f * Math.PI * 2) > -0.2, S.tTot);
+    if (S.furia === 0) fineFuria(true);
+  }
+  function fineFuria(protezione) {
+    S.furia = 0; uiA.furia.style.opacity = '0'; PZ.opacita(uiA.velo, 0); giallo(false);
+    if (protezione) S.invul = Math.max(S.invul, 1.2);
+  }
+  const GIALLO = (function () {
+    const m = new THREE.MeshBasicMaterial({ color: 0xfff23a, fog: false }), ms = m.clone(); ms.skinning = true;
+    const luce = new THREE.PointLight(0xffe23a, 0, 7, 2); luce.position.set(0, 1.2, 0.2);
+    ciclista.bici.gruppo.add(luce);
+    return { m: m, ms: ms, luce: luce, acceso: false };
+  })();
+  function giallo(on, t) {
+    if (on !== GIALLO.acceso) {
+      GIALLO.acceso = on;
+      [ciclista.bici.gruppo, ciclista.ragazzo.gruppo].forEach(function (g) {
+        g.traverse(function (o) {
+          if (!o.isMesh) return;
+          if (on) { if (o.userData.matFuria === undefined) o.userData.matFuria = o.material; o.material = o.isSkinnedMesh ? GIALLO.ms : GIALLO.m; }
+          else if (o.userData.matFuria !== undefined) { o.material = o.userData.matFuria; o.userData.matFuria = undefined; }
+        });
+      });
     }
+    if (on) {                                            // pulsa tra giallo fluo, quasi bianco e ambra
+      const p = 0.5 + 0.5 * Math.sin(t * 22), q = 0.5 + 0.5 * Math.sin(t * 9 + 1);
+      GIALLO.m.color.setRGB(1, 0.86 + 0.14 * p, 0.12 + 0.55 * p * q); GIALLO.ms.color.copy(GIALLO.m.color);
+      GIALLO.luce.intensity = 1.6 + 0.8 * p;
+    } else GIALLO.luce.intensity = 0;
   }
   // 100 frammenti: pausa e scelta. (Durante il rodaggio o fuori dalla corsa non succede niente.)
   PZ.raccolta.suArcade(function () {
@@ -554,10 +593,7 @@ PZ.creaCorsa = function (opz) {
     salvia.nuovoGiro();                                   // nel prossimo giro di 50 tornano 2-4 O Ave Maria
     ARC.apriScelta(S.cuori, function (quale) {
       if (quale === 'cuore') { S.cuori = Math.min(CFG_ARC.cuoriMax || 3, S.cuori + 1); mostraCuori(true); mostraConto('CUORE D AMBRA', 1.3); }
-      else {
-        S.furia = CFG_ARC.furia || 8; uiA.furia.style.opacity = '1';
-        mostraConto('FURIA', 1.2); lampo('ambra'); S.scossa = Math.max(S.scossa, 0.4);
-      }
+      else avviaFuria();
       if (PZ.audio.vittoria) PZ.audio.vittoria();
     });
   });
@@ -578,7 +614,7 @@ PZ.creaCorsa = function (opz) {
     aggiornaHud(true);
   }
   function morteArcade() {
-    S.furia = 0; uiA.furia.style.opacity = '0'; PZ.opacita(uiA.velo, 0);
+    fineFuria(false);
     const m = Math.floor(S.punti);
     uiA.metri.textContent = m + ' m';
     ui.morteN.textContent = PZ.raccolta.totale + ' FRAMMENTI';
@@ -656,6 +692,7 @@ PZ.creaCorsa = function (opz) {
     // eventi, scritte. Si riparte al tocco, esattamente da dove si era
     // (fase 52b) AVVISO aperto: niente pausa, un forte rallentamento (tutto al 5%, entra ed esce in un attimo); finché
     // è aperto non si viene urtati né presi. L'avviso si chiude da solo dopo 10 secondi (avvisi.js)
+    if (S.furia > 0 && S.fase !== 'corsa') fineFuria(false);   // (fase 114) uscendo dalla corsa la furia si spegne
     if (S.fase === 'corsa' && ARC.sceltaAperta()) { traffico.pausaSuoni(); return; }
     if (PZ.avvisi.aggiorna) PZ.avvisi.aggiorna();
     const avv = S.fase === 'corsa' && PZ.avvisi.aperto();
@@ -688,11 +725,14 @@ PZ.creaCorsa = function (opz) {
     // (fase 54) anche gli AVVISI rallentano la musica come un nastro, fino a metà velocità (un'ottava più in basso:
     // resta nella stessa tonalità, suona grave e cupa ma armonica). Vale il più lento tra orologio e avviso.
     const kAv = S.kAvviso === undefined ? 1 : S.kAvviso, nastroAv = kAv < 0.999;
-    if (lento < 1 || S.nastro || nastroAv || S.nastroAv) {
+    // (fase 114) durante la FURIA la colonna va un po' più veloce e acuta (+10%), entra ed esce morbida
+    const furiaMus = S.furia > 0 && S.fase === 'corsa';
+    if (lento < 1 || S.nastro || nastroAv || S.nastroAv || furiaMus || S.furiaMus) {
       const OC = CFG.orologio, kk = Math.max(0, Math.min(1, (lento - OC.lento) / (1 - OC.lento)));
       const rOro = lento < 1 || S.nastro ? (OC.nastro || 0.5) + (1 - (OC.nastro || 0.5)) * kk : 1;
       const rAv = nastroAv ? 0.5 + 0.5 * Math.max(0, Math.min(1, (kAv - 0.05) / 0.95)) : 1;
-      COL.velocita && COL.velocita(Math.min(rOro, rAv)); S.nastro = lento < 1; S.nastroAv = nastroAv;
+      const rF = furiaMus ? 1 + 0.1 * Math.min(1, S.furia / 0.5, (FURIA_D - S.furia) / 0.3) : 1;
+      COL.velocita && COL.velocita(rOro < 1 || rAv < 1 ? Math.min(rOro, rAv) : rF); S.nastro = lento < 1; S.nastroAv = nastroAv; S.furiaMus = furiaMus;
     }
     S.t += dtm;
     // le istruzioni compaiono dopo la scritta SCAPPA! (per non sovrapporsi) e restano qualche secondo
@@ -728,6 +768,7 @@ PZ.creaCorsa = function (opz) {
     S.vel = V0 * S.F;
     S.velBici = V0 * fDiff * (0.4 + 0.6 * r) * bst;          // la bici e il ragazzo non sentono l'orologio: pedalano come sempre
     S.metri += S.vel * dt;
+    passoFuria(dt);                                      // (fase 114) Arcade e Storia
     if (ARC.attiva) passoArcade(dt);
 
     muoviLaterale(dt);
@@ -1243,7 +1284,7 @@ PZ.creaCorsa = function (opz) {
   const corsa = { avvia: avvia, riavvia: riavvia, cambia: cambia, salta: salta, passo: passo, disegna: disegna, stato: S, traffico: traffico, citta: citta,
     ciclista: ciclista, camera: camera, scena: scena, renderer: renderer, intro: intro, inseguimento: inseguimento, demone: demone, occhi: occhi,
     branco: branco, ragazze: ragazze, apparizioni: apparizioni, transenne: transenne, specchietto: specchietto, atmosfera: atmosfera, quota: quota,
-    frammenti: frammenti, raccolta: PZ.raccolta, eventi: eventi, orologio: orologio, salvia: salvia, paranoia: paranoia, mostraConto: mostraConto, sciogli: sciogli, manata: manata, prendiSalvia: prendiSalvia, tombino: tombino, scendi: scendi };
+    frammenti: frammenti, raccolta: PZ.raccolta, eventi: eventi, orologio: orologio, salvia: salvia, paranoia: paranoia, mostraConto: mostraConto, sciogli: sciogli, manata: manata, prendiSalvia: prendiSalvia, prendiOrologio: prendiOrologio, tombino: tombino, scendi: scendi };
   window.__strada = corsa;   // utile per le prove automatiche
   return corsa;
 };
