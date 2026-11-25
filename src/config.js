@@ -197,7 +197,8 @@ PZ.CONFIG = {
     // (fase 51) DI NUOVO ATTIVO: compare UNA sola volta per partita, quando hai raccolto tra frammenti[0] e frammenti[1]
     // frammenti (a caso; nell'arcade conta il livello). Per "durata" secondi il mondo va al "lento" (6%: congelato),
     // il ragazzo no; la colonna sonora rallenta come un nastro fino a "nastro" (50%)
-    orologio: { attivo: true, frammenti: [60, 70], durata: 5, lento: 0.06, nastro: 0.5,
+    // (fase 117) furia = secondi di FURIA GIALLA che l'orologio dà nella Storia (nell'Arcade la furia dura arcade.furia)
+    orologio: { attivo: true, furia: 5, frammenti: [60, 70], durata: 5, lento: 0.06, nastro: 0.5,
       gelo: [0.2, 0.015], demoneFuga: 3.6, demoneMax: 13 },
 
     // O AVE MARIA (src/strada/salvia.js): da 2 a 4 per partita, nella storia mai più di 3 (quante = probabilità di 2, 3, 4). La prima quando hai
@@ -210,7 +211,7 @@ PZ.CONFIG = {
     // l'atterraggio ("graziaForzata" se è dovuto scendere in una corsia occupata). In volo il demone resta indietro ("demoneFuga" m/s, fino a "demoneMax" m oltre la sua distanza).
     salvia: { boostBasso: 0.4, basso: 2.0,   // (fase 35) il boost: sul primo colpo di basso della colonna dopo 2 s di volo (+40%)
        attiva: true, quando: [0.42, 0.55], quante: [0.55, 0.43, 0.02, 0],   /* (fase 52) 1 = 55%, 2 = 43%, 3 = 2% (rarissimo) */ altre: [0.3, 0.92], distanza: 12, altoSalto: 2.15,
-      durata: [6, 7], altezza: 2.5, salita: 0.55, discesa: 0.9, attesaMax: 3, grazia: 0.3, graziaForzata: 1.2,
+      durata: [5, 6], altezza: 2.5,   /* (fase 117) -1 s (prima [6, 7]) */ salita: 0.55, discesa: 0.9, attesaMax: 3, grazia: 0.3, graziaForzata: 1.2,
       demoneFuga: 2.0, demoneMax: 8 },
 
     // SALTO: durata in aria (secondi) e altezza massima delle ruote (metri). Le transenne sono alte 0,82 m.

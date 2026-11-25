@@ -540,8 +540,10 @@ PZ.creaCorsa = function (opz) {
   // (fase 114) LA FURIA D'AMBRA, in Arcade (scelta della pietra) e in Storia (l'orologio): invincibile, sfondi tutto,
   // il demone resta indietro, il velo dorato, la barra. E il ragazzo con la bici diventa GIALLO FLUO e luminoso
   // (come la stella di Mario): pulsa veloce e, quando sta per finire, lampeggia tornando a tratti normale
-  const FURIA_D = CFG_ARC.furia || 8;
+  // (fase 117) quanto dura: 8 s nell'Arcade, 5 s nella Storia (dall'orologio)
+  let FURIA_D = CFG_ARC.furia || 8;
   function avviaFuria() {
+    FURIA_D = ARC.attiva ? (CFG_ARC.furia || 8) : (CFG.orologio.furia || 5);
     S.furia = FURIA_D; uiA.furia.style.opacity = '1';
     mostraConto('FURIA GIALLA', 1.2); lampo('ambra'); S.scossa = Math.max(S.scossa, 0.4);
   }
