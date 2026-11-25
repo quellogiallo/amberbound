@@ -197,8 +197,8 @@ PZ.CONFIG = {
     // (fase 51) DI NUOVO ATTIVO: compare UNA sola volta per partita, quando hai raccolto tra frammenti[0] e frammenti[1]
     // frammenti (a caso; nell'arcade conta il livello). Per "durata" secondi il mondo va al "lento" (6%: congelato),
     // il ragazzo no; la colonna sonora rallenta come un nastro fino a "nastro" (50%)
-    // (fase 117) furia = secondi di FURIA GIALLA che l'orologio dà nella Storia (nell'Arcade la furia dura arcade.furia)
-    orologio: { attivo: true, furia: 5, frammenti: [60, 70], durata: 5, lento: 0.06, nastro: 0.5,
+    // (fase 117-118) furia = secondi di FURIA GIALLA che l'orologio dà nella Storia (nell'Arcade la furia dura arcade.furia)
+    orologio: { attivo: true, furia: 7, frammenti: [60, 70], durata: 5, lento: 0.06, nastro: 0.5,
       gelo: [0.2, 0.015], demoneFuga: 3.6, demoneMax: 13 },
 
     // O AVE MARIA (src/strada/salvia.js): da 2 a 4 per partita, nella storia mai più di 3 (quante = probabilità di 2, 3, 4). La prima quando hai
