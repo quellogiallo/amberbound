@@ -134,7 +134,7 @@ PZ.creaCorsa = function (opz) {
   }
   // prepara prima della corsa le immagini delle scritte che compariranno (dietro lo schermo nero del passaggio)
   function preparaScritte() {
-    ['SCAPPA', 'SALTA', 'INVESTITO', 'SENSI DI COLPA', 'O AVE MARIA', 'SWAG!'].concat(CFG.orologio.attivo !== false ? ['IL TEMPO SI SCIOGLIE'] : []).forEach(function (t) { mostraConto(t, 0); });
+    ['SCAPPA', 'SALTA', 'INVESTITO', 'SENSI DI COLPA', 'O AVE MARIA', 'SWAG!', 'FURIA GIALLA'].concat(CFG.orologio.attivo !== false ? ['IL TEMPO SI SCIOGLIE'] : []).forEach(function (t) { mostraConto(t, 0); });
     mostraConto('', 0);
     // (fase 11) anche le scritte del finale: "CENTO SU CENTO" sul cartello e "AMBRA" sulla schermata di fine. Erano
     // testo nel font DRUNK (migliaia di puntini per lettera, con contorno e ombre): il browser le disegnava proprio nel
@@ -543,7 +543,7 @@ PZ.creaCorsa = function (opz) {
   const FURIA_D = CFG_ARC.furia || 8;
   function avviaFuria() {
     S.furia = FURIA_D; uiA.furia.style.opacity = '1';
-    mostraConto('FURIA', 1.2); lampo('ambra'); S.scossa = Math.max(S.scossa, 0.4);
+    mostraConto('FURIA GIALLA', 1.2); lampo('ambra'); S.scossa = Math.max(S.scossa, 0.4);
   }
   function passoFuria(dt) {
     if (!(S.furia > 0)) return;
@@ -555,11 +555,13 @@ PZ.creaCorsa = function (opz) {
     uiA.furia.firstElementChild.style.transform = 'scaleX(' + (S.furia / FURIA_D).toFixed(3) + ')';
     // il giallo: pulsa; negli ultimi 2 secondi lampeggia sempre più veloce col colore normale
     const ultimi = S.furia < 2, f = ultimi ? 6 + (2 - S.furia) * 7 : 0;
-    giallo(!ultimi || Math.sin(S.tTot * f * Math.PI * 2) > -0.2, S.tTot);
+    const acceso = !ultimi || Math.sin(S.tTot * f * Math.PI * 2) > -0.2;
+    giallo(acceso, S.tTot);
+    bagliore(dt, acceso, Math.min(1, S.furia / 0.4, (FURIA_D - S.furia) / 0.25));
     if (S.furia === 0) fineFuria(true);
   }
   function fineFuria(protezione) {
-    S.furia = 0; uiA.furia.style.opacity = '0'; PZ.opacita(uiA.velo, 0); giallo(false);
+    S.furia = 0; uiA.furia.style.opacity = '0'; PZ.opacita(uiA.velo, 0); giallo(false); bagliore(0, false, 0);
     if (protezione) S.invul = Math.max(S.invul, 1.2);
   }
   const GIALLO = (function () {
@@ -568,6 +570,42 @@ PZ.creaCorsa = function (opz) {
     ciclista.bici.gruppo.add(luce);
     return { m: m, ms: ms, luce: luce, acceso: false };
   })();
+  // (fase 115) LA LUMINESCENZA della Furia Gialla: un alone morbido attorno al ragazzo e una scia di bagliori che
+  // restano indietro. Pulsano A TEMPO con la colonna: un colpo a ogni battito, più forte sul primo della battuta (il basso)
+  const BAG = (function () {
+    const tex = PZ.ps1.alone(255, 236, 90, 5);
+    const nuovo = function (op) { return new THREE.SpriteMaterial({ map: tex, color: 0xffe94a, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, fog: false, opacity: op }); };
+    const alone = new THREE.Sprite(nuovo(0)); alone.position.set(0, 1.05, 0); alone.visible = false; ciclista.bici.gruppo.add(alone);
+    const scia = []; for (let i = 0; i < 16; i++) { const sp = new THREE.Sprite(nuovo(0)); sp.visible = false; scena.add(sp); scia.push({ sp: sp, vita: 0 }); }
+    return { alone: alone, scia: scia, prossima: 0, colpo: 0, pos: new THREE.Vector3() };
+  })();
+  function battito() {                                   // 0..1: il colpo del battito (1 sull'attacco, poi cala)
+    const col = PZ.audio.colonna, nb = col && col.attiva() && col.battiti ? col.battiti() : -1;
+    const b = nb >= 0 ? nb : S.tTot * 75 / 60, fr = b - Math.floor(b), primo = ((Math.floor(b) % 4) + 4) % 4 === 0;
+    return Math.exp(-fr * 6) * (primo ? 1 : 0.6);
+  }
+  function bagliore(dt, on, k) {
+    if (!k) { BAG.alone.visible = false; BAG.scia.forEach(function (q) { q.sp.visible = false; q.vita = 0; }); return; }
+    const c = battito();
+    BAG.alone.visible = true;
+    const sA = (2.6 + 1.1 * c) * (on ? 1 : 0.75);
+    BAG.alone.scale.set(sA, sA * 1.25, 1); BAG.alone.material.opacity = k * (on ? 0.6 + 0.4 * c : 0.2);
+    // la scia: un bagliore ogni 0,05 s dal ragazzo, che resta indietro col mondo e si spegne in 0,4 s
+    ciclista.bici.gruppo.getWorldPosition(BAG.pos); BAG.pos.y += 1.0;
+    BAG.prossima -= dt;
+    if (BAG.prossima <= 0 && on) {
+      BAG.prossima = 0.05;
+      const q = BAG.scia.find(function (x) { return x.vita <= 0; }) || BAG.scia[0];
+      q.vita = 0.4; q.sp.position.copy(BAG.pos); q.sp.visible = true; q.c = c;
+    }
+    const vMondo = V0 * S.F;
+    BAG.scia.forEach(function (q) {
+      if (q.vita <= 0) { q.sp.visible = false; return; }
+      q.vita -= dt; q.sp.position.z += vMondo * dt;
+      const u = Math.max(0, q.vita / 0.4), sc = (0.9 + 0.8 * (q.c || 0)) * (0.5 + 0.5 * u);
+      q.sp.scale.set(sc, sc * 1.4, 1); q.sp.material.opacity = k * 0.7 * u * (0.6 + 0.4 * c);
+    });
+  }
   function giallo(on, t) {
     if (on !== GIALLO.acceso) {
       GIALLO.acceso = on;
@@ -580,7 +618,7 @@ PZ.creaCorsa = function (opz) {
       });
     }
     if (on) {                                            // pulsa tra giallo fluo, quasi bianco e ambra
-      const p = 0.5 + 0.5 * Math.sin(t * 22), q = 0.5 + 0.5 * Math.sin(t * 9 + 1);
+      const p = Math.max(0.5 + 0.5 * Math.sin(t * 22) * 0.5, battito()), q = 0.5 + 0.5 * Math.sin(t * 9 + 1);   // (fase 115) a tempo
       GIALLO.m.color.setRGB(1, 0.86 + 0.14 * p, 0.12 + 0.55 * p * q); GIALLO.ms.color.copy(GIALLO.m.color);
       GIALLO.luce.intensity = 1.6 + 0.8 * p;
     } else GIALLO.luce.intensity = 0;

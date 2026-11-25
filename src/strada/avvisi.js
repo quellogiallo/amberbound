@@ -28,7 +28,7 @@ PZ.avvisi = (function () {
       'Nessuna fine: corri finché reggi. Più metri fai, più la strada si fa difficile.',
       'Ogni <b>50 frammenti</b> la pietra ti dà un potere, a scelta:',
       '<b>CUORE D\'AMBRA</b>: una vita in più (fino a 3). Se il demone ti prende, la pietra lo respinge.',
-      '<b>FURIA D\'AMBRA</b>: 8 secondi invincibile. Sfondi auto, transenne e mani, il demone resta indietro e i metri contano doppio.'] },
+      '<b>FURIA GIALLA</b>: 8 secondi invincibile. Sfondi auto, transenne e mani, il demone resta indietro e i metri contano doppio.'] },
     // (fase 111) lo SWAG: il salto sopra un'auto
     swag: { titolo: 'SALTO SWAG', righe: [
       'Un\'auto ti viene addosso nella tua corsia? Con il <b>tempismo perfetto</b> puoi <b>SALTARLA</b>.',
